@@ -26,6 +26,29 @@ const DEFAULT_DISTRACTOR_COUNT = 0;
 const MIN_ITEM_SIZE = 70;
 const MAX_ITEM_SIZE = 120;
 
+type CategoryKey = "colors" | "shapes" | "objects";
+
+const COLOR_STIMULI: Stimulus[] = [
+  { id: "color-red", label: "Roșu", image: "#E53935" },
+  { id: "color-green", label: "Verde", image: "#43A047" },
+  { id: "color-blue", label: "Albastru", image: "#1E88E5" },
+  { id: "color-yellow", label: "Galben", image: "#FDD835" },
+  { id: "color-orange", label: "Portocaliu", image: "#FB8C00" },
+  { id: "color-purple", label: "Mov", image: "#8E24AA" },
+  { id: "color-pink", label: "Roz", image: "#EC407A" },
+  { id: "color-brown", label: "Maro", image: "#6D4C41" },
+  { id: "color-black", label: "Negru", image: "#212121" },
+  { id: "color-white", label: "Alb", image: "#FAFAFA" },
+  { id: "color-gray", label: "Gri", image: "#757575" },
+  { id: "color-beige", label: "Bej", image: "#D7C4A3" },
+];
+
+const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
+  colors: COLOR_STIMULI,
+  shapes: MOCK_STIMULI.slice(4, 8),
+  objects: MOCK_STIMULI.slice(8, 12),
+};
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -108,8 +131,9 @@ function buildB1Config(params: TrialParams): B1Config {
       return [];
     }
   })();
-  const targets = targetIds
-    .map((id) => MOCK_STIMULI.find((s) => s.id === id))
+  const pool = STIMULI_BY_CATEGORY[category] ?? [];
+  const selectedTargets = targetIds
+    .map((id) => pool.find((s) => s.id === id))
     .filter((s): s is Stimulus => s != null);
   const distractorCount = Number(params.distractorCount ?? DEFAULT_DISTRACTOR_COUNT);
   const resolvedDistractorCount = Number.isNaN(distractorCount) || distractorCount < 0
@@ -117,9 +141,9 @@ function buildB1Config(params: TrialParams): B1Config {
     : distractorCount;
   return {
     category,
-    targets: targets.length > 0 ? targets : MOCK_STIMULI.slice(0, MAX_TOP_TARGETS),
+    targets: selectedTargets,
     distractorCount: resolvedDistractorCount,
-    pool: MOCK_STIMULI,
+    pool,
   };
 }
 

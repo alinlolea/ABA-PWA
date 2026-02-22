@@ -1,5 +1,4 @@
 import { Colors } from "@/design/colors";
-import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import { Pressable, StyleSheet, Text } from "react-native";
 
@@ -19,13 +18,12 @@ export default function PrimaryButton({ title, onPress }: Props) {
 const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.accent,
-    minHeight: 54,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 28,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    alignSelf: "flex-start",
   },
   text: {
     color: "#FFFFFF",

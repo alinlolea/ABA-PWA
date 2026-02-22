@@ -1,6 +1,7 @@
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Stepper from "@/components/ui/Stepper";
+import { OBJECTIVES } from "@/config/objectives";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
@@ -14,62 +15,76 @@ import {
   Text,
   View,
   Pressable,
+  useWindowDimensions,
 } from "react-native";
+
+const GRID_COLUMNS = 6;
+const COLOR_CIRCLE_MIN = 30;
+const COLOR_CIRCLE_MAX = 40;
+const COLOR_GRID_GAP = 24;
 
 type CategoryKey = "colors" | "shapes" | "objects";
 
+const COLORS_DATA: { id: string; label: string; hex: string }[] = [
+  { id: "color-red", label: "Roșu", hex: "#E53935" },
+  { id: "color-green", label: "Verde", hex: "#43A047" },
+  { id: "color-blue", label: "Albastru", hex: "#1E88E5" },
+  { id: "color-yellow", label: "Galben", hex: "#FDD835" },
+  { id: "color-orange", label: "Portocaliu", hex: "#FB8C00" },
+  { id: "color-purple", label: "Mov", hex: "#8E24AA" },
+  { id: "color-pink", label: "Roz", hex: "#EC407A" },
+  { id: "color-brown", label: "Maro", hex: "#6D4C41" },
+  { id: "color-black", label: "Negru", hex: "#212121" },
+  { id: "color-white", label: "Alb", hex: "#FAFAFA" },
+  { id: "color-gray", label: "Gri", hex: "#757575" },
+  { id: "color-beige", label: "Bej", hex: "#D7C4A3" },
+];
+
+const COLORS_AS_STIMULI: Stimulus[] = COLORS_DATA.map((c) => ({
+  id: c.id,
+  label: c.label,
+  image: c.hex,
+}));
+
 const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
-  colors: MOCK_STIMULI.slice(0, 4),
+  colors: COLORS_AS_STIMULI,
   shapes: MOCK_STIMULI.slice(4, 8),
   objects: MOCK_STIMULI.slice(8, 12),
-};
-
-const CATEGORY_LABELS: Record<CategoryKey, string> = {
-  colors: "Culori",
-  shapes: "Forme",
-  objects: "Obiecte",
 };
 
 const MAX_TARGETS = 3;
 const MAX_BOTTOM_ITEMS = 6;
 const DISTRACTOR_MAX = 3;
 
-type Objective = {
-  id: number;
-  label: string;
-  enabled: boolean;
-};
-
-const OBJECTIVES: Objective[] = [
-  { id: 1, label: "Potriviri 2D la 2D", enabled: true },
-  { id: 2, label: "Sortare itemi non-identici", enabled: false },
-  { id: 3, label: "Construcție cuburi peste model", enabled: false },
-  { id: 4, label: "Construcție cuburi la fel", enabled: false },
-  { id: 5, label: "Reproducere pattern", enabled: false },
-  { id: 6, label: "Continuare pattern", enabled: false },
-  { id: 7, label: "Asociere logică imagini", enabled: false },
-  { id: 8, label: "Sortare după funcție", enabled: false },
-  { id: 9, label: "Sortare după caracteristică", enabled: false },
-  { id: 10, label: "Sortare pe categorie", enabled: false },
-  { id: 11, label: "Găsește item dispărut", enabled: false },
-  { id: 12, label: "Reproduce secvență obiecte", enabled: false },
-  { id: 13, label: "Ordonează după criteriu", enabled: false },
-  { id: 14, label: "Aranjare cronologică", enabled: false },
-];
-
 export default function Dashboard() {
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
   const [selectedId, setSelectedId] = useState<number>(1);
-  const [category, setCategory] = useState<CategoryKey>("colors");
+  const [categoryId, setCategoryId] = useState<string>("colors");
   const [selectedTargets, setSelectedTargets] = useState<Stimulus[]>([]);
   const [distractorCount, setDistractorCount] = useState(0);
 
-  const selected = OBJECTIVES.find((o) => o.id === selectedId);
-  const isActive = selected?.enabled ?? false;
+  const selectedObjective = OBJECTIVES.find((o) => o.id === selectedId);
+  const isActive = selectedObjective?.enabled ?? false;
+  const categories = selectedObjective?.categories ?? [];
+  const selectedCategoryLabel = categories.find((c) => c.id === categoryId)?.label ?? "";
 
-  const categoryStimuli = useMemo(() => STIMULI_BY_CATEGORY[category], [category]);
+  const categoryStimuli = useMemo(() => {
+    if (categoryId && categoryId in STIMULI_BY_CATEGORY) {
+      return STIMULI_BY_CATEGORY[categoryId as CategoryKey];
+    }
+    return [];
+  }, [categoryId]);
   const distractorMax = Math.min(DISTRACTOR_MAX, Math.max(0, MAX_BOTTOM_ITEMS - selectedTargets.length));
   const canStart = selectedTargets.length > 0;
+
+  useEffect(() => {
+    if (categories.length > 0 && !categories.some((c) => c.id === categoryId)) {
+      setCategoryId(categories[0].id);
+      setSelectedTargets([]);
+      setDistractorCount(0);
+    }
+  }, [selectedId, categories, categoryId]);
 
   useEffect(() => {
     if (distractorCount > distractorMax) {
@@ -77,8 +92,8 @@ export default function Dashboard() {
     }
   }, [distractorMax, distractorCount]);
 
-  const handleCategoryChange = (next: CategoryKey) => {
-    setCategory(next);
+  const handleCategoryChange = (nextId: string) => {
+    setCategoryId(nextId);
     setSelectedTargets([]);
     setDistractorCount(0);
   };
@@ -104,22 +119,44 @@ export default function Dashboard() {
     router.push({
       pathname: "/trial",
       params: {
-        category,
+        category: categoryId,
         targets: JSON.stringify(selectedTargets.map((t) => t.id)),
         distractorCount: distractorCount.toString(),
       },
     });
   };
 
+  const configColumnWidth = screenWidth * (categories.length > 0 ? 0.55 : 0.75);
+  const gridPadding = Spacing.xl;
+  const isColorsCategory = categoryId === "colors";
+  const colorCircleDiameter = Math.min(
+    COLOR_CIRCLE_MAX,
+    Math.max(
+      COLOR_CIRCLE_MIN,
+      Math.floor((configColumnWidth - gridPadding * 2 - COLOR_GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS - 24 - COLOR_GRID_GAP)
+    )
+  );
+  const colorCellWidth = colorCircleDiameter + 24;
+  const colorGridWidth = colorCellWidth * GRID_COLUMNS + COLOR_GRID_GAP * (GRID_COLUMNS - 1);
+  const gridGap = isColorsCategory ? COLOR_GRID_GAP : Spacing.sm;
+  const gridInnerWidth = Math.max(0, configColumnWidth - gridPadding * 2 - gridGap * (GRID_COLUMNS - 1));
+  const gridItemSize = Math.min(
+    Math.max(56, Math.floor(gridInnerWidth / GRID_COLUMNS - gridGap)),
+    96
+  );
+  const targetGridWidth = isColorsCategory
+    ? colorGridWidth
+    : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
+
   return (
     <ScreenContainer>
       <View style={styles.root}>
         <View style={styles.dashboard}>
-          <View style={styles.leftPanel}>
-            <Text style={styles.leftPanelHeader}>Obiective</Text>
+          <View style={styles.objectivesColumn}>
+            <Text style={styles.columnHeader}>Obiective</Text>
             <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={styles.scrollContent}
+              style={styles.columnScroll}
+              contentContainerStyle={styles.columnScrollContent}
               showsVerticalScrollIndicator={true}
             >
               {OBJECTIVES.map((obj) => {
@@ -151,98 +188,173 @@ export default function Dashboard() {
                       ]}
                       numberOfLines={2}
                     >
-                      {obj.label}
+                      {obj.title}
                     </Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
           </View>
+          <View style={styles.columnDivider} />
 
-          <ScrollView
-            style={styles.rightPanel}
-            contentContainerStyle={styles.rightPanelContent}
-            showsVerticalScrollIndicator={true}
-          >
-            {isActive ? (
-              <>
-                <Text style={styles.panelTitle}>{selected?.label}</Text>
-                <View style={styles.titleDivider} />
-
-                <Text style={styles.configLabel}>Categorie</Text>
-                <View style={styles.segmentRow}>
-                  {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => (
-                    <Pressable
-                      key={key}
-                      style={[
-                        styles.segmentButton,
-                        category === key && styles.segmentButtonSelected,
-                      ]}
-                      onPress={() => handleCategoryChange(key)}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentButtonText,
-                          category === key && styles.segmentButtonTextSelected,
-                        ]}
-                      >
-                        {CATEGORY_LABELS[key]}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-
-                <Text style={styles.configLabel}>Obiecte țintă (max {MAX_TARGETS})</Text>
-                <View style={styles.targetGrid}>
-                  {categoryStimuli.map((stimulus) => {
-                    const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
-                    const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
+          {categories.length > 0 && (
+            <>
+              <View style={styles.categoriesColumn}>
+                <Text style={styles.columnHeader}>Categorii</Text>
+                <ScrollView
+                  style={styles.columnScroll}
+                  contentContainerStyle={styles.columnScrollContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  {categories.map((cat) => {
+                    const isSelected = categoryId === cat.id;
                     return (
                       <Pressable
-                        key={stimulus.id}
+                        key={cat.id}
                         style={[
-                          styles.targetItem,
-                          isSelected && styles.targetItemSelected,
-                          { backgroundColor: color },
+                          styles.categoryRow,
+                          isSelected && styles.categoryRowSelected,
                         ]}
-                        onPress={() => handleTargetPress(stimulus)}
-                      />
+                        onPress={() => handleCategoryChange(cat.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryRowText,
+                            isSelected && styles.categoryRowTextSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.label}
+                        </Text>
+                      </Pressable>
                     );
                   })}
-                </View>
+                </ScrollView>
+              </View>
+              <View style={styles.columnDivider} />
+            </>
+          )}
 
-                <Text style={styles.configLabel}>
-                  Adaugă număr de distractori
-                </Text>
-                <View style={styles.stepperSection}>
-                  <Stepper
-                    value={distractorCount}
-                    min={0}
-                    max={distractorMax}
-                    onChange={handleDistractorChange}
-                  />
-                </View>
-                <View style={styles.buttonSpacer}>
-                  {canStart ? (
-                    <PrimaryButton
-                      title="Start sesiune"
-                      onPress={handleStartSesiune}
-                    />
+          <ScrollView
+            style={[
+              styles.configColumn,
+              categories.length > 0 && styles.configColumnFixed,
+            ]}
+            contentContainerStyle={styles.configColumnContent}
+            showsVerticalScrollIndicator={true}
+          >
+            <View style={styles.configInner}>
+              {isActive ? (
+                <>
+                  <View style={styles.headerSection}>
+                    <Text style={styles.panelTitle}>{selectedObjective?.title}</Text>
+                    {selectedCategoryLabel ? (
+                      <Text style={styles.panelSubtitle}>{selectedCategoryLabel}</Text>
+                    ) : null}
+                    <View style={styles.titleDivider} />
+                  </View>
+
+                  <Text style={styles.configLabel}>Obiecte țintă (max {MAX_TARGETS})</Text>
+                  {isColorsCategory ? (
+                    <View style={styles.targetGridWrap}>
+                      <View
+                        style={[
+                          styles.targetGrid,
+                          { gap: gridGap, width: targetGridWidth },
+                        ]}
+                      >
+                        {categoryStimuli.map((stimulus) => {
+                          const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
+                          const colorHex = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
+                          return (
+                            <Pressable
+                              key={stimulus.id}
+                              style={[styles.colorCell, { width: colorCellWidth }]}
+                              onPress={() => handleTargetPress(stimulus)}
+                            >
+                              <View
+                                style={[
+                                  styles.colorCircle,
+                                  {
+                                    width: colorCircleDiameter,
+                                    height: colorCircleDiameter,
+                                    borderRadius: 999,
+                                    backgroundColor: colorHex,
+                                    borderWidth: 2,
+                                    borderColor: isSelected ? Colors.accent : Colors.border,
+                                  },
+                                ]}
+                              />
+                              <Text style={styles.colorLabel} numberOfLines={1}>
+                                {stimulus.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
                   ) : (
+                    <ScrollView
+                      style={styles.targetGridScroll}
+                      contentContainerStyle={[
+                        styles.targetGrid,
+                        { gap: gridGap, width: targetGridWidth },
+                      ]}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {categoryStimuli.map((stimulus) => {
+                        const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
+                        const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
+                        return (
+                          <Pressable
+                            key={stimulus.id}
+                            style={[
+                              styles.targetItem,
+                              isSelected && styles.targetItemSelected,
+                              { width: gridItemSize, height: gridItemSize, backgroundColor: color },
+                            ]}
+                            onPress={() => handleTargetPress(stimulus)}
+                          />
+                        );
+                      })}
+                    </ScrollView>
+                  )}
+
+                  <Text style={styles.configLabel}>
+                    Adaugă număr de distractori
+                  </Text>
+                  <View style={styles.stepperSection}>
+                    <Stepper
+                      value={distractorCount}
+                      min={0}
+                      max={distractorMax}
+                      onChange={handleDistractorChange}
+                    />
+                  </View>
+                  <View style={styles.buttonSpacer}>
+                    {canStart ? (
+                      <PrimaryButton
+                        title="Start sesiune"
+                        onPress={handleStartSesiune}
+                      />
+                    ) : (
+                      <View style={styles.buttonDisabled}>
+                        <Text style={styles.buttonDisabledText}>Start sesiune</Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.placeholderText}>În dezvoltare</Text>
+                  <View style={styles.buttonSpacer}>
                     <View style={styles.buttonDisabled}>
                       <Text style={styles.buttonDisabledText}>Start sesiune</Text>
                     </View>
-                  )}
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.placeholderText}>În dezvoltare</Text>
-                <View style={styles.buttonDisabled}>
-                  <Text style={styles.buttonDisabledText}>Start sesiune</Text>
-                </View>
-              </>
-            )}
+                  </View>
+                </>
+              )}
+            </View>
           </ScrollView>
         </View>
       </View>
@@ -259,24 +371,32 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
-  leftPanel: {
-    width: "28%",
+  objectivesColumn: {
+    width: "25%",
     flexShrink: 0,
-    borderRightWidth: 1,
-    borderRightColor: Colors.divider,
     padding: Spacing.lg,
     backgroundColor: Colors.panelSubtle,
   },
-  leftPanelHeader: {
+  categoriesColumn: {
+    width: "20%",
+    flexShrink: 0,
+    padding: Spacing.lg,
+    backgroundColor: Colors.panelSubtle,
+  },
+  columnDivider: {
+    width: 1,
+    backgroundColor: Colors.divider,
+  },
+  columnHeader: {
     fontSize: Typography.subtitle,
     fontWeight: "600",
     color: Colors.textPrimary,
     marginBottom: Spacing.xl,
   },
-  scroll: {
+  columnScroll: {
     flex: 1,
   },
-  scrollContent: {
+  columnScrollContent: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
   },
@@ -311,68 +431,95 @@ const styles = StyleSheet.create({
   objectiveTextDisabled: {
     color: Colors.textSecondary,
   },
-  rightPanel: {
+  categoryRow: {
+    paddingVertical: 16,
+    paddingHorizontal: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  categoryRowSelected: {
+    backgroundColor: Colors.selectedHighlight,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+  },
+  categoryRowText: {
+    fontSize: Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  categoryRowTextSelected: {
+    color: Colors.accent,
+    fontWeight: "600",
+  },
+  configColumn: {
     flex: 1,
   },
-  rightPanelContent: {
+  configColumnFixed: {
+    width: "55%",
+    flexShrink: 0,
+  },
+  configColumnContent: {
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
   },
+  configInner: {
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
+  },
+  headerSection: {
+    maxHeight: "15%",
+    marginBottom: Spacing.md,
+  },
   panelTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "600",
     color: Colors.textPrimary,
-    marginBottom: 32,
+    marginBottom: 2,
+  },
+  panelSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
   titleDivider: {
     width: "100%",
     height: 1,
     backgroundColor: Colors.divider,
-    marginBottom: Spacing.xxl,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   configLabel: {
     fontSize: 14,
     color: Colors.textSecondary,
     marginBottom: 12,
   },
-  segmentRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
+  targetGridWrap: {
     marginBottom: Spacing.xl,
   },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 10,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentButtonSelected: {
-    backgroundColor: Colors.selectedHighlight,
-    borderColor: Colors.accent,
-  },
-  segmentButtonText: {
-    fontSize: Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-  },
-  segmentButtonTextSelected: {
-    color: Colors.accent,
-    fontWeight: "600",
+  targetGridScroll: {
+    marginBottom: Spacing.xl,
+    maxHeight: 320,
   },
   targetGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
+  },
+  colorCell: {
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  colorCircle: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  colorLabel: {
+    fontSize: 12,
+    color: Colors.textPrimary,
+    marginTop: 4,
+    textAlign: "center",
   },
   targetItem: {
-    width: 64,
-    height: 64,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -388,7 +535,7 @@ const styles = StyleSheet.create({
   },
   buttonSpacer: {
     marginTop: 24,
-    width: "100%",
+    alignSelf: "center",
   },
   placeholderText: {
     fontSize: Typography.body,
@@ -399,13 +546,12 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: Colors.border,
-    minHeight: 54,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 28,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    alignSelf: "flex-start",
     opacity: 0.7,
   },
   buttonDisabledText: {

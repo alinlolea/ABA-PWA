@@ -1,7 +1,6 @@
 import type { B1Config, Stimulus, Trial } from "../types";
 
 const TRIAL_COUNT = 10;
-const MAX_TOP_TARGETS = 3;
 
 function shuffle<T>(array: T[]): T[] {
   const out = [...array];
@@ -25,10 +24,10 @@ function pickDistractors(
 
 export function generateTrials(config: B1Config): Trial[] {
   const trials: Trial[] = [];
+  const pool = config.pool ?? [];
 
   for (let i = 0; i < TRIAL_COUNT; i++) {
-    const topTargets = config.targets.slice(0, MAX_TOP_TARGETS).map((s) => ({ ...s }));
-    const pool = config.pool ?? [];
+    const topTargets = config.targets.map((s) => ({ ...s }));
     const randomDistractors = pickDistractors(
       config.targets,
       pool,
