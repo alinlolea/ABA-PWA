@@ -15,6 +15,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Svg, { Circle, Rect, Polygon, Ellipse } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
 const CORRECT_FEEDBACK_MS = 600;
@@ -43,9 +44,21 @@ const COLOR_STIMULI: Stimulus[] = [
   { id: "color-beige", label: "Bej", image: "#D7C4A3" },
 ];
 
+const SHAPE_FILL = "#4B5563";
+
+const SHAPE_STIMULI: Stimulus[] = [
+  { id: "circle", label: "Cerc", image: { type: "shape", form: "circle", fill: SHAPE_FILL } },
+  { id: "square", label: "Pătrat", image: { type: "shape", form: "square", fill: SHAPE_FILL } },
+  { id: "triangle", label: "Triunghi", image: { type: "shape", form: "triangle", fill: SHAPE_FILL } },
+  { id: "rectangle", label: "Dreptunghi", image: { type: "shape", form: "rectangle", fill: SHAPE_FILL } },
+  { id: "oval", label: "Oval", image: { type: "shape", form: "oval", fill: SHAPE_FILL } },
+  { id: "star", label: "Stea", image: { type: "shape", form: "star", fill: SHAPE_FILL } },
+  { id: "diamond", label: "Romb", image: { type: "shape", form: "diamond", fill: SHAPE_FILL } },
+];
+
 const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
   colors: COLOR_STIMULI,
-  shapes: MOCK_STIMULI.slice(4, 8),
+  shapes: SHAPE_STIMULI,
   objects: MOCK_STIMULI.slice(8, 12),
 };
 
@@ -57,26 +70,109 @@ function distance(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
 }
 
+function isShapeStimulus(image: unknown): image is { type: "shape"; form: string; fill: string } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    (image as { type: string }).type === "shape"
+  );
+}
+
+function TrialShapeSvg({
+  form,
+  size,
+  fill,
+}: {
+  form: string;
+  size: number;
+  fill: string;
+}) {
+  const s = size;
+  const h = size / 2;
+  const viewBox = `0 0 ${s} ${s}`;
+
+  if (form === "circle") {
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Circle cx={h} cy={h} r={h} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "square") {
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Rect width={s} height={s} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "triangle") {
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Polygon points={`${h},0 ${s},${s} 0,${s}`} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "rectangle") {
+    const rectHeight = s * 0.6;
+    const y = (s - rectHeight) / 2;
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Rect x={0} y={y} width={s} height={rectHeight} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "oval") {
+    const ry = (s * 0.6) / 2;
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Ellipse cx={h} cy={h} rx={h} ry={ry} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "diamond") {
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Polygon points={`${h},0 ${s},${h} ${h},${s} 0,${h}`} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "star") {
+    const starPoints = `${h},0 ${s * 0.62},${s * 0.38} ${s},${s * 0.38} ${s * 0.69},${s * 0.62} ${s * 0.81},${s} ${h},${s * 0.75} ${s * 0.19},${s} ${s * 0.31},${s * 0.62} 0,${s * 0.38} ${s * 0.38},${s * 0.38}`;
+    return (
+      <Svg width={s} height={s} viewBox={viewBox}>
+        <Polygon points={starPoints} fill={fill} />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={s} height={s} viewBox={viewBox}>
+      <Rect width={s} height={s} fill={fill} />
+    </Svg>
+  );
+}
+
 function StimulusPlaceholder({
   stimulus,
   size,
-  borderWidth,
-  borderColor,
 }: {
   stimulus: Stimulus;
   size: number;
-  borderWidth?: number;
-  borderColor?: string;
 }) {
+  const itemBoxStyle = [styles.itemBox, { width: size, height: size }];
+
+  if (isShapeStimulus(stimulus.image)) {
+    return (
+      <View style={itemBoxStyle}>
+        <TrialShapeSvg form={stimulus.image.form} size={size} fill={stimulus.image.fill} />
+      </View>
+    );
+  }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
-    <View
-      style={[
-        styles.stimulusBox,
-        { width: size, height: size, backgroundColor: color },
-        borderWidth !== undefined && { borderWidth, borderColor },
-      ]}
-    />
+    <View style={itemBoxStyle}>
+      <View style={{ width: size, height: size, backgroundColor: color }} />
+    </View>
   );
 }
 
@@ -91,28 +187,41 @@ function OptionSlot({
   optionRef: (el: View | null) => void;
   itemSize: number;
 }) {
-  const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
-  const borderColor = isHighlighted ? Colors.correct : Colors.divider;
+  const borderColor = isHighlighted ? Colors.correct : "#D1D5DB";
   const borderWidth = isHighlighted ? 4 : 1;
+  const itemBoxStyle = [
+    styles.itemBox,
+    { width: itemSize, height: itemSize, borderWidth, borderColor },
+  ];
 
+  if (isShapeStimulus(stimulus.image)) {
+    return (
+      <View
+        ref={optionRef}
+        collapsable={false}
+        style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
+      >
+        <View style={itemBoxStyle}>
+          <TrialShapeSvg
+            form={stimulus.image.form}
+            size={itemSize}
+            fill={stimulus.image.fill}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
     <View
       ref={optionRef}
       collapsable={false}
       style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
     >
-      <View
-        style={[
-          styles.optionInner,
-          {
-            width: itemSize,
-            height: itemSize,
-            backgroundColor: color,
-            borderWidth,
-            borderColor,
-          },
-        ]}
-      />
+      <View style={itemBoxStyle}>
+        <View style={{ width: itemSize, height: itemSize, backgroundColor: color }} />
+      </View>
     </View>
   );
 }
@@ -587,11 +696,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  optionInner: {
-    borderRadius: 12,
-  },
-  stimulusBox: {
-    borderRadius: 16,
+  itemBox: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
   completedRoot: {
     flex: 1,

@@ -17,6 +17,7 @@ import {
   Pressable,
   useWindowDimensions,
 } from "react-native";
+import Svg, { Circle, Rect, Polygon, Ellipse } from "react-native-svg";
 
 const GRID_COLUMNS = 6;
 const COLOR_CIRCLE_MIN = 30;
@@ -46,15 +47,119 @@ const COLORS_AS_STIMULI: Stimulus[] = COLORS_DATA.map((c) => ({
   image: c.hex,
 }));
 
+const SHAPE_FILL = "#4B5563";
+
+const SHAPES_DATA: { id: string; label: string; form: string }[] = [
+  { id: "circle", label: "Cerc", form: "circle" },
+  { id: "square", label: "Pătrat", form: "square" },
+  { id: "triangle", label: "Triunghi", form: "triangle" },
+  { id: "rectangle", label: "Dreptunghi", form: "rectangle" },
+  { id: "oval", label: "Oval", form: "oval" },
+  { id: "star", label: "Stea", form: "star" },
+  { id: "diamond", label: "Romb", form: "diamond" },
+];
+
+const SHAPES_AS_STIMULI: Stimulus[] = SHAPES_DATA.map((s) => ({
+  id: s.id,
+  label: s.label,
+  image: { type: "shape", form: s.form, fill: SHAPE_FILL },
+}));
+
 const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
   colors: COLORS_AS_STIMULI,
-  shapes: MOCK_STIMULI.slice(4, 8),
+  shapes: SHAPES_AS_STIMULI,
   objects: MOCK_STIMULI.slice(8, 12),
 };
 
 const MAX_TARGETS = 3;
 const MAX_BOTTOM_ITEMS = 6;
 const DISTRACTOR_MAX = 3;
+
+function isShapeStimulus(image: unknown): image is { type: "shape"; form: string; fill: string } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    (image as { type: string }).type === "shape"
+  );
+}
+
+function ShapeThumb({
+  form,
+  size,
+  fill,
+  borderWidth,
+  borderColor,
+}: {
+  form: string;
+  size: number;
+  fill: string;
+  borderWidth: number;
+  borderColor: string;
+}) {
+  const s = size;
+  const h = size / 2;
+
+  if (form === "circle") {
+    return (
+      <Svg width={s} height={s}>
+        <Circle cx={h} cy={h} r={h} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "square") {
+    return (
+      <Svg width={s} height={s}>
+        <Rect width={s} height={s} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "triangle") {
+    return (
+      <Svg width={s} height={s}>
+        <Polygon points={`${h},0 ${s},${s} 0,${s}`} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "rectangle") {
+    return (
+      <Svg width={s} height={s}>
+        <Rect width={s} height={s * 0.6} x={0} y={(s - s * 0.6) / 2} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "oval") {
+    const ry = (s * 0.6) / 2;
+    return (
+      <Svg width={s} height={s}>
+        <Ellipse cx={h} cy={h} rx={h} ry={ry} fill={fill} />
+      </Svg>
+    );
+  }
+  if (form === "diamond") {
+    return (
+      <Svg width={s} height={s}>
+        <Polygon
+          points={`${h},0 ${s},${h} ${h},${s} 0,${h}`}
+          fill={fill}
+        />
+      </Svg>
+    );
+  }
+  if (form === "star") {
+    const starPoints = `${h},0 ${s * 0.62},${s * 0.38} ${s},${s * 0.38} ${s * 0.69},${s * 0.62} ${s * 0.81},${s} ${h},${s * 0.75} ${s * 0.19},${s} ${s * 0.31},${s * 0.62} 0,${s * 0.38} ${s * 0.38},${s * 0.38}`;
+    return (
+      <Svg width={s} height={s}>
+        <Polygon points={starPoints} fill={fill} />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={s} height={s}>
+      <Rect width={s} height={s} fill={fill} />
+    </Svg>
+  );
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -129,24 +234,42 @@ export default function Dashboard() {
   const configColumnWidth = screenWidth * (categories.length > 0 ? 0.55 : 0.75);
   const gridPadding = Spacing.xl;
   const isColorsCategory = categoryId === "colors";
+  const isShapesCategory = categoryId === "shapes";
+  const columnCount = isShapesCategory
+    ? categoryStimuli.length
+    : categoryStimuli.length <= 6
+      ? categoryStimuli.length
+      : 6;
   const colorCircleDiameter = Math.min(
     COLOR_CIRCLE_MAX,
     Math.max(
       COLOR_CIRCLE_MIN,
-      Math.floor((configColumnWidth - gridPadding * 2 - COLOR_GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS - 24 - COLOR_GRID_GAP)
+      columnCount > 0
+        ? Math.floor(
+            (configColumnWidth - gridPadding * 2 - COLOR_GRID_GAP * (columnCount - 1)) /
+              columnCount -
+              24 -
+              COLOR_GRID_GAP
+          )
+        : COLOR_CIRCLE_MIN
     )
   );
   const colorCellWidth = colorCircleDiameter + 24;
-  const colorGridWidth = colorCellWidth * GRID_COLUMNS + COLOR_GRID_GAP * (GRID_COLUMNS - 1);
-  const gridGap = isColorsCategory ? COLOR_GRID_GAP : Spacing.sm;
+  const colorGridWidth =
+    columnCount > 0
+      ? colorCellWidth * columnCount + COLOR_GRID_GAP * (columnCount - 1)
+      : 0;
+  const gridGap = isColorsCategory || isShapesCategory ? COLOR_GRID_GAP : Spacing.sm;
   const gridInnerWidth = Math.max(0, configColumnWidth - gridPadding * 2 - gridGap * (GRID_COLUMNS - 1));
   const gridItemSize = Math.min(
     Math.max(56, Math.floor(gridInnerWidth / GRID_COLUMNS - gridGap)),
     96
   );
-  const targetGridWidth = isColorsCategory
-    ? colorGridWidth
-    : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
+  const targetGridWidth =
+    isColorsCategory || isShapesCategory
+      ? colorGridWidth
+      : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
+  const shapeThumbSize = colorCircleDiameter;
 
   return (
     <ScreenContainer>
@@ -254,7 +377,13 @@ export default function Dashboard() {
                     <View style={styles.titleDivider} />
                   </View>
 
-                  <Text style={styles.configLabel}>Obiecte țintă (max {MAX_TARGETS})</Text>
+                  <Text style={styles.configLabel}>
+                    {categoryId === "colors"
+                      ? "Ce culoare vrei să învețe copilul?"
+                      : categoryId === "shapes"
+                        ? "Ce formă vrei să învețe copilul?"
+                        : `Obiecte țintă (max ${MAX_TARGETS})`}
+                  </Text>
                   {isColorsCategory ? (
                     <View style={styles.targetGridWrap}>
                       <View
@@ -285,6 +414,55 @@ export default function Dashboard() {
                                   },
                                 ]}
                               />
+                              <Text style={styles.colorLabel} numberOfLines={1}>
+                                {stimulus.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : isShapesCategory ? (
+                    <View style={styles.targetGridWrap}>
+                      <View
+                        style={[
+                          styles.targetGrid,
+                          { gap: gridGap, width: targetGridWidth, flexWrap: "nowrap" },
+                        ]}
+                      >
+                        {categoryStimuli.map((stimulus) => {
+                          const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
+                          const visual = isShapeStimulus(stimulus.image)
+                            ? stimulus.image
+                            : { type: "shape" as const, form: "circle", fill: SHAPE_FILL };
+                          return (
+                            <Pressable
+                              key={stimulus.id}
+                              style={[styles.colorCell, { width: colorCellWidth }]}
+                              onPress={() => handleTargetPress(stimulus)}
+                            >
+                              <View
+                                style={[
+                                  styles.shapeCellInner,
+                                  {
+                                    width: shapeThumbSize + 8,
+                                    height: shapeThumbSize + 8,
+                                  },
+                                  isSelected && {
+                                    borderWidth: 2,
+                                    borderColor: Colors.accent,
+                                    borderRadius: 8,
+                                  },
+                                ]}
+                              >
+                                <ShapeThumb
+                                  form={visual.form}
+                                  size={shapeThumbSize}
+                                  fill={visual.fill}
+                                  borderWidth={0}
+                                  borderColor="transparent"
+                                />
+                              </View>
                               <Text style={styles.colorLabel} numberOfLines={1}>
                                 {stimulus.label}
                               </Text>
@@ -508,6 +686,10 @@ const styles = StyleSheet.create({
   colorCell: {
     alignItems: "center",
     justifyContent: "flex-start",
+  },
+  shapeCellInner: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   colorCircle: {
     alignItems: "center",
