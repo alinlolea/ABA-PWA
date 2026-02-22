@@ -1,0 +1,10 @@
+export { default as ChairIcon } from "./ChairIcon";
+export { default as TableIcon } from "./TableIcon";
+export { default as BedIcon } from "./BedIcon";
+export { default as MugIcon } from "./MugIcon";
+export { default as GlassIcon } from "./GlassIcon";
+export { default as BookIcon } from "./BookIcon";
+export { default as PencilIcon } from "./PencilIcon";
+export { default as PhoneIcon } from "./PhoneIcon";
+export { default as KeyIcon } from "./KeyIcon";
+export { default as BallIcon } from "./BallIcon";

@@ -3,10 +3,10 @@ import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
-import { MOCK_STIMULI } from "@/features/b1-2d-matching/mockStimuli";
+import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   PanResponder,
@@ -27,40 +27,16 @@ const DEFAULT_DISTRACTOR_COUNT = 0;
 const MIN_ITEM_SIZE = 70;
 const MAX_ITEM_SIZE = 120;
 
-type CategoryKey = "colors" | "shapes" | "objects";
-
-const COLOR_STIMULI: Stimulus[] = [
-  { id: "color-red", label: "Roșu", image: "#E53935" },
-  { id: "color-green", label: "Verde", image: "#43A047" },
-  { id: "color-blue", label: "Albastru", image: "#1E88E5" },
-  { id: "color-yellow", label: "Galben", image: "#FDD835" },
-  { id: "color-orange", label: "Portocaliu", image: "#FB8C00" },
-  { id: "color-purple", label: "Mov", image: "#8E24AA" },
-  { id: "color-pink", label: "Roz", image: "#EC407A" },
-  { id: "color-brown", label: "Maro", image: "#6D4C41" },
-  { id: "color-black", label: "Negru", image: "#212121" },
-  { id: "color-white", label: "Alb", image: "#FAFAFA" },
-  { id: "color-gray", label: "Gri", image: "#757575" },
-  { id: "color-beige", label: "Bej", image: "#D7C4A3" },
+const VALID_CATEGORIES: CategoryKey[] = [
+  "colors",
+  "shapes",
+  "fruits",
+  "vegetables",
+  "animals",
+  "vehicles",
+  "food",
+  "objects",
 ];
-
-const SHAPE_FILL = "#4B5563";
-
-const SHAPE_STIMULI: Stimulus[] = [
-  { id: "circle", label: "Cerc", image: { type: "shape", form: "circle", fill: SHAPE_FILL } },
-  { id: "square", label: "Pătrat", image: { type: "shape", form: "square", fill: SHAPE_FILL } },
-  { id: "triangle", label: "Triunghi", image: { type: "shape", form: "triangle", fill: SHAPE_FILL } },
-  { id: "rectangle", label: "Dreptunghi", image: { type: "shape", form: "rectangle", fill: SHAPE_FILL } },
-  { id: "oval", label: "Oval", image: { type: "shape", form: "oval", fill: SHAPE_FILL } },
-  { id: "star", label: "Stea", image: { type: "shape", form: "star", fill: SHAPE_FILL } },
-  { id: "diamond", label: "Romb", image: { type: "shape", form: "diamond", fill: SHAPE_FILL } },
-];
-
-const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
-  colors: COLOR_STIMULI,
-  shapes: SHAPE_STIMULI,
-  objects: MOCK_STIMULI.slice(8, 12),
-};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -76,6 +52,18 @@ function isShapeStimulus(image: unknown): image is { type: "shape"; form: string
     image !== null &&
     "type" in image &&
     (image as { type: string }).type === "shape"
+  );
+}
+
+function isSvgStimulus(
+  image: unknown
+): image is { type: "svg"; icon: React.ComponentType<{ width?: number; height?: number; color?: string }> } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    "icon" in image &&
+    (image as { type: string }).type === "svg"
   );
 }
 
@@ -168,6 +156,14 @@ function StimulusPlaceholder({
       </View>
     );
   }
+  if (isSvgStimulus(stimulus.image)) {
+    const Icon = stimulus.image.icon;
+    return (
+      <View style={itemBoxStyle}>
+        <Icon width={size} height={size} color={Colors.textPrimary} />
+      </View>
+    );
+  }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
     <View style={itemBoxStyle}>
@@ -211,7 +207,20 @@ function OptionSlot({
       </View>
     );
   }
-
+  if (isSvgStimulus(stimulus.image)) {
+    const Icon = stimulus.image.icon;
+    return (
+      <View
+        ref={optionRef}
+        collapsable={false}
+        style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
+      >
+        <View style={itemBoxStyle}>
+          <Icon width={itemSize} height={itemSize} color={Colors.textPrimary} />
+        </View>
+      </View>
+    );
+  }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
     <View
@@ -229,7 +238,7 @@ function OptionSlot({
 type TrialParams = { category?: string; targets?: string; distractorCount?: string };
 
 function buildB1Config(params: TrialParams): B1Config {
-  const category = (params.category === "shapes" || params.category === "objects"
+  const category = (VALID_CATEGORIES.includes(params.category as CategoryKey)
     ? params.category
     : "colors") as B1Config["category"];
   const targetIds: string[] = (() => {

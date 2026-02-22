@@ -1,0 +1,10 @@
+export { default as BreadIcon } from "./BreadIcon";
+export { default as MilkIcon } from "./MilkIcon";
+export { default as EggIcon } from "./EggIcon";
+export { default as CheeseIcon } from "./CheeseIcon";
+export { default as PizzaIcon } from "./PizzaIcon";
+export { default as BurgerIcon } from "./BurgerIcon";
+export { default as SoupIcon } from "./SoupIcon";
+export { default as SandwichIcon } from "./SandwichIcon";
+export { default as CakeIcon } from "./CakeIcon";
+export { default as IcecreamIcon } from "./IcecreamIcon";

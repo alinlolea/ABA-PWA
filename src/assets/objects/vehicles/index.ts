@@ -1,0 +1,10 @@
+export { default as CarIcon } from "./CarIcon";
+export { default as BusIcon } from "./BusIcon";
+export { default as TruckIcon } from "./TruckIcon";
+export { default as BicycleIcon } from "./BicycleIcon";
+export { default as MotorcycleIcon } from "./MotorcycleIcon";
+export { default as TrainIcon } from "./TrainIcon";
+export { default as PlaneIcon } from "./PlaneIcon";
+export { default as ShipIcon } from "./ShipIcon";
+export { default as TractorIcon } from "./TractorIcon";
+export { default as AmbulanceIcon } from "./AmbulanceIcon";

@@ -5,7 +5,7 @@ export type Stimulus = {
 };
 
 export type B1Config = {
-  category: "colors" | "shapes" | "objects";
+  category: "colors" | "shapes" | "fruits" | "vegetables" | "animals" | "vehicles" | "food" | "objects";
   targets: Stimulus[];
   distractorCount: number;
   /** Stimuli in this category to pick distractors from (excludes targets). */

@@ -1,0 +1,10 @@
+export { default as CarrotIcon } from "./CarrotIcon";
+export { default as PotatoIcon } from "./PotatoIcon";
+export { default as TomatoIcon } from "./TomatoIcon";
+export { default as CucumberIcon } from "./CucumberIcon";
+export { default as PepperIcon } from "./PepperIcon";
+export { default as OnionIcon } from "./OnionIcon";
+export { default as GarlicIcon } from "./GarlicIcon";
+export { default as EggplantIcon } from "./EggplantIcon";
+export { default as BroccoliIcon } from "./BroccoliIcon";
+export { default as CornIcon } from "./CornIcon";

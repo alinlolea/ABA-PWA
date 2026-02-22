@@ -5,10 +5,10 @@ import { OBJECTIVES } from "@/config/objectives";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
-import { MOCK_STIMULI } from "@/features/b1-2d-matching/mockStimuli";
+import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -24,56 +24,10 @@ const COLOR_CIRCLE_MIN = 30;
 const COLOR_CIRCLE_MAX = 40;
 const COLOR_GRID_GAP = 24;
 
-type CategoryKey = "colors" | "shapes" | "objects";
-
-const COLORS_DATA: { id: string; label: string; hex: string }[] = [
-  { id: "color-red", label: "Roșu", hex: "#E53935" },
-  { id: "color-green", label: "Verde", hex: "#43A047" },
-  { id: "color-blue", label: "Albastru", hex: "#1E88E5" },
-  { id: "color-yellow", label: "Galben", hex: "#FDD835" },
-  { id: "color-orange", label: "Portocaliu", hex: "#FB8C00" },
-  { id: "color-purple", label: "Mov", hex: "#8E24AA" },
-  { id: "color-pink", label: "Roz", hex: "#EC407A" },
-  { id: "color-brown", label: "Maro", hex: "#6D4C41" },
-  { id: "color-black", label: "Negru", hex: "#212121" },
-  { id: "color-white", label: "Alb", hex: "#FAFAFA" },
-  { id: "color-gray", label: "Gri", hex: "#757575" },
-  { id: "color-beige", label: "Bej", hex: "#D7C4A3" },
-];
-
-const COLORS_AS_STIMULI: Stimulus[] = COLORS_DATA.map((c) => ({
-  id: c.id,
-  label: c.label,
-  image: c.hex,
-}));
-
-const SHAPE_FILL = "#4B5563";
-
-const SHAPES_DATA: { id: string; label: string; form: string }[] = [
-  { id: "circle", label: "Cerc", form: "circle" },
-  { id: "square", label: "Pătrat", form: "square" },
-  { id: "triangle", label: "Triunghi", form: "triangle" },
-  { id: "rectangle", label: "Dreptunghi", form: "rectangle" },
-  { id: "oval", label: "Oval", form: "oval" },
-  { id: "star", label: "Stea", form: "star" },
-  { id: "diamond", label: "Romb", form: "diamond" },
-];
-
-const SHAPES_AS_STIMULI: Stimulus[] = SHAPES_DATA.map((s) => ({
-  id: s.id,
-  label: s.label,
-  image: { type: "shape", form: s.form, fill: SHAPE_FILL },
-}));
-
-const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
-  colors: COLORS_AS_STIMULI,
-  shapes: SHAPES_AS_STIMULI,
-  objects: MOCK_STIMULI.slice(8, 12),
-};
-
 const MAX_TARGETS = 3;
 const MAX_BOTTOM_ITEMS = 6;
 const DISTRACTOR_MAX = 3;
+const SHAPE_FILL = "#4B5563";
 
 function isShapeStimulus(image: unknown): image is { type: "shape"; form: string; fill: string } {
   return (
@@ -81,6 +35,18 @@ function isShapeStimulus(image: unknown): image is { type: "shape"; form: string
     image !== null &&
     "type" in image &&
     (image as { type: string }).type === "shape"
+  );
+}
+
+function isSvgStimulus(
+  image: unknown
+): image is { type: "svg"; icon: React.ComponentType<{ width?: number; height?: number; color?: string }> } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    "icon" in image &&
+    (image as { type: string }).type === "svg"
   );
 }
 
@@ -434,7 +400,7 @@ export default function Dashboard() {
                           const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
                           const visual = isShapeStimulus(stimulus.image)
                             ? stimulus.image
-                            : { type: "shape" as const, form: "circle", fill: SHAPE_FILL };
+                            : { type: "shape" as const, form: "circle" as const, fill: SHAPE_FILL };
                           return (
                             <Pressable
                               key={stimulus.id}
@@ -482,6 +448,26 @@ export default function Dashboard() {
                     >
                       {categoryStimuli.map((stimulus) => {
                         const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
+                        if (isSvgStimulus(stimulus.image)) {
+                          const Icon = stimulus.image.icon;
+                          return (
+                            <Pressable
+                              key={stimulus.id}
+                              style={[
+                                styles.targetItem,
+                                isSelected && styles.targetItemSelected,
+                                { width: gridItemSize, height: gridItemSize },
+                              ]}
+                              onPress={() => handleTargetPress(stimulus)}
+                            >
+                              <Icon
+                                width={gridItemSize - 16}
+                                height={gridItemSize - 16}
+                                color={Colors.textPrimary}
+                              />
+                            </Pressable>
+                          );
+                        }
                         const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
                         return (
                           <Pressable

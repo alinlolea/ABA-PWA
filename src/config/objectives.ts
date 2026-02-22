@@ -16,6 +16,11 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
     categories: [
       { id: "colors", label: "Culori" },
       { id: "shapes", label: "Forme" },
+      { id: "fruits", label: "Fructe" },
+      { id: "vegetables", label: "Legume" },
+      { id: "animals", label: "Animale" },
+      { id: "vehicles", label: "Vehicule" },
+      { id: "food", label: "Alimente" },
       { id: "objects", label: "Obiecte" },
     ],
   },

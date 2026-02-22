@@ -1,0 +1,10 @@
+export { default as DogIcon } from "./DogIcon";
+export { default as CatIcon } from "./CatIcon";
+export { default as HorseIcon } from "./HorseIcon";
+export { default as CowIcon } from "./CowIcon";
+export { default as SheepIcon } from "./SheepIcon";
+export { default as PigIcon } from "./PigIcon";
+export { default as ChickenIcon } from "./ChickenIcon";
+export { default as DuckIcon } from "./DuckIcon";
+export { default as LionIcon } from "./LionIcon";
+export { default as ElephantIcon } from "./ElephantIcon";
