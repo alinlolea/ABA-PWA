@@ -67,6 +67,15 @@ function isSvgStimulus(
   );
 }
 
+function isPlaceholderStimulus(image: unknown): image is { type: "placeholder" } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    (image as { type: string }).type === "placeholder"
+  );
+}
+
 function TrialShapeSvg({
   form,
   size,
@@ -164,6 +173,16 @@ function StimulusPlaceholder({
       </View>
     );
   }
+  if (isPlaceholderStimulus(stimulus.image)) {
+    const firstLetter = stimulus.label ? [...stimulus.label][0] ?? "?" : "?";
+    return (
+      <View style={itemBoxStyle}>
+        <View style={[styles.placeholderBox, { width: size, height: size }]}>
+          <Text style={[styles.placeholderLetter, { fontSize: Math.max(14, size * 0.35) }]}>{firstLetter}</Text>
+        </View>
+      </View>
+    );
+  }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
     <View style={itemBoxStyle}>
@@ -217,6 +236,22 @@ function OptionSlot({
       >
         <View style={itemBoxStyle}>
           <Icon width={itemSize} height={itemSize} color={Colors.textPrimary} />
+        </View>
+      </View>
+    );
+  }
+  if (isPlaceholderStimulus(stimulus.image)) {
+    const firstLetter = stimulus.label ? [...stimulus.label][0] ?? "?" : "?";
+    return (
+      <View
+        ref={optionRef}
+        collapsable={false}
+        style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
+      >
+        <View style={itemBoxStyle}>
+          <View style={[styles.placeholderBox, { width: itemSize, height: itemSize }]}>
+            <Text style={[styles.placeholderLetter, { fontSize: Math.max(14, itemSize * 0.35) }]}>{firstLetter}</Text>
+          </View>
         </View>
       </View>
     );
@@ -711,6 +746,18 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
+  },
+  placeholderBox: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placeholderLetter: {
+    fontWeight: "700",
+    color: Colors.textPrimary,
   },
   completedRoot: {
     flex: 1,

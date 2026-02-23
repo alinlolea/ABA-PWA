@@ -50,6 +50,20 @@ function isSvgStimulus(
   );
 }
 
+function isPlaceholderStimulus(image: unknown): image is { type: "placeholder" } {
+  return (
+    typeof image === "object" &&
+    image !== null &&
+    "type" in image &&
+    (image as { type: string }).type === "placeholder"
+  );
+}
+
+const PLACEHOLDER_CATEGORY_IDS = ["fruits", "vegetables", "animals", "vehicles", "food", "objects"];
+function isPlaceholderCategory(categoryId: string): boolean {
+  return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
+}
+
 function ShapeThumb({
   form,
   size,
@@ -232,10 +246,11 @@ export default function Dashboard() {
     96
   );
   const targetGridWidth =
-    isColorsCategory || isShapesCategory
+    isColorsCategory || isShapesCategory || isPlaceholderCategory(categoryId)
       ? colorGridWidth
       : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
   const shapeThumbSize = colorCircleDiameter;
+  const placeholderBoxSize = shapeThumbSize + 8;
 
   return (
     <ScreenContainer>
@@ -428,6 +443,46 @@ export default function Dashboard() {
                                   borderWidth={0}
                                   borderColor="transparent"
                                 />
+                              </View>
+                              <Text style={styles.colorLabel} numberOfLines={1}>
+                                {stimulus.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : isPlaceholderCategory(categoryId) ? (
+                    <View style={styles.targetGridWrap}>
+                      <View
+                        style={[
+                          styles.targetGrid,
+                          { gap: gridGap, width: targetGridWidth },
+                        ]}
+                      >
+                        {categoryStimuli.map((stimulus) => {
+                          const isSelected = selectedTargets.some((s) => s.id === stimulus.id);
+                          const firstLetter = stimulus.label ? [...stimulus.label][0] ?? "?" : "?";
+                          return (
+                            <Pressable
+                              key={stimulus.id}
+                              style={[styles.colorCell, { width: colorCellWidth }]}
+                              onPress={() => handleTargetPress(stimulus)}
+                            >
+                              <View
+                                style={[
+                                  styles.placeholderBox,
+                                  {
+                                    width: placeholderBoxSize,
+                                    height: placeholderBoxSize,
+                                  },
+                                  isSelected && {
+                                    borderWidth: 2,
+                                    borderColor: Colors.accent,
+                                  },
+                                ]}
+                              >
+                                <Text style={styles.placeholderLetter}>{firstLetter}</Text>
                               </View>
                               <Text style={styles.colorLabel} numberOfLines={1}>
                                 {stimulus.label}
@@ -676,6 +731,19 @@ const styles = StyleSheet.create({
   shapeCellInner: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  placeholderBox: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placeholderLetter: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: Colors.textPrimary,
   },
   colorCircle: {
     alignItems: "center",
