@@ -1,3 +1,4 @@
+import { OBJECTIVES } from "@/config/objectives";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import { Spacing } from "@/design/spacing";
 import { auth, db } from "@/services/firebaseConfig";
@@ -19,6 +20,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Dimensions,
   FlatList,
   Modal,
   Pressable,
@@ -66,6 +68,11 @@ export default function MainDashboard() {
   const [dataExportModalVisible, setDataExportModalVisible] = useState(false);
   const [dataExportJson, setDataExportJson] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
+
+  const screenWidth = Dimensions.get("window").width;
+  const isNarrow = screenWidth < 900;
+  const selectedObjective = OBJECTIVES.find((o) => o.id === selectedObjectiveId) ?? null;
 
   useEffect(() => {
     if (!uid) return;
@@ -94,6 +101,10 @@ export default function MainDashboard() {
   }, [uid]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
+
+  useEffect(() => {
+    setSelectedObjectiveId(null);
+  }, [selectedChildId]);
 
   const openAddModal = () => {
     setForm(defaultForm);
@@ -190,10 +201,6 @@ export default function MainDashboard() {
         },
       ]
     );
-  };
-
-  const handleAdminDashboard = () => {
-    router.push("/admin-dashboard");
   };
 
   const handleSessionDashboard = () => {
@@ -318,73 +325,141 @@ export default function MainDashboard() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.mainContainer}>
         {/* TopBar */}
         <View style={styles.topBar}>
           <Text style={styles.topBarTitle}>ABA Professional</Text>
           <View style={styles.topBarRight}>
             <Pressable style={styles.iconButtonTopBar} onPress={openSettings}>
-              <Ionicons name="settings-outline" size={24} color="#F1F5F9" />
+              <Ionicons name="settings-outline" size={24} color="#475569" />
             </Pressable>
             <Pressable style={styles.logoutButton} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={24} color="#F1F5F9" />
+              <Ionicons name="log-out-outline" size={24} color="#475569" />
             </Pressable>
           </View>
         </View>
 
-        {/* Child Control Panel */}
-        <View style={styles.childPanel}>
-          <Text style={styles.panelLabel}>Copil activ</Text>
-          <Pressable
-            ref={triggerRef}
-            style={styles.dropdownTrigger}
-            onPress={() => {
-              triggerRef.current?.measureInWindow((x, y, width, height) => {
-                setDropdownLayout({ x, y, width, height });
-                setDropdownVisible(true);
-              });
-            }}
-          >
-            <Text style={styles.dropdownTriggerText} numberOfLines={1}>
-              {selectedChild?.name ?? "Selectează copil"}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#94A3B8" />
-          </Pressable>
-          <View style={styles.iconRow}>
-            <Pressable
-              style={[styles.iconButton, !selectedChild && styles.iconButtonDisabled]}
-              onPress={openEditModal}
-              disabled={!selectedChild}
+        {/* Content Area: 3 columns filling vertical space */}
+        <View style={[styles.contentArea, isNarrow && styles.contentAreaStacked]}>
+          {/* Column 1 – Child Management */}
+          <View style={styles.columnCard}>
+            <ScrollView
+              style={styles.columnScroll}
+              contentContainerStyle={styles.columnScrollContent}
+              showsVerticalScrollIndicator={false}
             >
-              <Ionicons
-                name="pencil"
-                size={20}
-                color={selectedChild ? "#3B82F6" : "#94A3B8"}
-              />
-            </Pressable>
-            <Pressable
-              style={[styles.iconButton, !selectedChild && styles.iconButtonDisabled]}
-              onPress={handleDeleteChild}
-              disabled={!selectedChild}
+              <Text style={styles.panelLabel}>Copil activ</Text>
+              <Pressable
+                ref={triggerRef}
+                style={styles.dropdownTrigger}
+                onPress={() => {
+                  triggerRef.current?.measureInWindow((x, y, width, height) => {
+                    setDropdownLayout({ x, y, width, height });
+                    setDropdownVisible(true);
+                  });
+                }}
+              >
+                <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                  {selectedChild?.name ?? "Selectează copil"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#64748B" />
+              </Pressable>
+              <View style={styles.iconRow}>
+                <Pressable
+                  style={[styles.iconButton, !selectedChild && styles.iconButtonDisabled]}
+                  onPress={openEditModal}
+                  disabled={!selectedChild}
+                >
+                  <Ionicons
+                    name="pencil"
+                    size={20}
+                    color={selectedChild ? "#2563EB" : "#94A3B8"}
+                  />
+                </Pressable>
+                <Pressable
+                  style={[styles.iconButton, !selectedChild && styles.iconButtonDisabled]}
+                  onPress={handleDeleteChild}
+                  disabled={!selectedChild}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={selectedChild ? "#EF4444" : "#94A3B8"}
+                  />
+                </Pressable>
+                <Pressable style={styles.iconButton} onPress={openAddModal}>
+                  <Ionicons name="add-circle" size={20} color="#2563EB" />
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Column 2 – Objectives */}
+          <View style={styles.columnCard}>
+            <ScrollView
+              style={styles.columnScroll}
+              contentContainerStyle={styles.columnScrollContent}
+              showsVerticalScrollIndicator={false}
             >
-              <Ionicons
-                name="trash-outline"
-                size={20}
-                color={selectedChild ? "#EF4444" : "#94A3B8"}
-              />
-            </Pressable>
-            <Pressable style={styles.iconButton} onPress={openAddModal}>
-              <Ionicons name="add-circle" size={20} color="#3B82F6" />
-            </Pressable>
+              <Text style={styles.columnTitle}>Obiective</Text>
+              {selectedChild ? (
+                <>
+                  {OBJECTIVES.map((obj) => {
+                    const isSelected = selectedObjectiveId === obj.id;
+                    return (
+                      <Pressable
+                        key={obj.id}
+                        style={[styles.objectiveRow, isSelected && styles.objectiveRowSelected]}
+                        onPress={() => setSelectedObjectiveId(obj.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.objectiveRowText,
+                            isSelected && styles.objectiveRowTextSelected,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {obj.id}. {obj.title}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </>
+              ) : (
+                <Text style={styles.columnPlaceholder}>Selectează un copil</Text>
+              )}
+            </ScrollView>
+          </View>
+
+          {/* Column 3 – Categories Progress */}
+          <View style={styles.columnCard}>
+            <ScrollView
+              style={styles.columnScroll}
+              contentContainerStyle={styles.columnScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.columnTitle}>Progres pe categorii</Text>
+              {selectedObjective ? (
+                <>
+                  {selectedObjective.categories.map((cat) => (
+                    <View key={cat.id} style={styles.categoryProgressRow}>
+                      <Text style={styles.categoryProgressName}>{cat.label}</Text>
+                      <View style={styles.progressBarBg}>
+                        <View style={styles.progressBarPlaceholder} />
+                      </View>
+                      <Text style={styles.progressPlaceholderText}>Progres în calcul...</Text>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <Text style={styles.columnPlaceholder}>Selectează un obiectiv</Text>
+              )}
+            </ScrollView>
           </View>
         </View>
 
-        {/* Primary Action Section */}
-        <View style={styles.primarySection}>
+        {/* Bottom Section – fixed, does not scroll */}
+        <View style={styles.bottomSection}>
           <Pressable
             style={styles.sessionButton}
             onPress={handleSessionDashboard}
@@ -392,14 +467,7 @@ export default function MainDashboard() {
             <Text style={styles.sessionButtonText}>Începe sesiunea</Text>
           </Pressable>
         </View>
-
-        {/* Secondary Action */}
-        <View style={styles.secondarySection}>
-          <Pressable style={styles.adminButton} onPress={handleAdminDashboard}>
-            <Text style={styles.adminButtonText}>Admin Dashboard</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+      </View>
 
       {/* Child dropdown: screen-level overlay */}
       <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
@@ -574,13 +642,10 @@ export default function MainDashboard() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0F172A",
+    backgroundColor: "#F8FAFC",
   },
-  scroll: {
+  mainContainer: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
   },
   topBar: {
     flexDirection: "row",
@@ -592,7 +657,7 @@ const styles = StyleSheet.create({
   topBarTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#F1F5F9",
+    color: "#0F172A",
   },
   topBarRight: {
     flexDirection: "row",
@@ -610,42 +675,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  childPanel: {
-    backgroundColor: "#1E293B",
+  contentArea: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 24,
+    padding: 24,
+  },
+  contentAreaStacked: {
+    flexDirection: "column",
+  },
+  columnCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 24,
-    marginTop: 24,
-    elevation: 4,
+    height: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
+    elevation: 2,
+  },
+  columnScroll: {
+    flex: 1,
+  },
+  columnScrollContent: {
+    paddingBottom: 20,
   },
   panelLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#94A3B8",
+    color: "#64748B",
     marginBottom: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  columnTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0F172A",
+    marginBottom: 16,
   },
   dropdownTrigger: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     height: 44,
-    maxWidth: 220,
-    backgroundColor: "#0F172A",
+    maxWidth: 260,
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     paddingHorizontal: 12,
     marginBottom: 16,
   },
   dropdownTriggerText: {
     fontSize: 15,
-    color: "#F1F5F9",
+    color: "#0F172A",
     flex: 1,
     textAlign: "center",
   },
@@ -653,12 +739,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",
-    backgroundColor: "#0F172A",
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#E2E8F0",
   },
   iconButton: {
     width: 40,
@@ -670,9 +756,59 @@ const styles = StyleSheet.create({
   iconButtonDisabled: {
     opacity: 0.5,
   },
-  primarySection: {
-    marginHorizontal: 24,
-    marginTop: 32,
+  objectiveRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  objectiveRowSelected: {
+    backgroundColor: "#EFF6FF",
+    borderLeftWidth: 3,
+    borderLeftColor: "#2563EB",
+  },
+  objectiveRowText: {
+    fontSize: 14,
+    color: "#475569",
+  },
+  objectiveRowTextSelected: {
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+  columnPlaceholder: {
+    fontSize: 14,
+    color: "#94A3B8",
+    fontStyle: "italic",
+  },
+  categoryProgressRow: {
+    marginBottom: 16,
+  },
+  categoryProgressName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#0F172A",
+    marginBottom: 6,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 4,
+  },
+  progressBarPlaceholder: {
+    height: "100%",
+    width: "0%",
+    backgroundColor: "#2563EB",
+    borderRadius: 4,
+  },
+  progressPlaceholderText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontStyle: "italic",
+  },
+  bottomSection: {
+    padding: 24,
     alignItems: "center",
   },
   sessionButton: {
@@ -680,7 +816,7 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     height: 56,
     borderRadius: 14,
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#2563EB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -688,27 +824,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: "#FFFFFF",
-  },
-  secondarySection: {
-    marginHorizontal: 24,
-    marginTop: 32,
-    alignItems: "center",
-  },
-  adminButton: {
-    width: "100%",
-    maxWidth: 320,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  adminButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#F1F5F9",
   },
   spacer: {
     width: Spacing.md,
