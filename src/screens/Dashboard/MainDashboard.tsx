@@ -1,5 +1,6 @@
 import { OBJECTIVES } from "@/config/objectives";
 import PrimaryButton from "@/components/ui/PrimaryButton";
+import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import { auth, db } from "@/services/firebaseConfig";
@@ -18,7 +19,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -85,9 +86,14 @@ function calculateAge(dateOfBirth: string): number {
 export default function MainDashboard() {
   const router = useRouter();
   const uid = auth.currentUser?.uid;
+  const { setSelectedChildId: setGlobalSelectedChildId } = useContext(SelectedChildContext);
 
   const [children, setChildren] = useState<ChildDoc[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGlobalSelectedChildId(selectedChildId ?? null);
+  }, [selectedChildId, setGlobalSelectedChildId]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editingId, setEditingId] = useState<string | null>(null);

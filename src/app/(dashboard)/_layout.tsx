@@ -1,14 +1,27 @@
+import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Theme } from "@/design/theme";
 import { auth } from "@/services/firebaseConfig";
 import { signOut } from "firebase/auth";
 import { Slot, usePathname, useRouter } from "expo-router";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import {
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const SIDEBAR_WIDTH = 270;
 
-function Sidebar() {
+type SidebarProps = {
+  selectedChildId: string | null;
+};
+
+function Sidebar({ selectedChildId }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [pressedItem, setPressedItem] = useState<string | null>(null);
@@ -22,10 +35,9 @@ function Sidebar() {
     }
   };
 
-  const navItems: { href: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { href: "/main-dashboard", label: "Home", icon: "home-outline" },
-    { href: "/session", label: "Session", icon: "list-outline" },
-  ];
+  const sessionHref = "/session";
+  const sessionIsActive = pathname === sessionHref;
+  const sessionIsHover = pressedItem === sessionHref && !!selectedChildId;
 
   return (
     <View style={styles.sidebar}>
@@ -38,32 +50,61 @@ function Sidebar() {
         </View>
         <View style={styles.brandDivider} />
         <View style={styles.navBlock}>
-          {navItems.map(({ href, label, icon }) => {
-            const isActive = pathname === href;
-            const isHover = pressedItem === href;
-            return (
-              <Pressable
-                key={href}
-                style={[
-                  styles.navItem,
-                  isActive && styles.navItemActive,
-                  isHover && !isActive && styles.navItemHover,
-                ]}
-                onPress={() => router.push(href)}
-                onPressIn={() => setPressedItem(href)}
-                onPressOut={() => setPressedItem(null)}
-              >
-                <Ionicons
-                  name={icon}
-                  size={22}
-                  color={isActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
-                />
-                <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {/* Home */}
+          <Pressable
+            style={[
+              styles.navItem,
+              pathname === "/main-dashboard" && styles.navItemActive,
+              pressedItem === "/main-dashboard" && pathname !== "/main-dashboard" && styles.navItemHover,
+            ]}
+            onPress={() => router.push("/main-dashboard")}
+            onPressIn={() => setPressedItem("/main-dashboard")}
+            onPressOut={() => setPressedItem(null)}
+          >
+            <Ionicons
+              name="home-outline"
+              size={22}
+              color={pathname === "/main-dashboard" ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                pathname === "/main-dashboard" && styles.navLabelActive,
+              ]}
+            >
+              Home
+            </Text>
+          </Pressable>
+          {/* Session – disabled when no child selected */}
+          <TouchableOpacity
+            disabled={!selectedChildId}
+            onPress={() => {
+              if (!selectedChildId) return;
+              router.push("/session");
+            }}
+            onPressIn={() => selectedChildId && setPressedItem(sessionHref)}
+            onPressOut={() => setPressedItem(null)}
+            style={[
+              styles.navItem,
+              !selectedChildId && { opacity: 0.4 },
+              sessionIsActive && styles.navItemActive,
+              sessionIsHover && !sessionIsActive && styles.navItemHover,
+            ]}
+          >
+            <Ionicons
+              name="list-outline"
+              size={22}
+              color={sessionIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                sessionIsActive && styles.navLabelActive,
+              ]}
+            >
+              Session
+            </Text>
+          </TouchableOpacity>
           <Pressable
             style={[styles.navItem, pressedItem === "profil" && styles.navItemHover]}
             onPress={() => {}}
@@ -101,13 +142,17 @@ function Sidebar() {
 }
 
 export default function DashboardLayout() {
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
   return (
-    <View style={styles.root}>
-      <Sidebar />
-      <View style={styles.content}>
-        <Slot />
+    <SelectedChildContext.Provider value={{ selectedChildId, setSelectedChildId }}>
+      <View style={styles.root}>
+        <Sidebar selectedChildId={selectedChildId} />
+        <View style={styles.content}>
+          <Slot />
+        </View>
       </View>
-    </View>
+    </SelectedChildContext.Provider>
   );
 }
 
