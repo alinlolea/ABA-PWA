@@ -1,14 +1,17 @@
+import { Theme } from "@/design/theme";
 import { auth } from "@/services/firebaseConfig";
 import { signOut } from "firebase/auth";
 import { Slot, usePathname, useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 
 const SIDEBAR_WIDTH = 270;
 
 function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const [pressedItem, setPressedItem] = useState<string | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -26,51 +29,70 @@ function Sidebar() {
 
   return (
     <View style={styles.sidebar}>
-      <View style={styles.navBlock}>
-        {navItems.map(({ href, label, icon }) => {
-          const isActive = pathname === href;
-          return (
-            <Pressable
-              key={href}
-              style={[styles.navItem, isActive && styles.navItemActive]}
-              onPress={() => router.push(href)}
-            >
-              <Ionicons
-                name={icon}
-                size={22}
-                color={isActive ? "#2563EB" : "#64748B"}
-              />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-        <Pressable
-          style={styles.navItem}
-          onPress={() => {}}
-        >
-          <Ionicons name="person-outline" size={22} color="#94A3B8" />
-          <Text style={styles.navLabelMuted}>Profil terapeut</Text>
-        </Pressable>
+      <View>
+        <View style={styles.brandSection}>
+          <Image
+            source={require("../../../assets/images/digital-aba-therapy-logo.png")}
+            style={styles.logoImage}
+          />
+        </View>
+        <View style={styles.brandDivider} />
+        <View style={styles.navBlock}>
+          {navItems.map(({ href, label, icon }) => {
+            const isActive = pathname === href;
+            const isHover = pressedItem === href;
+            return (
+              <Pressable
+                key={href}
+                style={[
+                  styles.navItem,
+                  isActive && styles.navItemActive,
+                  isHover && !isActive && styles.navItemHover,
+                ]}
+                onPress={() => router.push(href)}
+                onPressIn={() => setPressedItem(href)}
+                onPressOut={() => setPressedItem(null)}
+              >
+                <Ionicons
+                  name={icon}
+                  size={22}
+                  color={isActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+                />
+                <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            style={[styles.navItem, pressedItem === "profil" && styles.navItemHover]}
+            onPress={() => {}}
+            onPressIn={() => setPressedItem("profil")}
+            onPressOut={() => setPressedItem(null)}
+          >
+            <Ionicons name="person-outline" size={22} color={Theme.colors.textSecondary} />
+            <Text style={styles.navLabelMuted}>Profil terapeut</Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={styles.footer}>
+      <View style={styles.footerWrap}>
+        <View style={styles.separator} />
         <Pressable
           style={styles.navItem}
           onPress={() => router.push("/privacy-policy")}
         >
-          <Ionicons name="shield-outline" size={22} color="#64748B" />
+          <Ionicons name="shield-outline" size={22} color={Theme.colors.textSecondary} />
           <Text style={styles.navLabel}>Privacy</Text>
         </Pressable>
         <Pressable
           style={styles.navItem}
           onPress={() => router.push("/account-edit")}
         >
-          <Ionicons name="settings-outline" size={22} color="#64748B" />
+          <Ionicons name="settings-outline" size={22} color={Theme.colors.textSecondary} />
           <Text style={styles.navLabel}>Settings</Text>
         </Pressable>
         <Pressable style={[styles.navItem, styles.logoutItem]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#64748B" />
+          <Ionicons name="log-out-outline" size={22} color={Theme.colors.textSecondary} />
           <Text style={styles.navLabel}>Logout</Text>
         </Pressable>
       </View>
@@ -98,10 +120,28 @@ const styles = StyleSheet.create({
     width: SIDEBAR_WIDTH,
     backgroundColor: "#FFFFFF",
     borderRightWidth: 1,
-    borderRightColor: "#E2E8F0",
+    borderRightColor: Theme.colors.sidebarBorder,
     paddingVertical: 20,
     paddingHorizontal: 12,
-    justifyContent: "space-between",
+    flexDirection: "column",
+  },
+  brandSection: {
+    height: 130,
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoImage: {
+    width: 220,
+    height: 90,
+    resizeMode: "contain",
+  },
+  brandDivider: {
+    height: 1,
+    backgroundColor: "rgba(44, 100, 104, 0.25)",
+    marginVertical: 16,
   },
   navBlock: {
     gap: 4,
@@ -113,32 +153,48 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 10,
+    borderLeftWidth: 0,
   },
   navItemActive: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: Theme.colors.activeBg,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.primary,
+  },
+  navItemHover: {
+    backgroundColor: Theme.colors.hoverBg,
   },
   navLabel: {
     fontSize: 15,
-    color: "#0F172A",
+    fontWeight: "500",
+    color: Theme.colors.textPrimary,
+    fontFamily: Theme.fontFamily.medium,
   },
   navLabelActive: {
-    color: "#2563EB",
+    color: Theme.colors.primaryDark,
     fontWeight: "600",
+    fontFamily: Theme.fontFamily.semiBold,
   },
   navLabelMuted: {
     fontSize: 15,
-    color: "#94A3B8",
+    fontWeight: "500",
+    color: Theme.colors.textSecondary,
+    fontFamily: Theme.fontFamily.medium,
   },
-  footer: {
+  footerWrap: {
+    marginTop: "auto",
     gap: 4,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
     paddingTop: 16,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: Theme.colors.dividerLime,
+    marginBottom: 12,
   },
   logoutItem: {
     marginTop: 4,
   },
   content: {
     flex: 1,
+    backgroundColor: Theme.colors.background,
   },
 });
