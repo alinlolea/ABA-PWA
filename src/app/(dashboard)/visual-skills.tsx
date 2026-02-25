@@ -6,8 +6,8 @@ import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
-import { db } from "@/services/firebaseConfig";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { auth, db } from "@/services/firebaseConfig";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -90,23 +90,39 @@ export default function VisualSkillsRoute() {
 
   const handleStartSesiune = async () => {
     if (!canStart) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser?.uid || !selectedChildId) return;
+    const selectedObjectives = [selectedId];
     try {
-      if (selectedChildId) {
-        await updateDoc(doc(db, "children", selectedChildId), {
-          lastSessionAt: serverTimestamp(),
-        });
-      }
+      const sessionRef = await addDoc(collection(db, "sessions"), {
+        userId: currentUser.uid,
+        childId: selectedChildId,
+        startedAt: serverTimestamp(),
+        completedAt: null,
+        totalTrials: 0,
+        correctTrials: 0,
+        masteredItems: 0,
+        objectives: selectedObjectives.map((id) => ({
+          objectiveId: id,
+          trials: 0,
+          correct: 0,
+          mastered: false,
+        })),
+      });
+      const newSessionId = sessionRef.id;
+      router.push({
+        pathname: "/trial",
+        params: {
+          sessionId: sessionRef.id,
+          childId: selectedChildId,
+          category: categoryId,
+          targets: JSON.stringify(selectedTargets.map((t) => t.id)),
+          distractorCount: String(distractorCount),
+        },
+      });
     } catch {
       // do not block navigation
     }
-    router.push({
-      pathname: "/trial",
-      params: {
-        category: categoryId,
-        targets: JSON.stringify(selectedTargets.map((t) => t.id)),
-        distractorCount: distractorCount.toString(),
-      },
-    });
   };
 
   return (

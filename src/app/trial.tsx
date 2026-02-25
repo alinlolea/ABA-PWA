@@ -5,7 +5,9 @@ import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
+import { auth, db } from "@/services/firebaseConfig";
 import { useLocalSearchParams } from "expo-router";
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -15,7 +17,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Svg, { Circle, Rect, Polygon, Ellipse } from "react-native-svg";
+import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
 const CORRECT_FEEDBACK_MS = 600;
@@ -270,7 +272,7 @@ function OptionSlot({
   );
 }
 
-type TrialParams = { category?: string; targets?: string; distractorCount?: string };
+type TrialParams = { category?: string; targets?: string; distractorCount?: string; childId?: string; sessionId?: string };
 
 function buildB1Config(params: TrialParams): B1Config {
   const category = (VALID_CATEGORIES.includes(params.category as CategoryKey)
@@ -303,6 +305,16 @@ function buildB1Config(params: TrialParams): B1Config {
 export default function TrialScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const params = useLocalSearchParams<TrialParams>();
+  const sessionIdRaw = params.sessionId;
+  const sessionId =
+    typeof sessionIdRaw === "string"
+      ? sessionIdRaw
+      : Array.isArray(sessionIdRaw)
+        ? sessionIdRaw[0]
+        : undefined;
+  if (!sessionId) {
+    throw new Error("TrialScreen: sessionId is missing from route params.");
+  }
   const configRef = useRef<B1Config | null>(null);
   if (configRef.current === null) {
     configRef.current = buildB1Config(params);
@@ -315,6 +327,8 @@ export default function TrialScreen() {
     score: 0,
     completed: false,
   }));
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  const [correctAttempts, setCorrectAttempts] = useState(0);
 
   const trialsInitializedRef = useRef(false);
   useEffect(() => {
@@ -325,6 +339,22 @@ export default function TrialScreen() {
       trials: generateTrials(config),
     }));
   }, [config]);
+
+  useEffect(() => {
+    if (!session.completed) return;
+
+    updateDoc(doc(db, "sessions", sessionId), {
+      completedAt: serverTimestamp(),
+      correctTrials: session.score,
+      totalTrials: TRIAL_COUNT,
+      correctAttempts: correctAttempts,
+      totalAttempts: totalAttempts,
+      accuracy:
+        totalAttempts > 0
+          ? correctAttempts / totalAttempts
+          : 0,
+    });
+  }, [session.completed]);
 
   const [matchedTargetIds, setMatchedTargetIds] = useState<Set<string>>(new Set());
   const [matchedOptionIndices, setMatchedOptionIndices] = useState<Set<number>>(new Set());
@@ -545,7 +575,9 @@ export default function TrialScreen() {
             const isCorrect = targetStimulus?.id === optionStimulus?.id;
 
             animateSnapTo(targetIndex, snapPanX, snapPanY, () => {
+              setTotalAttempts((prev) => prev + 1);
               if (isCorrect) {
+                setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
                 setMatchedOptionIndices((prev) => new Set(prev).add(bestIndex));
               } else {

@@ -2,10 +2,13 @@ import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import { auth, db } from "@/services/firebaseConfig";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { deleteUser, signOut } from "firebase/auth";
 import {
-  collection,
   addDoc,
+  collection,
   deleteDoc,
   doc,
   getDoc,
@@ -16,12 +19,10 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { useRouter } from "expo-router";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -29,12 +30,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import MaskInput from "react-native-mask-input";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 
 type ChildDoc = {
   id: string;
