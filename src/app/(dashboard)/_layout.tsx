@@ -35,9 +35,16 @@ function Sidebar({ selectedChildId }: SidebarProps) {
     }
   };
 
-  const sessionHref = "/session";
-  const sessionIsActive = pathname === sessionHref;
-  const sessionIsHover = pressedItem === sessionHref && !!selectedChildId;
+  const visualSkillsHref = "/visual-skills";
+  const visualSkillsIsActive = pathname === visualSkillsHref;
+  const visualSkillsIsHover = pressedItem === visualSkillsHref && !!selectedChildId;
+
+  const disabledNavItems = [
+    "Receptive Language",
+    "Expressive Language",
+    "Imitation",
+    "Play Skills",
+  ];
 
   return (
     <View style={styles.sidebar}>
@@ -75,45 +82,44 @@ function Sidebar({ selectedChildId }: SidebarProps) {
               Home
             </Text>
           </Pressable>
-          {/* Session – disabled when no child selected */}
+          <View style={styles.sidebarDivider} />
+          <Text style={styles.sidebarSectionTitle}>Therapy Areas</Text>
+          {/* Visual Skills – disabled when no child selected */}
           <TouchableOpacity
             disabled={!selectedChildId}
             onPress={() => {
               if (!selectedChildId) return;
-              router.push("/session");
+              router.push("/visual-skills");
             }}
-            onPressIn={() => selectedChildId && setPressedItem(sessionHref)}
+            onPressIn={() => selectedChildId && setPressedItem(visualSkillsHref)}
             onPressOut={() => setPressedItem(null)}
             style={[
               styles.navItem,
               !selectedChildId && { opacity: 0.4 },
-              sessionIsActive && styles.navItemActive,
-              sessionIsHover && !sessionIsActive && styles.navItemHover,
+              visualSkillsIsActive && styles.navItemActive,
+              visualSkillsIsHover && !visualSkillsIsActive && styles.navItemHover,
             ]}
           >
             <Ionicons
               name="list-outline"
               size={22}
-              color={sessionIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+              color={visualSkillsIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
             />
             <Text
               style={[
                 styles.navLabel,
-                sessionIsActive && styles.navLabelActive,
+                visualSkillsIsActive && styles.navLabelActive,
               ]}
             >
-              Session
+              Visual Skills
             </Text>
           </TouchableOpacity>
-          <Pressable
-            style={[styles.navItem, pressedItem === "profil" && styles.navItemHover]}
-            onPress={() => {}}
-            onPressIn={() => setPressedItem("profil")}
-            onPressOut={() => setPressedItem(null)}
-          >
-            <Ionicons name="person-outline" size={22} color={Theme.colors.textSecondary} />
-            <Text style={styles.navLabelMuted}>Profil terapeut</Text>
-          </Pressable>
+          {disabledNavItems.map((label) => (
+            <View key={label} style={[styles.navItem, styles.navItemDisabled]}>
+              <Ionicons name="ellipse-outline" size={22} color={Theme.colors.textSecondary} />
+              <Text style={styles.navLabelMuted}>{label}</Text>
+            </View>
+          ))}
         </View>
       </View>
       <View style={styles.footerWrap}>
@@ -191,6 +197,19 @@ const styles = StyleSheet.create({
   navBlock: {
     gap: 4,
   },
+  sidebarDivider: {
+    height: 1,
+    backgroundColor: "#E5EEF0",
+    marginVertical: 16,
+  },
+  sidebarSectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94A3B8",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 12,
+  },
   navItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -207,6 +226,9 @@ const styles = StyleSheet.create({
   },
   navItemHover: {
     backgroundColor: Theme.colors.hoverBg,
+  },
+  navItemDisabled: {
+    opacity: 0.4,
   },
   navLabel: {
     fontSize: 15,

@@ -1,4 +1,3 @@
-import { OBJECTIVES } from "@/config/objectives";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Spacing } from "@/design/spacing";
@@ -23,7 +22,6 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -102,7 +100,6 @@ export default function MainDashboard() {
   const [dataExportModalVisible, setDataExportModalVisible] = useState(false);
   const [dataExportJson, setDataExportJson] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
-  const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
   const [sortField, setSortField] = useState<"name" | "age" | "progress">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -129,10 +126,6 @@ export default function MainDashboard() {
     });
     return result;
   }, [children, childSearchQuery, sortField, sortDirection]);
-
-  const screenWidth = Dimensions.get("window").width;
-  const isNarrow = screenWidth < 900;
-  const selectedObjective = OBJECTIVES.find((o) => o.id === selectedObjectiveId) ?? null;
 
   useEffect(() => {
     if (!uid) return;
@@ -161,12 +154,6 @@ export default function MainDashboard() {
   }, [uid]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
-
-  useEffect(() => {
-    if (!selectedChildId) return;
-    setSelectedObjectiveId(null);
-    // Objectives and progress cards depend on selectedChildId; progress remains placeholder for now.
-  }, [selectedChildId]);
 
   const openAddModal = () => {
     setForm(defaultForm);
@@ -316,7 +303,7 @@ export default function MainDashboard() {
       Alert.alert("Eroare", "Selectează un copil.");
       return;
     }
-    router.push({ pathname: "/session", params: { childId: selectedChildId } });
+    router.push({ pathname: "/visual-skills", params: { childId: selectedChildId } });
   };
 
   const handleSort = (field: "name" | "age" | "progress") => {
@@ -444,186 +431,113 @@ export default function MainDashboard() {
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <View style={styles.mainContainer}>
         <View style={styles.dashboardScrollWrapper}>
-          <FlatList
-            data={[]}
-            keyExtractor={() => "static"}
-            renderItem={() => null}
-            ListHeaderComponent={
-              <View style={styles.contentWrapper}>
-                <View style={styles.addChildButtonRow}>
-                  <Pressable style={styles.addChildButton} onPress={openAddModal}>
-                    <Text style={styles.addChildButtonText}>Adaugă copil</Text>
-                  </Pressable>
-                </View>
-
-                {/* 1. Full-width Children card (sortable table) */}
-                <View style={styles.childrenCard}>
-                  <View style={styles.childrenCardHeader}>
-                    <Text style={styles.childrenCardTitle}>Copii</Text>
-                    <TextInput
-                      style={styles.childrenSearchInput}
-                      placeholder="Caută copil..."
-                      placeholderTextColor="#94A3B8"
-                      value={childSearchQuery}
-                      onChangeText={setChildSearchQuery}
-                    />
-                  </View>
-                  <View style={styles.tableHeaderRow}>
-                    <Pressable style={styles.tableHeaderCellName} onPress={() => handleSort("name")}>
-                      <Text style={styles.tableHeaderText}>Nume</Text>
-                      {sortField === "name" && (
-                        <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                      )}
-                    </Pressable>
-                    <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("age")}>
-                      <Text style={styles.tableHeaderText}>Vârstă</Text>
-                      {sortField === "age" && (
-                        <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                      )}
-                    </Pressable>
-                    <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("progress")}>
-                      <Text style={styles.tableHeaderText}>Progres total</Text>
-                      {sortField === "progress" && (
-                        <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                      )}
-                    </Pressable>
-                    <View style={styles.tableHeaderCellActions} />
-                  </View>
-                  <ScrollView
-                    style={{ flex: 1 }}
-                    contentContainerStyle={styles.columnScrollContent}
-                    nestedScrollEnabled={true}
-                    showsVerticalScrollIndicator={false}
-                    overScrollMode="never"
-                  >
-                    {filteredAndSortedChildren.map((child) => {
-                      const isSelected = selectedChildId === child.id;
-                      const isHovered = hoveredRowId === child.id;
-                      return (
-                        <Pressable
-                          key={child.id}
-                          style={[
-                            styles.tableRow,
-                            isSelected && styles.tableRowSelected,
-                            isHovered && !isSelected && styles.tableRowHover,
-                          ]}
-                          onPress={() => setSelectedChildId(child.id)}
-                          onPressIn={() => setHoveredRowId(child.id)}
-                          onPressOut={() => setHoveredRowId(null)}
-                        >
-                          <View style={styles.tableCellName}>
-                            <Text style={styles.tableCellText} numberOfLines={1}>{child.name || "—"}</Text>
-                          </View>
-                          <View style={styles.tableCell}>
-                            <Text style={styles.tableCellText}>{calculateAge(child.birthDate)}</Text>
-                          </View>
-                          <View style={styles.tableCell}>
-                            <Text style={styles.tableCellText}>0%</Text>
-                          </View>
-                          <View style={styles.tableCellActions}>
-                            <Pressable
-                              style={styles.tableRowIconButton}
-                              onPress={(e) => {
-                                e?.stopPropagation?.();
-                                openEditModalForChild(child);
-                              }}
-                            >
-                              <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
-                            </Pressable>
-                            <Pressable
-                              style={styles.tableRowIconButton}
-                              onPress={(e) => {
-                                e?.stopPropagation?.();
-                                handleDeleteChildFor(child);
-                              }}
-                            >
-                              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                            </Pressable>
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* 2. Middle row: Objectives (left) + Progress (right) – fixed height, internal scroll */}
-                <View style={[styles.middleRow, isNarrow && styles.middleRowStacked]}>
-                  <View style={[styles.middleCard, styles.verticalCard]}>
-                    <Text style={styles.columnTitle}>Obiective</Text>
-                    <ScrollView
-                      style={styles.columnScroll}
-                      contentContainerStyle={{ paddingBottom: 16 }}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      {selectedChild ? (
-                        <>
-                          {OBJECTIVES.map((obj) => {
-                            const isSelected = selectedObjectiveId === obj.id;
-                            return (
-                              <Pressable
-                                key={obj.id}
-                                style={[styles.objectiveRow, isSelected && styles.objectiveRowSelected]}
-                                onPress={() => setSelectedObjectiveId(obj.id)}
-                              >
-                                <Text
-                                  style={[
-                                    styles.objectiveRowText,
-                                    isSelected && styles.objectiveRowTextSelected,
-                                  ]}
-                                  numberOfLines={2}
-                                >
-                                  {obj.id}. {obj.title}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </>
-                      ) : (
-                        <Text style={styles.columnPlaceholder}>Selectează un copil</Text>
-                      )}
-                    </ScrollView>
-                  </View>
-                  <View style={[styles.middleCard, styles.verticalCard]}>
-                    <Text style={styles.columnTitle}>Progres pe categorii</Text>
-                    <ScrollView
-                      style={styles.columnScroll}
-                      contentContainerStyle={{ paddingBottom: 16 }}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      {selectedObjective ? (
-                        <>
-                          {selectedObjective.categories.map((cat) => (
-                            <View key={cat.id} style={styles.categoryProgressRow}>
-                              <Text style={styles.categoryProgressName}>{cat.label}</Text>
-                              <View style={styles.progressBarBg}>
-                                <View style={styles.progressBarPlaceholder} />
-                              </View>
-                              <Text style={styles.progressPlaceholderText}>Progres în calcul...</Text>
-                            </View>
-                          ))}
-                        </>
-                      ) : (
-                        <Text style={styles.columnPlaceholder}>Selectează un obiectiv</Text>
-                      )}
-                    </ScrollView>
-                  </View>
-                </View>
-
-                {/* 3. Stats row: 4 square cards at bottom */}
-                <View style={styles.statsRow}>
-                  <View style={styles.statCard} />
-                  <View style={styles.statCard} />
-                  <View style={styles.statCard} />
-                  <View style={styles.statCard} />
-                </View>
+          <View style={[styles.dashboardScrollContent, { flex: 1 }]}>
+            <View style={styles.contentWrapper}>
+              <View style={styles.addChildButtonRow}>
+                <Pressable style={styles.addChildButton} onPress={openAddModal}>
+                  <Text style={styles.addChildButtonText}>Adaugă copil</Text>
+                </Pressable>
               </View>
-            }
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.dashboardScrollContent}
-            style={styles.dashboardScroll}
-          />
+
+              {/* 1. Full-width Children card (sortable table) */}
+              <View style={styles.childrenCard}>
+                <View style={styles.childrenCardHeader}>
+                  <Text style={styles.childrenCardTitle}>Copii</Text>
+                  <TextInput
+                    style={styles.childrenSearchInput}
+                    placeholder="Caută copil..."
+                    placeholderTextColor="#94A3B8"
+                    value={childSearchQuery}
+                    onChangeText={setChildSearchQuery}
+                  />
+                </View>
+                <View style={styles.tableHeaderRow}>
+                  <Pressable style={styles.tableHeaderCellName} onPress={() => handleSort("name")}>
+                    <Text style={styles.tableHeaderText}>Nume</Text>
+                    {sortField === "name" && (
+                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
+                    )}
+                  </Pressable>
+                  <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("age")}>
+                    <Text style={styles.tableHeaderText}>Vârstă</Text>
+                    {sortField === "age" && (
+                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
+                    )}
+                  </Pressable>
+                  <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("progress")}>
+                    <Text style={styles.tableHeaderText}>Progres total</Text>
+                    {sortField === "progress" && (
+                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
+                    )}
+                  </Pressable>
+                  <View style={styles.tableHeaderCellActions} />
+                </View>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={styles.columnScrollContent}
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={false}
+                  overScrollMode="never"
+                >
+                  {filteredAndSortedChildren.map((child) => {
+                    const isSelected = selectedChildId === child.id;
+                    const isHovered = hoveredRowId === child.id;
+                    return (
+                      <Pressable
+                        key={child.id}
+                        style={[
+                          styles.tableRow,
+                          isSelected && styles.tableRowSelected,
+                          isHovered && !isSelected && styles.tableRowHover,
+                        ]}
+                        onPress={() => setSelectedChildId(child.id)}
+                        onPressIn={() => setHoveredRowId(child.id)}
+                        onPressOut={() => setHoveredRowId(null)}
+                      >
+                        <View style={styles.tableCellName}>
+                          <Text style={styles.tableCellText} numberOfLines={1}>{child.name || "—"}</Text>
+                        </View>
+                        <View style={styles.tableCell}>
+                          <Text style={styles.tableCellText}>{calculateAge(child.birthDate)}</Text>
+                        </View>
+                        <View style={styles.tableCell}>
+                          <Text style={styles.tableCellText}>0%</Text>
+                        </View>
+                        <View style={styles.tableCellActions}>
+                          <Pressable
+                            style={styles.tableRowIconButton}
+                            onPress={(e) => {
+                              e?.stopPropagation?.();
+                              openEditModalForChild(child);
+                            }}
+                          >
+                            <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
+                          </Pressable>
+                          <Pressable
+                            style={styles.tableRowIconButton}
+                            onPress={(e) => {
+                              e?.stopPropagation?.();
+                              handleDeleteChildFor(child);
+                            }}
+                          >
+                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                          </Pressable>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Stats row: 4 square cards at bottom */}
+              <View style={styles.statsRow}>
+                <View style={styles.statCard} />
+                <View style={styles.statCard} />
+                <View style={styles.statCard} />
+                <View style={styles.statCard} />
+              </View>
+            </View>
+          </View>
 
           {/* Floating button – always visible */}
           <View style={styles.floatingButtonContainer} pointerEvents="box-none">

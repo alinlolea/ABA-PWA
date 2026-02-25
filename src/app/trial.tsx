@@ -636,7 +636,7 @@ export default function TrialScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.root}>
+      <View style={styles.trialContainer}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>{progressText}</Text>
         </View>
@@ -700,8 +700,10 @@ export default function TrialScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
+  trialContainer: {
     flex: 1,
+    backgroundColor: "#F4F7F8",
+    padding: 24,
   },
   progressRow: {
     paddingHorizontal: Spacing.xl,
