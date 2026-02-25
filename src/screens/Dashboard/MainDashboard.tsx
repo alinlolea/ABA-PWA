@@ -1,4 +1,3 @@
-import PrimaryButton from "@/components/ui/PrimaryButton";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
@@ -18,9 +17,10 @@ import {
   where,
 } from "firebase/firestore";
 import { useRouter } from "expo-router";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Dimensions,
   Modal,
   Pressable,
@@ -31,6 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import MaskInput from "react-native-mask-input";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -119,6 +120,7 @@ export default function MainDashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [childSearchQuery, setChildSearchQuery] = useState("");
+  const selectionAnim = useRef(new Animated.Value(0)).current;
 
   const filteredAndSortedChildren = useMemo(() => {
     let result = [...children];
@@ -168,6 +170,20 @@ export default function MainDashboard() {
     });
     return () => unsubscribe();
   }, [uid]);
+
+  useEffect(() => {
+    if (!selectedChildId) return;
+    const index = filteredAndSortedChildren.findIndex(
+      (c) => c.id === selectedChildId
+    );
+    if (index === -1) return;
+    const rowHeight = 54; // 48 height + 6 marginBottom
+    Animated.timing(selectionAnim, {
+      toValue: index * rowHeight,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  }, [selectedChildId, filteredAndSortedChildren, selectionAnim]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
@@ -458,6 +474,21 @@ export default function MainDashboard() {
 
               {/* 1. Full-width Children card (sortable table) */}
               <View style={styles.childrenCard}>
+                <View style={styles.cardAccentWrapper}>
+                  <LinearGradient
+                    colors={[
+                      "rgba(44,100,104,0)",
+                      "rgba(44,100,104,0.9)",
+                      "rgba(44,100,104,0.9)",
+                      "rgba(44,100,104,0)",
+                    ]}
+                    locations={[0, 0.2, 0.8, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.cardAccentLine}
+                  />
+                </View>
+                <View style={styles.childrenCardContent}>
                 <View style={styles.childrenCardHeader}>
                   <Text style={styles.childrenCardTitle}>Children in Therapy</Text>
                   <View style={styles.searchWrapper}>
@@ -502,25 +533,34 @@ export default function MainDashboard() {
                   showsVerticalScrollIndicator={false}
                   overScrollMode="never"
                 >
-                  {filteredAndSortedChildren.length === 0 ? (
-                    <View style={styles.noResultsContainer}>
-                      <Text style={styles.noResultsText}>No results found</Text>
-                    </View>
-                  ) : filteredAndSortedChildren.map((child) => {
-                    const isSelected = selectedChildId === child.id;
-                    return (
-                      <Pressable
-                        key={child.id}
-                        style={({ pressed }) => [
-                          styles.childRow,
-                          pressed && styles.childRowPressed,
-                          isSelected && styles.childRowSelected,
+                  <View style={styles.selectionScrollContent}>
+                    {selectedChildId && filteredAndSortedChildren.length > 0 && (
+                      <Animated.View
+                        style={[
+                          styles.animatedSelectionBar,
+                          { transform: [{ translateY: selectionAnim }] },
                         ]}
-                        onPress={() => setSelectedChildId(child.id)}
-                        onPressIn={() => setHoveredRowId(child.id)}
-                        onPressOut={() => setHoveredRowId(null)}
-                      >
-                        <View style={[styles.nameColumn, styles.cellContainer, styles.nameColumnAlign]}>
+                      />
+                    )}
+                    {filteredAndSortedChildren.length === 0 ? (
+                      <View style={styles.noResultsContainer}>
+                        <Text style={styles.noResultsText}>No results found</Text>
+                      </View>
+                    ) : filteredAndSortedChildren.map((child) => {
+                      const isSelected = selectedChildId === child.id;
+                      return (
+                        <Pressable
+                          key={child.id}
+                          style={({ pressed }) => [
+                            styles.childRow,
+                            pressed && styles.childRowPressed,
+                            isSelected && styles.childRowSelected,
+                          ]}
+                          onPress={() => setSelectedChildId(child.id)}
+                          onPressIn={() => setHoveredRowId(child.id)}
+                          onPressOut={() => setHoveredRowId(null)}
+                        >
+                          <View style={[styles.nameColumn, styles.cellContainer, styles.nameColumnAlign]}>
                           <Text style={styles.tableCellText} numberOfLines={1}>{child.name || "—"}</Text>
                         </View>
                         <View style={[styles.ageColumn, styles.cellContainer, styles.centerColumnAlign]}>
@@ -559,15 +599,85 @@ export default function MainDashboard() {
                       </Pressable>
                     );
                   })}
+                  </View>
                 </ScrollView>
+                </View>
               </View>
 
-              {/* Stats row: 4 square cards at bottom */}
-              <View style={styles.statsRow}>
-                <View style={styles.statCard} />
-                <View style={styles.statCard} />
-                <View style={styles.statCard} />
-                <View style={styles.statCard} />
+              {/* Stats row: 2 premium horizontal cards */}
+              <View style={styles.statsRowNew}>
+                {/* CONSISTENCY CARD */}
+                <View style={styles.premiumCard}>
+                  <View style={styles.cardAccentWrapper}>
+                    <LinearGradient
+                      colors={[
+                        "rgba(44,100,104,0)",
+                        "rgba(44,100,104,0.9)",
+                        "rgba(44,100,104,0.9)",
+                        "rgba(44,100,104,0)",
+                      ]}
+                      locations={[0, 0.2, 0.8, 1]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.cardAccentLine}
+                    />
+                  </View>
+                  <View style={styles.cardContent}>
+                  <Text style={styles.premiumCardTitle}>CONSISTENCY</Text>
+                  <View style={styles.metricsRow}>
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValue}>4</Text>
+                      <Text style={styles.metricLabel}>Sessions this week</Text>
+                    </View>
+                    <View style={styles.metricDivider} />
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValue}>12</Text>
+                      <Text style={styles.metricLabel}>Sessions this month</Text>
+                    </View>
+                    <View style={styles.metricDivider} />
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValue}>28</Text>
+                      <Text style={styles.metricLabel}>Mastered items</Text>
+                    </View>
+                  </View>
+                  </View>
+                </View>
+                {/* LEARNING SPEED CARD */}
+                <View style={styles.premiumCard}>
+                  <View style={styles.cardAccentWrapper}>
+                    <LinearGradient
+                      colors={[
+                        "rgba(44,100,104,0)",
+                        "rgba(44,100,104,0.9)",
+                        "rgba(44,100,104,0.9)",
+                        "rgba(44,100,104,0)",
+                      ]}
+                      locations={[0, 0.2, 0.8, 1]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.cardAccentLine}
+                    />
+                  </View>
+                  <View style={styles.cardContent}>
+                  <Text style={styles.premiumCardTitle}>LEARNING SPEED</Text>
+                  <View style={styles.metricsRow}>
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValueAccent}>78%</Text>
+                      <Text style={styles.metricLabel}>Avg accuracy / session</Text>
+                    </View>
+                    <View style={styles.metricDivider} />
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValue}>24</Text>
+                      <Text style={styles.metricLabel}>Trials per session</Text>
+                    </View>
+                    <View style={styles.metricDivider} />
+                    <View style={styles.metricBlock}>
+                      <Text style={styles.metricValuePositive}>↑ +6%</Text>
+                      <Text style={styles.metricLabel}>Improvement trend</Text>
+                    </View>
+                  </View>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
@@ -598,9 +708,20 @@ export default function MainDashboard() {
       >
         <Pressable style={styles.modalOverlay} onPress={closeModal}>
           <Pressable style={styles.modalBox} onPress={(e) => e.stopPropagation()}>
+            <LinearGradient
+                  colors={[
+                    "rgba(255,0,0,0)",
+                    "rgba(255,0,0,1)",
+                    "rgba(255,0,0,1)",
+                    "rgba(255,0,0,0)",
+                  ]}
+                  locations={[0, 0.2, 0.8, 1]}
+                  style={styles.cardAccentLine}
+                />
             <Text style={styles.modalTitle}>
               {modalMode === "add" ? "Adaugă copil" : "Editează copil"}
             </Text>
+            <Text style={styles.fieldLabel}>Name</Text>
             <TextInput
               style={styles.input}
               placeholder="Nume *"
@@ -608,6 +729,7 @@ export default function MainDashboard() {
               value={form.name}
               onChangeText={(t) => setForm((f) => ({ ...f, name: t }))}
             />
+            <Text style={styles.fieldLabel}>Date of Birth</Text>
             <MaskInput
               value={form.birthDate}
               onChangeText={(masked) => setForm((f) => ({ ...f, birthDate: masked }))}
@@ -617,6 +739,7 @@ export default function MainDashboard() {
               placeholder="DD/MM/YYYY"
               placeholderTextColor="#94A3B8"
             />
+            <Text style={styles.fieldLabel}>Notes</Text>
             <TextInput
               style={[styles.input, styles.notesInput]}
               placeholder="Note (opțional)"
@@ -627,11 +750,12 @@ export default function MainDashboard() {
               numberOfLines={3}
             />
             <View style={styles.modalButtons}>
-              <PrimaryButton title="Salvează" onPress={handleSaveChild} />
-              <View style={styles.spacer} />
               <Pressable style={styles.cancelButton} onPress={closeModal}>
-                <Text style={styles.cancelText}>Anulează</Text>
+                <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveChild}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
@@ -774,8 +898,13 @@ const styles = StyleSheet.create({
     height: 340,
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
-    padding: 20,
     marginBottom: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  childrenCardContent: {
+    padding: 20,
+    flex: 1,
   },
   childrenCardHeader: {
     flexDirection: "row",
@@ -867,21 +996,83 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
   },
-  statsRow: {
+  statsRowNew: {
     flexDirection: "row",
-    gap: 16,
+    gap: 24,
   },
-  statCard: {
+  premiumCard: {
     flex: 1,
-    aspectRatio: 1,
-    backgroundColor: Theme.colors.card,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 20,
+    borderWidth: 1,
+    borderColor: "#EEF2F4",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+    position: "relative",
+    overflow: "hidden",
+  },
+  cardAccentWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    overflow: "hidden",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  cardAccentLine: {
+    flex: 1,
+  },
+  cardContent: {
+    padding: 24,
+  },
+  premiumCardTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1,
+    color: "#64748B",
+    marginBottom: 20,
+  },
+  metricsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  metricBlock: {
+    flex: 1,
+    alignItems: "center",
+  },
+  metricValue: {
+    fontSize: 26,
+    fontWeight: "600",
+    color: Theme.colors.textPrimary,
+  },
+  metricValueAccent: {
+    fontSize: 26,
+    fontWeight: "600",
+    color: Theme.colors.primary,
+  },
+  metricValuePositive: {
+    fontSize: 26,
+    fontWeight: "600",
+    color: "#16A34A",
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  metricDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E2E8F0",
   },
   columnCard: {
     flex: 1,
@@ -963,6 +1154,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 6,
+    position: "relative",
+    overflow: "hidden",
+  },
+  selectionScrollContent: {
+    position: "relative",
+  },
+  animatedSelectionBar: {
+    position: "absolute",
+    left: 0,
+    width: 4,
+    height: 48,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: 2,
   },
   childRowPressed: {
     backgroundColor: "rgba(44,100,104,0.08)",
@@ -1157,25 +1361,43 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     width: "100%",
-    maxWidth: 400,
+    maxWidth: 420,
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 24,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: "#EEF2F4",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    position: "relative",
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: Theme.colors.textPrimary,
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    color: "#64748B",
+    textTransform: "uppercase",
+    marginBottom: 6,
+    marginTop: 12,
   },
   input: {
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     fontSize: 15,
     color: Theme.colors.textPrimary,
-    marginBottom: 16,
+    backgroundColor: "#F9FBFC",
   },
   notesInput: {
     height: 80,
@@ -1183,15 +1405,27 @@ const styles = StyleSheet.create({
   },
   modalButtons: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
+    justifyContent: "flex-end",
+    marginTop: 28,
+  },
+  saveButton: {
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   cancelButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
+    marginRight: 12,
   },
   cancelText: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#94A3B8",
   },
   settingsModalBox: {
