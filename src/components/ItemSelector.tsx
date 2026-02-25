@@ -1,4 +1,3 @@
-import Stepper from "@/components/ui/Stepper";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
@@ -10,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   Pressable,
@@ -52,6 +52,17 @@ const PLACEHOLDER_CATEGORY_IDS = ["fruits", "vegetables", "animals", "vehicles",
 function isPlaceholderCategory(categoryId: string): boolean {
   return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
 }
+
+const CATEGORY_ID_TO_ENGLISH: Record<string, string> = {
+  colors: "Colors",
+  shapes: "Shapes",
+  fruits: "Fruits",
+  vegetables: "Vegetables",
+  animals: "Animals",
+  vehicles: "Vehicles",
+  food: "Food",
+  objects: "Objects",
+};
 
 function ShapeThumb({
   form,
@@ -153,14 +164,21 @@ export default function ItemSelector({
   const [cardWidth, setCardWidth] = useState(0);
   const [localTargets, setLocalTargets] = useState<Stimulus[]>(selectedTargets);
   const [localDistractors, setLocalDistractors] = useState(distractorCount);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const categoryId = category?.id ?? "";
-  const categoryStimuli = useMemo(() => {
-    if (categoryId && categoryId in STIMULI_BY_CATEGORY) {
-      return STIMULI_BY_CATEGORY[categoryId as CategoryKey];
-    }
-    return [];
-  }, [categoryId]);
+  const filteredStimuli = useMemo(() => {
+    const base =
+      (categoryId && categoryId in STIMULI_BY_CATEGORY
+        ? STIMULI_BY_CATEGORY[categoryId as CategoryKey]
+        : []) || [];
+
+    if (!searchQuery.trim()) return base;
+
+    return base.filter((s) =>
+      s.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [categoryId, searchQuery]);
 
   useEffect(() => {
     setLocalTargets(selectedTargets);
@@ -196,14 +214,14 @@ export default function ItemSelector({
 
   const MIN_ITEM_SIZE = 100;
   const calculatedColumns = cardWidth > 0 ? Math.floor(cardWidth / MIN_ITEM_SIZE) : 4;
-  const numColumns = Math.min(Math.max(calculatedColumns, 3), 5);
+  const numColumns = 5;
   const itemWidth = cardWidth > 0 && numColumns > 0 ? cardWidth / numColumns - 16 : undefined;
   const isColorsCategory = categoryId === "colors";
   const isShapesCategory = categoryId === "shapes";
   const columnCount = isShapesCategory
-    ? categoryStimuli.length
-    : categoryStimuli.length <= 6
-      ? categoryStimuli.length
+    ? filteredStimuli.length
+    : filteredStimuli.length <= 6
+      ? filteredStimuli.length
       : 6;
   const colorCircleDiameter = Math.min(
     COLOR_CIRCLE_MAX,
@@ -248,6 +266,7 @@ export default function ItemSelector({
   return (
     <View style={styles.modalRoot}>
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
@@ -257,27 +276,46 @@ export default function ItemSelector({
       }}
     >
       <View style={styles.configInner}>
-        <View style={styles.headerSection}>
-          <Text style={styles.panelTitle}>{category.label}</Text>
-          <View style={styles.titleDivider} />
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>
+            {CATEGORY_ID_TO_ENGLISH[categoryId] ?? category.label}
+          </Text>
+          <Text style={styles.panelSubtitle}>Configure Targets & Distractors</Text>
+          <View style={styles.sectionDivider} />
         </View>
 
-        <Text style={styles.configLabel}>
-          {categoryId === "colors"
-            ? "Ce culoare vrei să învețe copilul?"
-            : categoryId === "shapes"
-              ? "Ce formă vrei să învețe copilul?"
-              : `Obiecte țintă (max ${MAX_TARGETS})`}
-        </Text>
-        {isColorsCategory ? (
+        <View style={styles.targetLibrarySection}>
+          <View style={styles.libraryHeaderRow}>
+            <Text style={styles.sectionTitle}>Target Library</Text>
+            <View style={styles.smallSearchContainer}>
+              <TextInput
+                style={styles.searchBar}
+                placeholder="Search..."
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+          </View>
+          <View style={styles.sectionDivider} />
+        </View>
+
+        <View style={styles.gridCard}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            style={styles.gridScroll}
+            contentContainerStyle={styles.gridScrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+          {isColorsCategory ? (
           <View style={styles.targetGridWrap}>
             <View
               style={[
-                styles.targetGrid,
-                { gap: gridGap, width: targetGridWidth },
+                styles.gridContainer,
+                { gap: 16 },
               ]}
             >
-              {categoryStimuli.map((stimulus) => {
+              {filteredStimuli.map((stimulus) => {
                 const isSelected = localTargets.some((s) => s.id === stimulus.id);
                 const colorHex = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
                 return (
@@ -311,11 +349,11 @@ export default function ItemSelector({
           <View style={styles.targetGridWrap}>
             <View
               style={[
-                styles.targetGrid,
-                { gap: gridGap, width: targetGridWidth, flexWrap: "nowrap" },
+                styles.gridContainer,
+                { gap: 16, flexWrap: "nowrap" },
               ]}
             >
-              {categoryStimuli.map((stimulus) => {
+              {filteredStimuli.map((stimulus) => {
                 const isSelected = localTargets.some((s) => s.id === stimulus.id);
                 const visual = isShapeStimulus(stimulus.image)
                   ? stimulus.image
@@ -360,11 +398,11 @@ export default function ItemSelector({
           <View style={styles.targetGridWrap}>
             <View
               style={[
-                styles.targetGrid,
-                { gap: gridGap, width: targetGridWidth },
+                styles.gridContainer,
+                { gap: 16 },
               ]}
             >
-              {categoryStimuli.map((stimulus) => {
+              {filteredStimuli.map((stimulus) => {
                 const isSelected = localTargets.some((s) => s.id === stimulus.id);
                 const firstLetter = stimulus.label ? [...stimulus.label][0] ?? "?" : "?";
                 return (
@@ -398,7 +436,7 @@ export default function ItemSelector({
           </View>
         ) : (
           <FlatList
-            data={categoryStimuli}
+            data={filteredStimuli}
             numColumns={numColumns}
             keyExtractor={(item) => item.id}
             renderItem={({ item: stimulus }) => {
@@ -453,21 +491,48 @@ export default function ItemSelector({
             scrollEnabled={false}
           />
         )}
+          </ScrollView>
+        </View>
 
-        <Text style={styles.configLabel}>
-          Adaugă număr de distractori
-        </Text>
-        <View style={styles.stepperSection}>
-          <Stepper
-            value={localDistractors}
-            min={0}
-            max={distractorMax}
-            onChange={handleDistractorChange}
-          />
+        <View style={styles.selectionRow}>
+          <View style={styles.selectedTargetsSection}>
+            <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Selected Targets (max 3)</Text>
+            <View style={styles.selectedTargetsChips}>
+              {localTargets.length === 0 ? (
+                <Text style={styles.selectedTargetsEmpty}>None selected</Text>
+              ) : (
+                localTargets.map((t) => (
+                  <View key={t.id} style={styles.selectedTargetChip}>
+                    <Text style={styles.selectedTargetChipText} numberOfLines={1}>{t.label}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+          <View style={styles.distractorSection}>
+            <Text style={styles.distractorLabel}>Distractors</Text>
+            <View style={styles.distractorControl}>
+              <Pressable
+                style={styles.distractorButton}
+                onPress={() => handleDistractorChange(localDistractors - 1)}
+                disabled={localDistractors <= 0}
+              >
+                <Text style={styles.distractorButtonText}>−</Text>
+              </Pressable>
+              <Text style={styles.distractorValue}>{localDistractors}</Text>
+              <Pressable
+                style={styles.distractorButton}
+                onPress={() => handleDistractorChange(localDistractors + 1)}
+                disabled={localDistractors >= distractorMax}
+              >
+                <Text style={styles.distractorButtonText}>+</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       </View>
     </ScrollView>
-    <View style={styles.modalButtonRow}>
+    <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
@@ -508,29 +573,147 @@ const styles = StyleSheet.create({
     maxWidth: 720,
     alignSelf: "center",
   },
-  headerSection: {
-    marginBottom: Spacing.md,
+  panelHeader: {
+    alignItems: "center",
+    marginBottom: 20,
   },
   panelTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
-    color: Colors.textPrimary,
-    marginBottom: 2,
+    color: "#1E293B",
+    textAlign: "center",
   },
-  titleDivider: {
-    width: "100%",
+  panelSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  sectionDivider: {
     height: 1,
-    backgroundColor: Colors.divider,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.lg,
+    backgroundColor: "#E5EEF0",
+    marginVertical: 12,
+    width: "100%",
   },
-  configLabel: {
+  targetLibrarySection: {
+    marginBottom: 16,
+  },
+  libraryHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  smallSearchContainer: {
+    width: 200,
+    height: 36,
+  },
+  sectionTitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 12,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 0,
+  },
+  searchBar: {
+    flex: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#1E293B",
+  },
+  gridCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    height: 280,
+    marginBottom: 20,
+  },
+  gridScroll: {
+    flex: 1,
+  },
+  gridScrollContent: {
+    paddingBottom: 8,
   },
   targetGridWrap: {
-    marginBottom: Spacing.xl,
+    marginBottom: 12,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 16,
+  },
+  selectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 16,
+  },
+  selectedTargetsSection: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 16,
+    minWidth: 0,
+  },
+  selectedTargetsChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  selectedTargetsEmpty: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  selectedTargetChip: {
+    backgroundColor: "#E2E8F0",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  selectedTargetChipText: {
+    fontSize: 13,
+    color: "#334155",
+    fontWeight: "500",
+    maxWidth: 120,
+  },
+  distractorSection: {
+    flexShrink: 0,
+  },
+  distractorLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#334155",
+    marginBottom: 10,
+  },
+  distractorControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  distractorButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  distractorButtonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  distractorValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+    minWidth: 24,
+    textAlign: "center",
   },
   targetGrid: {
     flexDirection: "row",
@@ -595,11 +778,11 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
   },
-  modalButtonRow: {
+  buttonRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-    marginTop: 16,
+    justifyContent: "center",
+    gap: 16,
+    marginTop: 24,
   },
   cancelButton: {
     paddingVertical: 10,

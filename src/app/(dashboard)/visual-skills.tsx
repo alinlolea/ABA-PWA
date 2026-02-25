@@ -7,8 +7,10 @@ import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -16,6 +18,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 export default function VisualSkillsRoute() {
@@ -26,6 +29,32 @@ export default function VisualSkillsRoute() {
   const [distractorCount, setDistractorCount] = useState(0);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
+  const { width: screenWidth } = useWindowDimensions();
+  const panelWidth = useMemo(() => {
+    return Math.min(Math.max(screenWidth * 0.42, 520), 700);
+  }, [screenWidth]);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (selectorVisible) {
+      slideAnim.setValue(panelWidth);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [selectorVisible, panelWidth, slideAnim]);
+
+  const closePanel = () => {
+    Animated.timing(slideAnim, {
+      toValue: panelWidth,
+      duration: 250,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start(() => setSelectorVisible(false));
+  };
 
   const selectedObjective = OBJECTIVES.find((o) => o.id === selectedId);
   const categories = selectedObjective?.categories ?? [];
@@ -198,25 +227,43 @@ export default function VisualSkillsRoute() {
 
       <Modal
         visible={selectorVisible}
-        animationType="fade"
+        animationType="none"
         transparent
-        onRequestClose={() => setSelectorVisible(false)}
+        onRequestClose={closePanel}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setSelectorVisible(false)}
-        >
-          <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-            <ItemSelector
-              category={activeCategory}
-              selectedTargets={selectedTargets}
-              setSelectedTargets={setSelectedTargets}
-              distractorCount={distractorCount}
-              setDistractorCount={setDistractorCount}
-              onClose={() => setSelectorVisible(false)}
-            />
-          </Pressable>
-        </Pressable>
+        <View style={{ flex: 1 }} pointerEvents="box-none">
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={closePanel}
+          />
+          {selectorVisible && activeCategory && (
+            <Animated.View
+              pointerEvents="box-none"
+              style={[
+                styles.sidePanelContainer,
+                {
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: panelWidth,
+                  transform: [{ translateX: slideAnim }],
+                },
+              ]}
+            >
+              <View style={{ flex: 1 }}>
+                <ItemSelector
+                  category={activeCategory}
+                  selectedTargets={selectedTargets}
+                  setSelectedTargets={setSelectedTargets}
+                  distractorCount={distractorCount}
+                  setDistractorCount={setDistractorCount}
+                  onClose={closePanel}
+                />
+              </View>
+            </Animated.View>
+          )}
+        </View>
       </Modal>
     </ScreenContainer>
   );
@@ -371,17 +418,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: "85%",
-    height: "85%",
+  sidePanelContainer: {
+    minWidth: 520,
+    maxWidth: 700,
+    height: "100%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
+    padding: 28,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });
