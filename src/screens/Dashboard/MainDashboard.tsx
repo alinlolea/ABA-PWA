@@ -42,6 +42,7 @@ type ChildDoc = {
   notes: string;
   userId: string;
   createdAt: unknown;
+  lastSessionAt?: unknown;
 };
 
 const defaultForm = { name: "", birthDate: "", notes: "" };
@@ -79,6 +80,20 @@ function calculateAge(dateOfBirth: string): number {
   const monthDiff = today.getMonth() - d.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d.getDate())) age -= 1;
   return Math.max(0, age);
+}
+
+function formatTimestamp(ts: unknown): string {
+  if (ts == null) return "—";
+  const d = typeof (ts as { toDate?: () => Date }).toDate === "function"
+    ? (ts as { toDate: () => Date }).toDate()
+    : ts instanceof Date
+      ? ts
+      : new Date(ts as string | number);
+  if (Number.isNaN(d.getTime())) return "—";
+  const day = d.getDate().toString().padStart(2, "0");
+  const month = (d.getMonth() + 1).toString().padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 export default function MainDashboard() {
@@ -143,6 +158,7 @@ export default function MainDashboard() {
           notes: data.notes ?? "",
           userId: data.userId ?? "",
           createdAt: data.createdAt,
+          lastSessionAt: data.lastSessionAt,
         };
       });
       setChildren(list);
@@ -256,6 +272,7 @@ export default function MainDashboard() {
           notes: form.notes.trim(),
           userId: uid,
           createdAt: serverTimestamp(),
+          lastSessionAt: null,
         });
         setSelectedChildId(ref.id);
       } else if (editingId) {
@@ -435,42 +452,48 @@ export default function MainDashboard() {
             <View style={styles.contentWrapper}>
               <View style={styles.addChildButtonRow}>
                 <Pressable style={styles.addChildButton} onPress={openAddModal}>
-                  <Text style={styles.addChildButtonText}>Adaugă copil</Text>
+                  <Text style={styles.addChildButtonText}>Add Child</Text>
                 </Pressable>
               </View>
 
               {/* 1. Full-width Children card (sortable table) */}
               <View style={styles.childrenCard}>
                 <View style={styles.childrenCardHeader}>
-                  <Text style={styles.childrenCardTitle}>Copii</Text>
-                  <TextInput
-                    style={styles.childrenSearchInput}
-                    placeholder="Caută copil..."
-                    placeholderTextColor="#94A3B8"
-                    value={childSearchQuery}
-                    onChangeText={setChildSearchQuery}
-                  />
+                  <Text style={styles.childrenCardTitle}>Children in Therapy</Text>
+                  <View style={styles.searchWrapper}>
+                    <TextInput
+                      style={styles.searchBar}
+                      placeholder="Search child..."
+                      placeholderTextColor="#94A3B8"
+                      value={childSearchQuery}
+                      onChangeText={setChildSearchQuery}
+                    />
+                    {childSearchQuery.length > 0 && (
+                      <Pressable
+                        style={styles.clearButton}
+                        onPress={() => setChildSearchQuery("")}
+                      >
+                        <Text style={styles.clearButtonText}>×</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
                 <View style={styles.tableHeaderRow}>
-                  <Pressable style={styles.tableHeaderCellName} onPress={() => handleSort("name")}>
-                    <Text style={styles.tableHeaderText}>Nume</Text>
-                    {sortField === "name" && (
-                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                    )}
-                  </Pressable>
-                  <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("age")}>
-                    <Text style={styles.tableHeaderText}>Vârstă</Text>
-                    {sortField === "age" && (
-                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                    )}
-                  </Pressable>
-                  <Pressable style={styles.tableHeaderCell} onPress={() => handleSort("progress")}>
-                    <Text style={styles.tableHeaderText}>Progres total</Text>
-                    {sortField === "progress" && (
-                      <Text style={styles.tableSortIcon}>{sortDirection === "asc" ? "↑" : "↓"}</Text>
-                    )}
-                  </Pressable>
-                  <View style={styles.tableHeaderCellActions} />
+                  <View style={[styles.nameColumn, styles.cellContainer, styles.nameColumnAlign]}>
+                    <Text style={styles.tableHeaderText}>Name</Text>
+                  </View>
+                  <View style={[styles.ageColumn, styles.cellContainer, styles.centerColumnAlign]}>
+                    <Text style={styles.tableHeaderText}>Age</Text>
+                  </View>
+                  <View style={[styles.dateAddedColumn, styles.cellContainer, styles.centerColumnAlign]}>
+                    <Text style={styles.tableHeaderText}>Added</Text>
+                  </View>
+                  <View style={[styles.lastSessionColumn, styles.cellContainer, styles.centerColumnAlign]}>
+                    <Text style={styles.tableHeaderText}>Last Session</Text>
+                  </View>
+                  <View style={[styles.actionsColumnHeader, styles.cellContainer, styles.centerColumnAlign]}>
+                    <Text style={styles.tableHeaderText}>Actions</Text>
+                  </View>
                 </View>
                 <ScrollView
                   style={{ flex: 1 }}
@@ -479,31 +502,41 @@ export default function MainDashboard() {
                   showsVerticalScrollIndicator={false}
                   overScrollMode="never"
                 >
-                  {filteredAndSortedChildren.map((child) => {
+                  {filteredAndSortedChildren.length === 0 ? (
+                    <View style={styles.noResultsContainer}>
+                      <Text style={styles.noResultsText}>No results found</Text>
+                    </View>
+                  ) : filteredAndSortedChildren.map((child) => {
                     const isSelected = selectedChildId === child.id;
-                    const isHovered = hoveredRowId === child.id;
                     return (
                       <Pressable
                         key={child.id}
-                        style={[
-                          styles.tableRow,
-                          isSelected && styles.tableRowSelected,
-                          isHovered && !isSelected && styles.tableRowHover,
+                        style={({ pressed }) => [
+                          styles.childRow,
+                          pressed && styles.childRowPressed,
+                          isSelected && styles.childRowSelected,
                         ]}
                         onPress={() => setSelectedChildId(child.id)}
                         onPressIn={() => setHoveredRowId(child.id)}
                         onPressOut={() => setHoveredRowId(null)}
                       >
-                        <View style={styles.tableCellName}>
+                        <View style={[styles.nameColumn, styles.cellContainer, styles.nameColumnAlign]}>
                           <Text style={styles.tableCellText} numberOfLines={1}>{child.name || "—"}</Text>
                         </View>
-                        <View style={styles.tableCell}>
+                        <View style={[styles.ageColumn, styles.cellContainer, styles.centerColumnAlign]}>
                           <Text style={styles.tableCellText}>{calculateAge(child.birthDate)}</Text>
                         </View>
-                        <View style={styles.tableCell}>
-                          <Text style={styles.tableCellText}>0%</Text>
+                        <View style={[styles.dateAddedColumn, styles.cellContainer, styles.centerColumnAlign]}>
+                          <Text style={styles.tableCellText} numberOfLines={1}>
+                            {formatTimestamp(child.createdAt)}
+                          </Text>
                         </View>
-                        <View style={styles.tableCellActions}>
+                        <View style={[styles.lastSessionColumn, styles.cellContainer, styles.centerColumnAlign]}>
+                          <Text style={styles.tableCellText} numberOfLines={1}>
+                            {child.lastSessionAt ? formatTimestamp(child.lastSessionAt) : "—"}
+                          </Text>
+                        </View>
+                        <View style={styles.actionsColumn}>
                           <Pressable
                             style={styles.tableRowIconButton}
                             onPress={(e) => {
@@ -550,7 +583,7 @@ export default function MainDashboard() {
               disabled={!selectedChildId}
               activeOpacity={0.8}
             >
-              <Text style={styles.floatingButtonText}>Începe sesiunea</Text>
+              <Text style={styles.floatingButtonText}>Choose Objectives</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -741,7 +774,6 @@ const styles = StyleSheet.create({
     height: 340,
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
-    overflow: "hidden",
     padding: 20,
     marginBottom: 24,
   },
@@ -750,6 +782,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 16,
+    paddingHorizontal: 16,
   },
   childrenCardTitle: {
     fontSize: Theme.typography.title.fontSize,
@@ -766,6 +799,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     color: Theme.colors.textPrimary,
+  },
+  searchWrapper: {
+    position: "relative",
+    width: 240,
+    height: 36,
+    justifyContent: "center",
+  },
+  searchBar: {
+    flex: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
+  clearButton: {
+    position: "absolute",
+    right: 8,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clearButtonText: {
+    fontSize: 18,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  noResultsContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: "#64748B",
   },
   childrenTableScroll: {
     maxHeight: 200,
@@ -842,28 +912,43 @@ const styles = StyleSheet.create({
   },
   tableHeaderRow: {
     flexDirection: "row",
-    paddingVertical: 12,
+    alignItems: "center",
+    height: 48,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
   },
-  tableHeaderCellName: {
-    flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  nameColumn: { flex: 1 },
+  ageColumn: { width: 100 },
+  dateAddedColumn: { width: 130 },
+  lastSessionColumn: { width: 140 },
+  cellContainer: {
+    justifyContent: "center",
   },
-  tableHeaderCell: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  nameColumnAlign: {
+    alignItems: "flex-start",
   },
-  tableHeaderCellActions: {
-    width: 80,
+  centerColumnAlign: {
+    alignItems: "center",
+  },
+  endColumnAlign: {
+    alignItems: "flex-end",
+  },
+  actionsColumn: {
+    width: 110,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  actionsColumnHeader: {
+    width: 110,
+    flexDirection: "row",
+    justifyContent: "center",
   },
   tableHeaderText: {
     fontWeight: "600",
     fontSize: 14,
+    lineHeight: 20,
     color: Theme.colors.textPrimary,
     fontFamily: Theme.fontFamily.semiBold,
   },
@@ -871,34 +956,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Theme.colors.primary,
   },
-  tableRow: {
-    flexDirection: "row",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  tableRowHover: {
-    backgroundColor: "rgba(44, 100, 104, 0.05)",
-  },
-  tableRowSelected: {
-    backgroundColor: "rgba(44, 100, 104, 0.08)",
-    borderLeftWidth: 4,
-    borderLeftColor: "#2C6468",
-  },
-  tableCellName: {
-    flex: 2,
-    justifyContent: "center",
-  },
-  tableCell: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  tableCellActions: {
-    width: 80,
+  childRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 8,
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  childRowPressed: {
+    backgroundColor: "rgba(44,100,104,0.08)",
+  },
+  childRowSelected: {
+    backgroundColor: "rgba(44,100,104,0.12)",
   },
   tableRowIconButton: {
     width: 36,
@@ -909,6 +979,7 @@ const styles = StyleSheet.create({
   },
   tableCellText: {
     fontSize: Theme.typography.body.fontSize,
+    lineHeight: 20,
     color: Theme.colors.textPrimary,
     fontFamily: Theme.fontFamily.regular,
   },

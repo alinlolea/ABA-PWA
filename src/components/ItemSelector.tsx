@@ -287,7 +287,7 @@ export default function ItemSelector({
         <View style={styles.targetLibrarySection}>
           <View style={styles.libraryHeaderRow}>
             <Text style={styles.sectionTitle}>Target Library</Text>
-            <View style={styles.smallSearchContainer}>
+            <View style={styles.searchWrapper}>
               <TextInput
                 style={styles.searchBar}
                 placeholder="Search..."
@@ -295,6 +295,14 @@ export default function ItemSelector({
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  style={styles.clearButton}
+                  onPress={() => setSearchQuery("")}
+                >
+                  <Text style={styles.clearButtonText}>×</Text>
+                </Pressable>
+              )}
             </View>
           </View>
           <View style={styles.sectionDivider} />
@@ -307,7 +315,11 @@ export default function ItemSelector({
             contentContainerStyle={styles.gridScrollContent}
             showsVerticalScrollIndicator={true}
           >
-          {isColorsCategory ? (
+          {filteredStimuli.length === 0 ? (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>No results found</Text>
+          </View>
+          ) : isColorsCategory ? (
           <View style={styles.targetGridWrap}>
             <View
               style={[
@@ -607,6 +619,33 @@ const styles = StyleSheet.create({
   smallSearchContainer: {
     width: 200,
     height: 36,
+  },
+  searchWrapper: {
+    position: "relative",
+    width: 200,
+    height: 36,
+    justifyContent: "center",
+  },
+  clearButton: {
+    position: "absolute",
+    right: 8,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clearButtonText: {
+    fontSize: 18,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  noResultsContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: "#64748B",
   },
   sectionTitle: {
     fontSize: 14,

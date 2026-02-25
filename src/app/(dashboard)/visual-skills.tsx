@@ -1,13 +1,16 @@
 import ItemSelector from "@/components/ItemSelector";
 import ScreenContainer from "@/components/layout/ScreenContainer";
+import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { OBJECTIVES } from "@/config/objectives";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
+import { db } from "@/services/firebaseConfig";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -23,6 +26,7 @@ import {
 
 export default function VisualSkillsRoute() {
   const router = useRouter();
+  const { selectedChildId } = useContext(SelectedChildContext);
   const [selectedId, setSelectedId] = useState<number>(1);
   const [categoryId, setCategoryId] = useState<string>("colors");
   const [selectedTargets, setSelectedTargets] = useState<Stimulus[]>([]);
@@ -84,8 +88,17 @@ export default function VisualSkillsRoute() {
     setSelectorVisible(true);
   };
 
-  const handleStartSesiune = () => {
+  const handleStartSesiune = async () => {
     if (!canStart) return;
+    try {
+      if (selectedChildId) {
+        await updateDoc(doc(db, "children", selectedChildId), {
+          lastSessionAt: serverTimestamp(),
+        });
+      }
+    } catch {
+      // do not block navigation
+    }
     router.push({
       pathname: "/trial",
       params: {
@@ -107,7 +120,10 @@ export default function VisualSkillsRoute() {
             </View>
             <ScrollView
               style={styles.columnScroll}
-              contentContainerStyle={styles.columnScrollContent}
+              contentContainerStyle={[
+                styles.columnScrollContent,
+                { paddingHorizontal: 12, paddingVertical: 8 },
+              ]}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
             >
@@ -117,9 +133,10 @@ export default function VisualSkillsRoute() {
                 return (
                   <Pressable
                     key={obj.id}
-                    style={[
-                      styles.objectiveRow,
-                      isSelected && styles.objectiveRowSelected,
+                    style={({ pressed }) => [
+                      styles.rowItem,
+                      pressed && styles.rowItemPressed,
+                      isSelected && styles.rowItemSelected,
                       isDisabled && styles.objectiveRowDisabled,
                     ]}
                     onPress={() => !isDisabled && setSelectedId(obj.id)}
@@ -157,7 +174,10 @@ export default function VisualSkillsRoute() {
                 </View>
                 <ScrollView
                   style={styles.columnScroll}
-                  contentContainerStyle={styles.columnScrollContent}
+                  contentContainerStyle={[
+                    styles.columnScrollContent,
+                    { paddingHorizontal: 12, paddingVertical: 8 },
+                  ]}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}
                 >
@@ -165,17 +185,16 @@ export default function VisualSkillsRoute() {
                     const isSelected = categoryId === cat.id;
                     const isConfigured = isSelected && selectedTargets.length > 0;
                     return (
-                      <View
+                      <Pressable
                         key={cat.id}
-                        style={[
-                          styles.categoryRow,
-                          isSelected && styles.categoryRowSelected,
+                        style={({ pressed }) => [
+                          styles.rowItem,
+                          pressed && styles.rowItemPressed,
+                          isSelected && styles.rowItemSelected,
                         ]}
+                        onPress={() => handleCategoryChange(cat.id)}
                       >
-                        <Pressable
-                          style={styles.categoryRowContent}
-                          onPress={() => handleCategoryChange(cat.id)}
-                        >
+                        <View style={styles.categoryRowContent}>
                           <Text
                             style={[
                               styles.categoryRowText,
@@ -185,7 +204,7 @@ export default function VisualSkillsRoute() {
                           >
                             {cat.label}
                           </Text>
-                        </Pressable>
+                        </View>
                         <TouchableOpacity onPress={() => openSelector(cat)}>
                           {isConfigured ? (
                             <Text style={styles.configuredText}>Configured</Text>
@@ -193,7 +212,7 @@ export default function VisualSkillsRoute() {
                             <Text style={styles.setupText}>Set up</Text>
                           )}
                         </TouchableOpacity>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </ScrollView>
@@ -290,7 +309,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    overflow: "hidden",
   },
   sessionCardHeader: {
     marginBottom: 16,
@@ -314,6 +332,22 @@ const styles = StyleSheet.create({
   columnScrollContent: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
+  },
+  rowItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 6,
+    gap: Spacing.sm,
+  },
+  rowItemPressed: {
+    backgroundColor: "rgba(44,100,104,0.08)",
+  },
+  rowItemSelected: {
+    backgroundColor: "rgba(44,100,104,0.14)",
   },
   objectiveRow: {
     flexDirection: "row",
@@ -347,17 +381,6 @@ const styles = StyleSheet.create({
   },
   objectiveTextDisabled: {
     color: Colors.textSecondary,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5EEF0",
-    marginVertical: 6,
-    gap: 8,
   },
   categoryRowContent: {
     flex: 1,
