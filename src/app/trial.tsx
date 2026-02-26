@@ -12,11 +12,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   PanResponder,
+  Pressable,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import Tts from "react-native-tts";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
@@ -330,7 +332,13 @@ export default function TrialScreen() {
   const [totalAttempts, setTotalAttempts] = useState(0);
   const [correctAttempts, setCorrectAttempts] = useState(0);
 
+  useEffect(() => {
+    Tts.setDefaultLanguage("ro-RO");
+    Tts.setDefaultRate(0.48);
+  }, []);
+
   const trialsInitializedRef = useRef(false);
+  const ttsStartSpokenRef = useRef(false);
   useEffect(() => {
     if (!config || trialsInitializedRef.current) return;
     trialsInitializedRef.current = true;
@@ -339,6 +347,13 @@ export default function TrialScreen() {
       trials: generateTrials(config),
     }));
   }, [config]);
+
+  useEffect(() => {
+    if (session.trials.length > 0 && !ttsStartSpokenRef.current) {
+      ttsStartSpokenRef.current = true;
+      Tts.speak("Potrivește!");
+    }
+  }, [session.trials.length]);
 
   useEffect(() => {
     if (!session.completed) return;
@@ -577,6 +592,7 @@ export default function TrialScreen() {
             animateSnapTo(targetIndex, snapPanX, snapPanY, () => {
               setTotalAttempts((prev) => prev + 1);
               if (isCorrect) {
+                Tts.speak("Bravo!");
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
                 setMatchedOptionIndices((prev) => new Set(prev).add(bestIndex));
@@ -671,6 +687,12 @@ export default function TrialScreen() {
       <View style={styles.trialContainer}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>{progressText}</Text>
+          <Pressable
+            onPress={() => Tts.speak("Sortează!")}
+            style={styles.ttsTestButton}
+          >
+            <Text style={styles.ttsTestButtonText}>TTS</Text>
+          </Pressable>
         </View>
 
         <View style={styles.topArea}>
@@ -738,6 +760,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xs,
@@ -745,6 +770,17 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: Typography.small,
     color: Colors.textSecondary,
+  },
+  ttsTestButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(44,100,104,0.15)",
+    borderRadius: 6,
+  },
+  ttsTestButtonText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: "500",
   },
   topArea: {
     height: "40%",

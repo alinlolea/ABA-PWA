@@ -39,11 +39,14 @@ function Sidebar({ selectedChildId }: SidebarProps) {
   const visualSkillsIsActive = pathname === visualSkillsHref;
   const visualSkillsIsHover = pressedItem === visualSkillsHref && !!selectedChildId;
 
+  const receptiveLanguageHref = "/receptive-language";
+  const receptiveLanguageIsActive = pathname === receptiveLanguageHref;
+  const receptiveLanguageIsHover = pressedItem === receptiveLanguageHref && !!selectedChildId;
+
   const disabledNavItems = [
-    "Receptive Language",
+    "Reading",
+    "Labelling",
     "Expressive Language",
-    "Imitation",
-    "Play Skills",
   ];
 
   return (
@@ -112,6 +115,36 @@ function Sidebar({ selectedChildId }: SidebarProps) {
               ]}
             >
               Visual Skills
+            </Text>
+          </TouchableOpacity>
+          {/* Receptive Language – disabled when no child selected */}
+          <TouchableOpacity
+            disabled={!selectedChildId}
+            onPress={() => {
+              if (!selectedChildId) return;
+              router.push("/receptive-language");
+            }}
+            onPressIn={() => selectedChildId && setPressedItem(receptiveLanguageHref)}
+            onPressOut={() => setPressedItem(null)}
+            style={[
+              styles.navItem,
+              !selectedChildId && { opacity: 0.4 },
+              receptiveLanguageIsActive && styles.navItemActive,
+              receptiveLanguageIsHover && !receptiveLanguageIsActive && styles.navItemHover,
+            ]}
+          >
+            <Ionicons
+              name="ellipse-outline"
+              size={22}
+              color={receptiveLanguageIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                receptiveLanguageIsActive && styles.navLabelActive,
+              ]}
+            >
+              Receptive Language
             </Text>
           </TouchableOpacity>
           {disabledNavItems.map((label) => (
