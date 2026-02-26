@@ -12,7 +12,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   PanResponder,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -30,6 +29,11 @@ const MAX_BOTTOM_OPTIONS = 6;
 const DEFAULT_DISTRACTOR_COUNT = 0;
 const MIN_ITEM_SIZE = 70;
 const MAX_ITEM_SIZE = 120;
+const OPTION_BORDER_DEFAULT = "#444";
+const OPTION_BORDER_SUCCESS = "#2ecc71";
+const OPTION_BORDER_ERROR = "#e74c3c";
+const BORDER_WIDTH = 2;
+const ITEM_RADIUS_RATIO = 0.12;
 
 const VALID_CATEGORIES: CategoryKey[] = [
   "colors",
@@ -153,45 +157,61 @@ function TrialShapeSvg({
   );
 }
 
+const TARGET_BORDER_DEFAULT = "#444";
+const TARGET_BORDER_SUCCESS = "#2ecc71";
+const TARGET_BORDER_ERROR = "#e74c3c";
+
 function StimulusPlaceholder({
   stimulus,
   size,
+  itemRadius,
+  borderColorAnim,
 }: {
   stimulus: Stimulus;
   size: number;
+  itemRadius: number;
+  borderColorAnim: Animated.Value;
 }) {
-  const itemBoxStyle = [styles.itemBox, { width: size, height: size }];
+  const animatedBorderColor = borderColorAnim.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [TARGET_BORDER_DEFAULT, TARGET_BORDER_SUCCESS, TARGET_BORDER_ERROR],
+  });
+  const itemBoxStyle = [
+    styles.itemBox,
+    { width: size, height: size, borderRadius: itemRadius },
+    { borderColor: animatedBorderColor },
+  ];
 
   if (isShapeStimulus(stimulus.image)) {
     return (
-      <View style={itemBoxStyle}>
+      <Animated.View style={itemBoxStyle}>
         <TrialShapeSvg form={stimulus.image.form} size={size} fill={stimulus.image.fill} />
-      </View>
+      </Animated.View>
     );
   }
   if (isSvgStimulus(stimulus.image)) {
     const Icon = stimulus.image.icon;
     return (
-      <View style={itemBoxStyle}>
+      <Animated.View style={itemBoxStyle}>
         <Icon width={size} height={size} color={Colors.textPrimary} />
-      </View>
+      </Animated.View>
     );
   }
   if (isPlaceholderStimulus(stimulus.image)) {
     const firstLetter = stimulus.label ? [...stimulus.label][0] ?? "?" : "?";
     return (
-      <View style={itemBoxStyle}>
-        <View style={[styles.placeholderBox, { width: size, height: size }]}>
+      <Animated.View style={itemBoxStyle}>
+        <View style={[styles.placeholderBox, { width: size, height: size, borderRadius: itemRadius, overflow: "hidden" }]}>
           <Text style={[styles.placeholderLetter, { fontSize: Math.max(14, size * 0.35) }]}>{firstLetter}</Text>
         </View>
-      </View>
+      </Animated.View>
     );
   }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
-    <View style={itemBoxStyle}>
-      <View style={{ width: size, height: size, backgroundColor: color }} />
-    </View>
+      <Animated.View style={itemBoxStyle}>
+      <View style={{ width: size, height: size, backgroundColor: color, borderRadius: itemRadius, overflow: "hidden" }} />
+    </Animated.View>
   );
 }
 
@@ -200,18 +220,32 @@ function OptionSlot({
   isHighlighted,
   optionRef,
   itemSize,
+  itemRadius,
+  borderColorAnim,
+  defaultBorderColor,
 }: {
   stimulus: Stimulus;
   isHighlighted: boolean;
   optionRef: (el: View | null) => void;
   itemSize: number;
+  itemRadius: number;
+  borderColorAnim: Animated.Value;
+  defaultBorderColor: string;
 }) {
-  const borderColor = isHighlighted ? Colors.correct : "#D1D5DB";
-  const borderWidth = isHighlighted ? 4 : 1;
-  const itemBoxStyle = [
-    styles.itemBox,
-    { width: itemSize, height: itemSize, borderWidth, borderColor },
-  ];
+  const animatedBorderColor = borderColorAnim.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [defaultBorderColor, OPTION_BORDER_SUCCESS, OPTION_BORDER_ERROR],
+  });
+  const borderContainerStyle = {
+    width: itemSize,
+    height: itemSize,
+    borderWidth: BORDER_WIDTH,
+    borderRadius: itemRadius,
+    borderColor: animatedBorderColor,
+    overflow: "hidden" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  };
 
   if (isShapeStimulus(stimulus.image)) {
     return (
@@ -220,13 +254,13 @@ function OptionSlot({
         collapsable={false}
         style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
       >
-        <View style={itemBoxStyle}>
+        <Animated.View style={borderContainerStyle}>
           <TrialShapeSvg
             form={stimulus.image.form}
             size={itemSize}
             fill={stimulus.image.fill}
           />
-        </View>
+        </Animated.View>
       </View>
     );
   }
@@ -238,9 +272,9 @@ function OptionSlot({
         collapsable={false}
         style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
       >
-        <View style={itemBoxStyle}>
+        <Animated.View style={borderContainerStyle}>
           <Icon width={itemSize} height={itemSize} color={Colors.textPrimary} />
-        </View>
+        </Animated.View>
       </View>
     );
   }
@@ -252,11 +286,11 @@ function OptionSlot({
         collapsable={false}
         style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
       >
-        <View style={itemBoxStyle}>
-          <View style={[styles.placeholderBox, { width: itemSize, height: itemSize }]}>
+        <Animated.View style={borderContainerStyle}>
+          <View style={[styles.placeholderBox, { width: itemSize, height: itemSize, borderRadius: itemRadius, overflow: "hidden" }]}>
             <Text style={[styles.placeholderLetter, { fontSize: Math.max(14, itemSize * 0.35) }]}>{firstLetter}</Text>
           </View>
-        </View>
+        </Animated.View>
       </View>
     );
   }
@@ -267,14 +301,14 @@ function OptionSlot({
       collapsable={false}
       style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
     >
-      <View style={itemBoxStyle}>
-        <View style={{ width: itemSize, height: itemSize, backgroundColor: color }} />
-      </View>
+      <Animated.View style={borderContainerStyle}>
+        <View style={{ width: itemSize, height: itemSize, backgroundColor: color, borderRadius: itemRadius, overflow: "hidden" }} />
+      </Animated.View>
     </View>
   );
 }
 
-type TrialParams = { category?: string; targets?: string; distractorCount?: string; childId?: string; sessionId?: string };
+type TrialParams = { category?: string; targets?: string; distractorCount?: string; childId?: string; sessionId?: string; voiceEnabled?: string };
 
 function buildB1Config(params: TrialParams): B1Config {
   const category = (VALID_CATEGORIES.includes(params.category as CategoryKey)
@@ -317,6 +351,8 @@ export default function TrialScreen() {
   if (!sessionId) {
     throw new Error("TrialScreen: sessionId is missing from route params.");
   }
+  const voiceEnabledRaw = params.voiceEnabled;
+  const voiceEnabled = (Array.isArray(voiceEnabledRaw) ? voiceEnabledRaw[0] : voiceEnabledRaw) !== "false";
   const configRef = useRef<B1Config | null>(null);
   if (configRef.current === null) {
     configRef.current = buildB1Config(params);
@@ -334,11 +370,10 @@ export default function TrialScreen() {
 
   useEffect(() => {
     Tts.setDefaultLanguage("ro-RO");
-    Tts.setDefaultRate(0.48);
+    Tts.setDefaultRate(0.5);
   }, []);
 
   const trialsInitializedRef = useRef(false);
-  const ttsStartSpokenRef = useRef(false);
   useEffect(() => {
     if (!config || trialsInitializedRef.current) return;
     trialsInitializedRef.current = true;
@@ -349,11 +384,14 @@ export default function TrialScreen() {
   }, [config]);
 
   useEffect(() => {
-    if (session.trials.length > 0 && !ttsStartSpokenRef.current) {
-      ttsStartSpokenRef.current = true;
-      Tts.speak("Potrivește!");
+    if (!session.completed && session.trials.length > 0 && voiceEnabled) {
+      Tts.stop();
+      Tts.speak("Potrivește!", {
+        pitch: 1.0,
+        rate: 0.5,
+      } as unknown as Parameters<typeof Tts.speak>[1]);
     }
-  }, [session.trials.length]);
+  }, [session.currentTrialIndex, session.trials.length, voiceEnabled]);
 
   useEffect(() => {
     if (!session.completed) return;
@@ -390,6 +428,15 @@ export default function TrialScreen() {
   const optionRefs = useRef<(View | null)[]>(
     Array.from({ length: MAX_BOTTOM_OPTIONS }, () => null)
   );
+  const optionBorderAnims = useRef(
+    Array.from({ length: MAX_BOTTOM_OPTIONS }, () => new Animated.Value(0))
+  ).current;
+  const optionPulseAnims = useRef(
+    Array.from({ length: MAX_BOTTOM_OPTIONS }, () => new Animated.Value(0))
+  ).current;
+  const targetBorderAnims = useRef(
+    Array.from({ length: MAX_TOP_TARGETS }, () => new Animated.Value(0))
+  ).current;
 
   const trials = session.trials ?? [];
   const currentTrial = session.completed
@@ -404,15 +451,16 @@ export default function TrialScreen() {
   const bottomCount = bottomOptions.length > 0 ? bottomOptions.length : 1;
   const usableWidth = screenWidth * 0.9;
   const gap = usableWidth * 0.02;
-  const itemSize = clamp(
+  const ITEM_SIZE = clamp(
     (usableWidth - gap * (bottomCount - 1)) / bottomCount,
     MIN_ITEM_SIZE,
     MAX_ITEM_SIZE
   );
-  const snapRadius = itemSize * 0.6;
-  const optionGap = bottomCount > 1 ? (usableWidth - itemSize * bottomCount) / (bottomCount - 1) : 0;
+  const ITEM_RADIUS = Math.round(ITEM_SIZE * ITEM_RADIUS_RATIO);
+  const snapRadius = ITEM_SIZE * 0.6;
+  const optionGap = bottomCount > 1 ? (usableWidth - ITEM_SIZE * bottomCount) / (bottomCount - 1) : 0;
   const topCount = topTargets.length;
-  const topGap = topCount > 1 ? (usableWidth - itemSize * topCount) / (topCount - 1) : 0;
+  const topGap = topCount > 1 ? (usableWidth - ITEM_SIZE * topCount) / (topCount - 1) : 0;
 
   const snapRadiusRef = useRef(snapRadius);
   snapRadiusRef.current = snapRadius;
@@ -422,9 +470,43 @@ export default function TrialScreen() {
     topTargets.length > 0 &&
     matchedTargetIds.size === topTargets.length;
 
+  const runOptionBorderFeedback = useCallback(
+    (index: number, isCorrect: boolean) => {
+      optionBorderAnims[index].setValue(isCorrect ? 1 : 2);
+      Animated.sequence([
+        Animated.timing(optionPulseAnims[index], {
+          toValue: 1,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionPulseAnims[index], {
+          toValue: 0,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionPulseAnims[index], {
+          toValue: 1,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionPulseAnims[index], {
+          toValue: 0,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        optionBorderAnims[index].setValue(0);
+      });
+    },
+    [optionBorderAnims, optionPulseAnims]
+  );
+
   const advanceToNext = useCallback(() => {
     pans.forEach((p) => p.setValue({ x: 0, y: 0 }));
     shakes.forEach((s) => s.setValue(0));
+    targetBorderAnims.forEach((a) => a.setValue(0));
+    optionBorderAnims.forEach((a) => a.setValue(0));
+    optionPulseAnims.forEach((a) => a.setValue(0));
     setMatchedTargetIds(new Set());
     setMatchedOptionIndices(new Set());
     setActiveDragId(null);
@@ -443,13 +525,13 @@ export default function TrialScreen() {
         score: prev.score + 1,
       };
     });
-  }, [pans, shakes]);
+  }, [pans, shakes, targetBorderAnims, optionBorderAnims, optionPulseAnims]);
 
   useEffect(() => {
     if (!allMatched) return;
     advanceTimeoutRef.current = setTimeout(() => {
       advanceToNext();
-    }, CORRECT_FEEDBACK_MS);
+    }, 1500);
     return () => {
       if (advanceTimeoutRef.current) {
         clearTimeout(advanceTimeoutRef.current);
@@ -592,11 +674,26 @@ export default function TrialScreen() {
             animateSnapTo(targetIndex, snapPanX, snapPanY, () => {
               setTotalAttempts((prev) => prev + 1);
               if (isCorrect) {
-                Tts.speak("Bravo!");
+                runOptionBorderFeedback(bestIndex, true);
+                if (voiceEnabled) {
+                  Tts.stop();
+                  Tts.speak("Bravo!", {
+                    pitch: 1.4,
+                    rate: 0.6,
+                  } as unknown as Parameters<typeof Tts.speak>[1]);
+                }
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
                 setMatchedOptionIndices((prev) => new Set(prev).add(bestIndex));
               } else {
+                runOptionBorderFeedback(bestIndex, false);
+                if (voiceEnabled) {
+                  Tts.stop();
+                  Tts.speak("Mai încearcă!", {
+                    pitch: 0.9,
+                    rate: 0.48,
+                  } as unknown as Parameters<typeof Tts.speak>[1]);
+                }
                 runShakeThenBack(targetIndex);
               }
             });
@@ -628,6 +725,8 @@ export default function TrialScreen() {
       animateBackToOrigin,
       animateSnapTo,
       runShakeThenBack,
+      runOptionBorderFeedback,
+      voiceEnabled,
     ]
   );
 
@@ -687,12 +786,6 @@ export default function TrialScreen() {
       <View style={styles.trialContainer}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>{progressText}</Text>
-          <Pressable
-            onPress={() => Tts.speak("Sortează!")}
-            style={styles.ttsTestButton}
-          >
-            <Text style={styles.ttsTestButtonText}>TTS</Text>
-          </Pressable>
         </View>
 
         <View style={styles.topArea}>
@@ -709,7 +802,7 @@ export default function TrialScreen() {
                   {...(isMatched ? {} : panResponder.panHandlers)}
                   style={[
                     styles.targetWrap,
-                    { width: itemSize, height: itemSize },
+                    { width: ITEM_SIZE, height: ITEM_SIZE },
                     {
                       transform: [
                         {
@@ -725,7 +818,9 @@ export default function TrialScreen() {
                 >
                   <StimulusPlaceholder
                     stimulus={target}
-                    size={itemSize}
+                    size={ITEM_SIZE}
+                    itemRadius={ITEM_RADIUS}
+                    borderColorAnim={targetBorderAnims[index]}
                   />
                 </Animated.View>
               );
@@ -743,7 +838,10 @@ export default function TrialScreen() {
                 optionRef={(el) => {
                   optionRefs.current[index] = el;
                 }}
-                itemSize={itemSize}
+                itemSize={ITEM_SIZE}
+                itemRadius={ITEM_RADIUS}
+                borderColorAnim={optionBorderAnims[index]}
+                defaultBorderColor={matchedOptionIndices.has(index) ? OPTION_BORDER_SUCCESS : OPTION_BORDER_DEFAULT}
               />
             ))}
           </View>
@@ -760,9 +858,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xs,
@@ -770,17 +865,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: Typography.small,
     color: Colors.textSecondary,
-  },
-  ttsTestButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "rgba(44,100,104,0.15)",
-    borderRadius: 6,
-  },
-  ttsTestButtonText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: "500",
   },
   topArea: {
     height: "40%",
@@ -811,17 +895,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemBox: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderWidth: BORDER_WIDTH,
+    overflow: "hidden",
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
   placeholderBox: {
     backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },

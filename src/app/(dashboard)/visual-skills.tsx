@@ -7,7 +7,7 @@ import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/services/firebaseConfig";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -109,7 +109,8 @@ export default function VisualSkillsRoute() {
           mastered: false,
         })),
       });
-      const newSessionId = sessionRef.id;
+      const childSnap = await getDoc(doc(db, "children", selectedChildId));
+      const voiceEnabled = childSnap.exists() ? (childSnap.data().voiceEnabled !== false) : true;
       router.push({
         pathname: "/trial",
         params: {
@@ -118,6 +119,7 @@ export default function VisualSkillsRoute() {
           category: categoryId,
           targets: JSON.stringify(selectedTargets.map((t) => t.id)),
           distractorCount: String(distractorCount),
+          voiceEnabled: String(voiceEnabled),
         },
       });
     } catch {

@@ -27,10 +27,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import MaskInput from "react-native-mask-input";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,9 +44,10 @@ type ChildDoc = {
   userId: string;
   createdAt: unknown;
   lastSessionAt?: unknown;
+  voiceEnabled?: boolean;
 };
 
-const defaultForm = { name: "", birthDate: "", notes: "" };
+const defaultForm = { name: "", birthDate: "", notes: "", voiceEnabled: true };
 const DATE_FORMAT_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 const DATE_MASK = [/\d/, /\d/, "/", /\d/, /\d/, "/", /\d/, /\d/, /\d/, /\d/];
 
@@ -160,6 +162,7 @@ export default function MainDashboard() {
           userId: data.userId ?? "",
           createdAt: data.createdAt,
           lastSessionAt: data.lastSessionAt,
+          voiceEnabled: data.voiceEnabled !== false,
         };
       });
       setChildren(list);
@@ -199,6 +202,7 @@ export default function MainDashboard() {
       name: selectedChild.name,
       birthDate: selectedChild.birthDate,
       notes: selectedChild.notes,
+      voiceEnabled: selectedChild.voiceEnabled !== false,
     });
     setModalMode("edit");
     setEditingId(selectedChild.id);
@@ -211,10 +215,28 @@ export default function MainDashboard() {
       name: child.name,
       birthDate: child.birthDate,
       notes: child.notes,
+      voiceEnabled: child.voiceEnabled !== false,
     });
     setModalMode("edit");
     setEditingId(child.id);
     setModalVisible(true);
+  };
+
+  const handleToggleVoiceFor = async (child: ChildDoc, e?: { stopPropagation?: () => void }) => {
+    e?.stopPropagation?.();
+    const next = child.voiceEnabled !== false ? false : true;
+    setChildren((prev) =>
+      prev.map((c) => (c.id === child.id ? { ...c, voiceEnabled: next } : c))
+    );
+    try {
+      await updateDoc(doc(db, "children", child.id), { voiceEnabled: next });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Nu s-a putut actualiza.";
+      Alert.alert("Eroare", message);
+      setChildren((prev) =>
+        prev.map((c) => (c.id === child.id ? { ...c, voiceEnabled: !next } : c))
+      );
+    }
   };
 
   const handleDeleteChildFor = (child: ChildDoc) => {
@@ -288,6 +310,7 @@ export default function MainDashboard() {
           userId: uid,
           createdAt: serverTimestamp(),
           lastSessionAt: null,
+          voiceEnabled: form.voiceEnabled !== false,
         });
         setSelectedChildId(ref.id);
       } else if (editingId) {
@@ -295,6 +318,7 @@ export default function MainDashboard() {
           name,
           birthDate,
           notes: form.notes.trim(),
+          voiceEnabled: form.voiceEnabled !== false,
         });
       }
       closeModal();
@@ -580,6 +604,19 @@ export default function MainDashboard() {
                             style={styles.tableRowIconButton}
                             onPress={(e) => {
                               e?.stopPropagation?.();
+                              handleToggleVoiceFor(child, e);
+                            }}
+                          >
+                            <Ionicons
+                              name={child.voiceEnabled !== false ? "volume-high" : "volume-mute"}
+                              size={18}
+                              color={child.voiceEnabled !== false ? Theme.colors.primary : "#94A3B8"}
+                            />
+                          </Pressable>
+                          <Pressable
+                            style={styles.tableRowIconButton}
+                            onPress={(e) => {
+                              e?.stopPropagation?.();
                               openEditModalForChild(child);
                             }}
                           >
@@ -748,6 +785,13 @@ export default function MainDashboard() {
               multiline
               numberOfLines={3}
             />
+            <View style={styles.voiceToggleRow}>
+              <Text style={styles.fieldLabel}>Voce (TTS)</Text>
+              <Switch
+                value={form.voiceEnabled !== false}
+                onValueChange={(v) => setForm((f) => ({ ...f, voiceEnabled: v }))}
+              />
+            </View>
             <View style={styles.modalButtons}>
               <Pressable style={styles.cancelButton} onPress={closeModal}>
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -1401,6 +1445,12 @@ const styles = StyleSheet.create({
   notesInput: {
     height: 80,
     textAlignVertical: "top",
+  },
+  voiceToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
   },
   modalButtons: {
     flexDirection: "row",
