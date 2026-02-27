@@ -23,37 +23,21 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-const RECEPTIVE_OBJECTIVES = [
-  { id: "show_common_objects", name: "Arată obiecte comune", processCategory: "Identificare simplă", configurable: true },
-  { id: "touch_object_parts", name: "Atinge părți ale obiectelor", processCategory: "Identificare simplă", configurable: false },
-  { id: "show_adjectives", name: "Arată adjective", processCategory: "Identificare simplă", configurable: false },
-  { id: "show_actions", name: "Arată acțiuni", processCategory: "Identificare simplă", configurable: false },
-  { id: "identify_by_function", name: "Identifică obiect după funcție", processCategory: "Conceptual", configurable: false },
-  { id: "identify_by_characteristic", name: "Identifică obiect după caracteristică", processCategory: "Conceptual", configurable: false },
-  { id: "identify_by_category", name: "Identifică după categorie", processCategory: "Conceptual", configurable: false },
-  { id: "show_two_items", name: "Arată 2 itemi", processCategory: "Multi-select", configurable: false },
-  { id: "show_two_items_order", name: "Arată 2 itemi în ordine", processCategory: "Secvențiere verbală", configurable: false },
-  { id: "identify_jobs", name: "Identifică meserii", processCategory: "Identificare simplă", configurable: false },
-  { id: "identify_sounds", name: "Identifică sunete", processCategory: "Auditiv-receptiv", configurable: false },
-  { id: "select_all_examples", name: "Selectează toate exemplarele", processCategory: "Multi-select", configurable: false },
-  { id: "select_by_two_characteristics", name: "Selectează item după 2 caracteristici", processCategory: "Conceptual", configurable: false },
-  { id: "select_all_by_characteristic", name: "Selectează toate obiectele după caracteristică", processCategory: "Conceptual", configurable: false },
-  { id: "select_all_by_two_characteristics", name: "Selectează toate obiectele după 2 caracteristici", processCategory: "Conceptual", configurable: false },
-  { id: "show_location_images", name: "Arată imagine locație sau activitate", processCategory: "Social-receptiv", configurable: false },
-  { id: "show_emotions", name: "Arată emoții", processCategory: "Social-receptiv", configurable: false },
-  { id: "identify_same", name: "Identifică la fel", processCategory: "Relațional", configurable: false },
-  { id: "identify_different", name: "Identifică diferit", processCategory: "Relațional", configurable: false },
-  { id: "identify_non_examples", name: "Identifică non-exemplare", processCategory: "Conceptual", configurable: false },
-  { id: "identify_social_images", name: "Identifică imagini sociale", processCategory: "Social-receptiv", configurable: false },
+const READING_OBJECTIVES = [
+  { id: "receptive_letters", name: "Receptiv litere", processCategory: "Discriminare simboluri", configurable: true },
+  { id: "match_word_to_image", name: "Potrivește cuvinte la imagine", processCategory: "Simbol-referent", configurable: false },
+  { id: "match_word_to_word", name: "Potrivește cuvânt la cuvânt", processCategory: "Discriminare simboluri", configurable: false },
+  { id: "match_letters_in_word", name: "Potrivește litere pe cuvânt", processCategory: "Analiză structură cuvânt", configurable: false },
+  { id: "complete_missing_letter", name: "Completează litera lipsă din cuvânt", processCategory: "Analiză structură cuvânt", configurable: false },
 ];
 
-const RECEPTIVE_DRAWER_CATEGORIES = [{ id: "common", label: "Obiecte comune" }];
+const READING_DRAWER_CATEGORIES = [{ id: "letters", label: "Litere" }];
 
-export default function ReceptiveLanguageRoute() {
+export default function ReadingRoute() {
   const router = useRouter();
   const { selectedChildId } = useContext(SelectedChildContext);
-  const [selectedId, setSelectedId] = useState<string | null>("show_common_objects");
-  const [categoryId, setCategoryId] = useState<string>("common");
+  const [selectedId, setSelectedId] = useState<string | null>("receptive_letters");
+  const [categoryId, setCategoryId] = useState<string>("letters");
   const [selectedTargets, setSelectedTargets] = useState<Stimulus[]>([]);
   const [distractorCount, setDistractorCount] = useState(0);
   const [selectorVisible, setSelectorVisible] = useState(false);
@@ -65,8 +49,8 @@ export default function ReceptiveLanguageRoute() {
   }, [screenWidth]);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const selectedObjective = RECEPTIVE_OBJECTIVES.find((o) => o.id === selectedId);
-  const categories = selectedObjective?.configurable ? RECEPTIVE_DRAWER_CATEGORIES : [];
+  const selectedObjective = READING_OBJECTIVES.find((o) => o.id === selectedId);
+  const categories = selectedObjective?.configurable ? READING_DRAWER_CATEGORIES : [];
   const canStart = selectedObjective?.configurable ? selectedTargets.length > 0 : !!selectedId;
 
   useEffect(() => {
@@ -154,9 +138,9 @@ export default function ReceptiveLanguageRoute() {
         <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
           <View style={styles.mainContentWrap}>
             <View style={styles.areaHeader}>
-              <Text style={styles.areaHeaderTitle}>Limbaj receptiv</Text>
+              <Text style={styles.areaHeaderTitle}>Citire</Text>
               <Text style={styles.areaHeaderSubtitle}>
-                {RECEPTIVE_OBJECTIVES.length} objectives
+                {READING_OBJECTIVES.length} objectives
               </Text>
               <View style={styles.areaProgressTrack}>
                 <View style={[styles.areaProgressFill, { width: "65%" }]} />
@@ -168,7 +152,7 @@ export default function ReceptiveLanguageRoute() {
               showsVerticalScrollIndicator={true}
             >
               <View style={styles.objectiveGrid}>
-                {RECEPTIVE_OBJECTIVES.map((obj) => {
+                {READING_OBJECTIVES.map((obj) => {
                   const isSelected = obj.id === selectedId;
                   const configurable = obj.configurable;
                   return (

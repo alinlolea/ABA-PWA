@@ -1,4 +1,5 @@
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
+import { Colors } from "@/design/colors";
 import { Theme } from "@/design/theme";
 import { auth } from "@/services/firebaseConfig";
 import { signOut } from "firebase/auth";
@@ -43,10 +44,13 @@ function Sidebar({ selectedChildId }: SidebarProps) {
   const receptiveLanguageIsActive = pathname === receptiveLanguageHref;
   const receptiveLanguageIsHover = pressedItem === receptiveLanguageHref && !!selectedChildId;
 
+  const readingHref = "/reading";
+  const readingIsActive = pathname === readingHref;
+  const readingIsHover = pressedItem === readingHref && !!selectedChildId;
+
   const disabledNavItems = [
-    "Reading",
-    "Labelling",
-    "Expressive Language",
+    "Etichetare",
+    "Limbaj expresiv",
   ];
 
   return (
@@ -82,7 +86,7 @@ function Sidebar({ selectedChildId }: SidebarProps) {
                 pathname === "/main-dashboard" && styles.navLabelActive,
               ]}
             >
-              Home
+              Panou principal
             </Text>
           </Pressable>
           <View style={styles.sidebarDivider} />
@@ -104,9 +108,9 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             ]}
           >
             <Ionicons
-              name="list-outline"
+              name="shapes-outline"
               size={22}
-              color={visualSkillsIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+              color={Colors.textPrimary}
             />
             <Text
               style={[
@@ -114,7 +118,7 @@ function Sidebar({ selectedChildId }: SidebarProps) {
                 visualSkillsIsActive && styles.navLabelActive,
               ]}
             >
-              Visual Skills
+              Discriminare vizuală
             </Text>
           </TouchableOpacity>
           {/* Receptive Language – disabled when no child selected */}
@@ -134,9 +138,9 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             ]}
           >
             <Ionicons
-              name="ellipse-outline"
+              name="ear-outline"
               size={22}
-              color={receptiveLanguageIsActive ? Theme.colors.primaryDark : Theme.colors.textSecondary}
+              color={Colors.textPrimary}
             />
             <Text
               style={[
@@ -144,7 +148,37 @@ function Sidebar({ selectedChildId }: SidebarProps) {
                 receptiveLanguageIsActive && styles.navLabelActive,
               ]}
             >
-              Receptive Language
+              Limbaj receptiv
+            </Text>
+          </TouchableOpacity>
+          {/* Reading – disabled when no child selected */}
+          <TouchableOpacity
+            disabled={!selectedChildId}
+            onPress={() => {
+              if (!selectedChildId) return;
+              router.push("/reading");
+            }}
+            onPressIn={() => selectedChildId && setPressedItem(readingHref)}
+            onPressOut={() => setPressedItem(null)}
+            style={[
+              styles.navItem,
+              !selectedChildId && { opacity: 0.4 },
+              readingIsActive && styles.navItemActive,
+              readingIsHover && !readingIsActive && styles.navItemHover,
+            ]}
+          >
+            <Ionicons
+              name="book-outline"
+              size={22}
+              color={Colors.textPrimary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                readingIsActive && styles.navLabelActive,
+              ]}
+            >
+              Citire
             </Text>
           </TouchableOpacity>
           {disabledNavItems.map((label) => (
@@ -162,18 +196,18 @@ function Sidebar({ selectedChildId }: SidebarProps) {
           onPress={() => router.push("/privacy-policy")}
         >
           <Ionicons name="shield-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Privacy</Text>
+          <Text style={styles.navLabel}>Confidențialitate</Text>
         </Pressable>
         <Pressable
           style={styles.navItem}
           onPress={() => router.push("/account-edit")}
         >
           <Ionicons name="settings-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Settings</Text>
+          <Text style={styles.navLabel}>Setări</Text>
         </Pressable>
         <Pressable style={[styles.navItem, styles.logoutItem]} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Logout</Text>
+          <Text style={styles.navLabel}>Ieșire</Text>
         </Pressable>
       </View>
     </View>

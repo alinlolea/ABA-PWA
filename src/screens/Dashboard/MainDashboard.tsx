@@ -491,7 +491,7 @@ export default function MainDashboard() {
             <View style={styles.contentWrapper}>
               <View style={styles.addChildButtonRow}>
                 <Pressable style={styles.addChildButton} onPress={openAddModal}>
-                  <Text style={styles.addChildButtonText}>Add Child</Text>
+                  <Text style={styles.addChildButtonText}>Adaugă Copil</Text>
                 </Pressable>
               </View>
 
@@ -513,11 +513,11 @@ export default function MainDashboard() {
                 </View>
                 <View style={styles.childrenCardContent}>
                 <View style={styles.childrenCardHeader}>
-                  <Text style={styles.childrenCardTitle}>Children in Therapy</Text>
+                  <Text style={styles.childrenCardTitle}>Copii în terapie</Text>
                   <View style={styles.searchWrapper}>
                     <TextInput
                       style={styles.searchBar}
-                      placeholder="Search child..."
+                      placeholder="Caută copil"
                       placeholderTextColor="#94A3B8"
                       value={childSearchQuery}
                       onChangeText={setChildSearchQuery}
@@ -534,19 +534,19 @@ export default function MainDashboard() {
                 </View>
                 <View style={styles.tableHeaderRow}>
                   <View style={[styles.nameColumn, styles.cellContainer, styles.nameColumnAlign]}>
-                    <Text style={styles.tableHeaderText}>Name</Text>
+                    <Text style={styles.tableHeaderText}>Nume</Text>
                   </View>
                   <View style={[styles.ageColumn, styles.cellContainer, styles.centerColumnAlign]}>
-                    <Text style={styles.tableHeaderText}>Age</Text>
+                    <Text style={styles.tableHeaderText}>Vârstă</Text>
                   </View>
                   <View style={[styles.dateAddedColumn, styles.cellContainer, styles.centerColumnAlign]}>
-                    <Text style={styles.tableHeaderText}>Added</Text>
+                    <Text style={styles.tableHeaderText}>Adăugat</Text>
                   </View>
                   <View style={[styles.lastSessionColumn, styles.cellContainer, styles.centerColumnAlign]}>
-                    <Text style={styles.tableHeaderText}>Last Session</Text>
+                    <Text style={styles.tableHeaderText}>Ultima sesiune</Text>
                   </View>
                   <View style={[styles.actionsColumnHeader, styles.cellContainer, styles.centerColumnAlign]}>
-                    <Text style={styles.tableHeaderText}>Actions</Text>
+                    <Text style={styles.tableHeaderText}>Acțiuni</Text>
                   </View>
                 </View>
                 <ScrollView
@@ -659,21 +659,21 @@ export default function MainDashboard() {
                     />
                   </View>
                   <View style={styles.cardContent}>
-                  <Text style={styles.premiumCardTitle}>CONSISTENCY</Text>
+                  <Text style={styles.premiumCardTitle}>CONSECVENȚĂ</Text>
                   <View style={styles.metricsRow}>
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValue}>4</Text>
-                      <Text style={styles.metricLabel}>Sessions this week</Text>
+                      <Text style={styles.metricLabel}>sesiuni săptămâna asta</Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValue}>12</Text>
-                      <Text style={styles.metricLabel}>Sessions this month</Text>
+                      <Text style={styles.metricLabel}>sesiuni luna asta</Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValue}>28</Text>
-                      <Text style={styles.metricLabel}>Mastered items</Text>
+                      <Text style={styles.metricLabel}>itemi masterați</Text>
                     </View>
                   </View>
                   </View>
@@ -695,21 +695,21 @@ export default function MainDashboard() {
                     />
                   </View>
                   <View style={styles.cardContent}>
-                  <Text style={styles.premiumCardTitle}>LEARNING SPEED</Text>
+                  <Text style={styles.premiumCardTitle}>VITEZĂ DE ÎNVĂȚARE</Text>
                   <View style={styles.metricsRow}>
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValueAccent}>78%</Text>
-                      <Text style={styles.metricLabel}>Avg accuracy / session</Text>
+                      <Text style={styles.metricLabel}>acuratețe / sesiune</Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValue}>24</Text>
-                      <Text style={styles.metricLabel}>Trials per session</Text>
+                      <Text style={styles.metricLabel}>încercări pe sesiune</Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricBlock}>
                       <Text style={styles.metricValuePositive}>↑ +6%</Text>
-                      <Text style={styles.metricLabel}>Improvement trend</Text>
+                      <Text style={styles.metricLabel}>progres</Text>
                     </View>
                   </View>
                   </View>
@@ -757,7 +757,7 @@ export default function MainDashboard() {
             <Text style={styles.modalTitle}>
               {modalMode === "add" ? "Adaugă copil" : "Editează copil"}
             </Text>
-            <Text style={styles.fieldLabel}>Name</Text>
+            <Text style={styles.fieldLabel}>Nume</Text>
             <TextInput
               style={styles.input}
               placeholder="Nume *"

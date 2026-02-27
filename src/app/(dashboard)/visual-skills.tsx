@@ -135,7 +135,7 @@ export default function VisualSkillsRoute() {
         <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
           <View style={styles.mainContentWrap}>
             <View style={styles.areaHeader}>
-              <Text style={styles.areaHeaderTitle}>Visual Skills</Text>
+              <Text style={styles.areaHeaderTitle}>Discriminare vizuală</Text>
               <Text style={styles.areaHeaderSubtitle}>
                 {OBJECTIVES.length} objectives
               </Text>
@@ -143,12 +143,6 @@ export default function VisualSkillsRoute() {
                 <View style={[styles.areaProgressFill, { width: "65%" }]} />
               </View>
             </View>
-            <LinearGradient
-              colors={["rgba(44,100,104,0.12)", "rgba(44,100,104,0)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.areaHeaderFade}
-            />
             <ScrollView
               style={styles.objectiveGridScroll}
               contentContainerStyle={styles.objectiveGridScrollContent}
@@ -193,6 +187,20 @@ export default function VisualSkillsRoute() {
                         style={styles.cardAccentLine}
                       />
                     </View>
+                    {isSelected && (
+                      <LinearGradient
+                        colors={[
+                          "rgba(44,100,104,0)",
+                          "rgba(44,100,104,0.9)",
+                          "rgba(44,100,104,0.9)",
+                          "rgba(44,100,104,0)",
+                        ]}
+                        locations={[0, 0.2, 0.8, 1]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={styles.cardLeftAccent}
+                      />
+                    )}
                     <Text
                       style={[
                         styles.objectiveGridCardTitle,
@@ -352,7 +360,7 @@ const styles = StyleSheet.create({
   sessionContainer: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#F4F7F8",
+    backgroundColor: "#F2F5F7",
   },
   drawerBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -383,7 +391,7 @@ const styles = StyleSheet.create({
   },
   drawerCard: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
   },
@@ -442,8 +450,8 @@ const styles = StyleSheet.create({
   },
   areaHeaderTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#1E293B",
+    fontWeight: "700",
+    color: "#1F2937",
     marginBottom: 2,
   },
   areaHeaderSubtitle: {
@@ -461,10 +469,6 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#2C6468",
     borderRadius: 2,
-  },
-  areaHeaderFade: {
-    height: 12,
-    width: "100%",
   },
   cardAccentWrapper: {
     position: "absolute",
@@ -490,12 +494,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 14,
-    borderWidth: 1,
-    borderColor: "#E5EEF0",
+    borderWidth: 0,
+    position: "relative",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  objectiveGridCardSelected: {
-    backgroundColor: "rgba(44,100,104,0.14)",
-    borderColor: "#2C6468",
+  objectiveGridCardSelected: {},
+  cardLeftAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   objectiveGridCardDisabled: {
     opacity: 0.6,
