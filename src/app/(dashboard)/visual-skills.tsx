@@ -8,6 +8,7 @@ import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/services/firebaseConfig";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +34,7 @@ export default function VisualSkillsRoute() {
   const [distractorCount, setDistractorCount] = useState(0);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
   const panelWidth = useMemo(() => {
     return Math.min(Math.max(screenWidth * 0.42, 520), 700);
@@ -130,122 +132,162 @@ export default function VisualSkillsRoute() {
   return (
     <ScreenContainer>
       <View style={styles.sessionContainer}>
-        <View style={styles.sessionRow}>
-          <View style={styles.sessionCard}>
-            <View style={styles.sessionCardHeader}>
-              <Text style={styles.sessionCardTitle}>Objectives</Text>
-              <View style={styles.cardTitleDivider} />
+        <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
+          <View style={styles.mainContentWrap}>
+            <View style={styles.areaHeader}>
+              <Text style={styles.areaHeaderTitle}>Visual Skills</Text>
+              <Text style={styles.areaHeaderSubtitle}>
+                {OBJECTIVES.length} objectives
+              </Text>
+              <View style={styles.areaProgressTrack}>
+                <View style={[styles.areaProgressFill, { width: "65%" }]} />
+              </View>
             </View>
+            <LinearGradient
+              colors={["rgba(44,100,104,0.12)", "rgba(44,100,104,0)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.areaHeaderFade}
+            />
             <ScrollView
-              style={styles.columnScroll}
-              contentContainerStyle={[
-                styles.columnScrollContent,
-                { paddingHorizontal: 12, paddingVertical: 8 },
-              ]}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
+              style={styles.objectiveGridScroll}
+              contentContainerStyle={styles.objectiveGridScrollContent}
+              showsVerticalScrollIndicator={true}
             >
+              <View style={styles.objectiveGrid}>
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
+                const configurable = obj.categories.length > 0;
+                const processCategory =
+                  obj.categories.length > 0
+                    ? obj.categories.map((c) => c.label).join(", ")
+                    : "—";
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={obj.id}
-                    style={({ pressed }) => [
-                      styles.rowItem,
-                      pressed && styles.rowItemPressed,
-                      isSelected && styles.rowItemSelected,
-                      isDisabled && styles.objectiveRowDisabled,
+                    style={[
+                      styles.objectiveGridCard,
+                      isSelected && styles.objectiveGridCardSelected,
+                      isDisabled && styles.objectiveGridCardDisabled,
                     ]}
-                    onPress={() => !isDisabled && setSelectedId(obj.id)}
+                    onPress={() => {
+                      if (isDisabled) return;
+                      setSelectedId(obj.id);
+                      if (obj.categories.length > 0) setIsSetupOpen(true);
+                    }}
                     disabled={isDisabled}
+                    activeOpacity={0.8}
                   >
+                    <View style={styles.cardAccentWrapper}>
+                      <LinearGradient
+                        colors={[
+                          "rgba(44,100,104,0)",
+                          "rgba(44,100,104,0.9)",
+                          "rgba(44,100,104,0.9)",
+                          "rgba(44,100,104,0)",
+                        ]}
+                        locations={[0, 0.2, 0.8, 1]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.cardAccentLine}
+                      />
+                    </View>
                     <Text
                       style={[
-                        styles.objectiveNumber,
-                        isDisabled && styles.objectiveTextDisabled,
-                      ]}
-                    >
-                      {obj.id}.
-                    </Text>
-                    <Text
-                      style={[
-                        styles.objectiveLabel,
+                        styles.objectiveGridCardTitle,
                         isDisabled && styles.objectiveTextDisabled,
                       ]}
                       numberOfLines={2}
                     >
                       {obj.title}
                     </Text>
-                  </Pressable>
+                    <Text
+                      style={[
+                        styles.objectiveGridCardCategory,
+                        isDisabled && styles.objectiveTextDisabled,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {processCategory}
+                    </Text>
+                    <View style={styles.objectiveGridBadge}>
+                      <Text style={styles.objectiveGridBadgeText}>
+                        {configurable ? "⚙ Configurabil" : "Standard"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 );
               })}
+              </View>
             </ScrollView>
           </View>
-
-          {categories.length > 0 && (
-            <>
-              <View style={styles.sessionCard}>
-                <View style={styles.sessionCardHeader}>
-                  <Text style={styles.sessionCardTitle}>Categories</Text>
-                  <View style={styles.cardTitleDivider} />
-                </View>
-                <ScrollView
-                  style={styles.columnScroll}
-                  contentContainerStyle={[
-                    styles.columnScrollContent,
-                    { paddingHorizontal: 12, paddingVertical: 8 },
-                  ]}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={true}
-                >
-                  {categories.map((cat) => {
-                    const isSelected = categoryId === cat.id;
-                    const isConfigured = isSelected && selectedTargets.length > 0;
-                    return (
-                      <Pressable
-                        key={cat.id}
-                        style={({ pressed }) => [
-                          styles.rowItem,
-                          pressed && styles.rowItemPressed,
-                          isSelected && styles.rowItemSelected,
-                        ]}
-                        onPress={() => handleCategoryChange(cat.id)}
-                      >
-                        <View style={styles.categoryRowContent}>
-                          <Text
-                            style={[
-                              styles.categoryRowText,
-                              isSelected && styles.categoryRowTextSelected,
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {cat.label}
-                          </Text>
-                        </View>
-                        <TouchableOpacity onPress={() => openSelector(cat)}>
-                          {isConfigured ? (
-                            <Text style={styles.configuredText}>Configured</Text>
-                          ) : (
-                            <Text style={styles.setupText}>Set up</Text>
-                          )}
-                        </TouchableOpacity>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            </>
-          )}
-
-          <View style={styles.sessionCard}>
-            <View style={styles.sessionCardHeader}>
-              <Text style={styles.sessionCardTitle}>Progress</Text>
-              <View style={styles.cardTitleDivider} />
-            </View>
-            <Text style={styles.placeholderText}>—</Text>
-          </View>
         </View>
+
+        {isSetupOpen && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            <View style={styles.drawerBackdrop} />
+            {categories.length > 0 && (
+              <View style={[styles.setupDrawer, { width: screenWidth * 0.37 }]}>
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.sessionCardTitle}>Categories</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsSetupOpen(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="close" size={24} color="#1E293B" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.drawerCard}>
+                  <ScrollView
+                    style={styles.columnScroll}
+                    contentContainerStyle={[
+                      styles.columnScrollContent,
+                      { paddingHorizontal: 12, paddingVertical: 8 },
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                  >
+                    {categories.map((cat) => {
+                      const isSelected = categoryId === cat.id;
+                      const isConfigured = isSelected && selectedTargets.length > 0;
+                      return (
+                        <Pressable
+                          key={cat.id}
+                          style={({ pressed }) => [
+                            styles.rowItem,
+                            pressed && styles.rowItemPressed,
+                            isSelected && styles.rowItemSelected,
+                          ]}
+                          onPress={() => handleCategoryChange(cat.id)}
+                        >
+                          <View style={styles.categoryRowContent}>
+                            <Text
+                              style={[
+                                styles.categoryRowText,
+                                isSelected && styles.categoryRowTextSelected,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {cat.label}
+                            </Text>
+                          </View>
+                          <TouchableOpacity onPress={() => openSelector(cat)}>
+                            {isConfigured ? (
+                              <Text style={styles.configuredText}>Configured</Text>
+                            ) : (
+                              <Text style={styles.setupText}>Set up</Text>
+                            )}
+                          </TouchableOpacity>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.floatingButtonContainer} pointerEvents="box-none">
@@ -312,10 +354,55 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: "#F4F7F8",
   },
+  drawerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  setupDrawer: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "#FFFFFF",
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  drawerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5EEF0",
+  },
+  drawerCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 16,
+  },
   sessionRow: {
     flex: 1,
     flexDirection: "row",
     gap: 24,
+  },
+  sessionRowDimmed: {
+    opacity: 0.85,
+  },
+  mainContentWrap: {
+    flex: 1,
+  },
+  objectiveGridScroll: {
+    flex: 1,
+  },
+  objectiveGridScrollContent: {
+    paddingBottom: 24,
   },
   sessionCard: {
     flex: 1,
@@ -343,6 +430,98 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5EEF0",
     marginTop: 8,
     marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 16,
+  },
+  areaHeader: {
+    marginBottom: 20,
+  },
+  areaHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  areaHeaderSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 10,
+  },
+  areaProgressTrack: {
+    height: 4,
+    backgroundColor: "#E5EEF0",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  areaProgressFill: {
+    height: "100%",
+    backgroundColor: "#2C6468",
+    borderRadius: 2,
+  },
+  areaHeaderFade: {
+    height: 12,
+    width: "100%",
+  },
+  cardAccentWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    overflow: "hidden",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  cardAccentLine: {
+    flex: 1,
+  },
+  objectiveGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  objectiveGridCard: {
+    width: "48%",
+    minWidth: 140,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5EEF0",
+  },
+  objectiveGridCardSelected: {
+    backgroundColor: "rgba(44,100,104,0.14)",
+    borderColor: "#2C6468",
+  },
+  objectiveGridCardDisabled: {
+    opacity: 0.6,
+  },
+  objectiveGridCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  objectiveGridCardCategory: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  objectiveGridBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(44,100,104,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  objectiveGridBadgeText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#2C6468",
   },
   columnScroll: {
     flex: 1,
