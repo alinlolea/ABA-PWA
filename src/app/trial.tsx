@@ -1,4 +1,4 @@
-import ScreenContainer from "@/components/layout/ScreenContainer";
+import TowerConstructionTrial from "@/components/trials/TowerConstructionTrial";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
@@ -33,7 +33,7 @@ const OPTION_BORDER_DEFAULT = "#444";
 const OPTION_BORDER_SUCCESS = "#2ecc71";
 const OPTION_BORDER_ERROR = "#e74c3c";
 const BORDER_WIDTH = 2;
-const ITEM_RADIUS_RATIO = 0.12;
+const ITEM_RADIUS_RATIO = 0.18;
 
 const VALID_CATEGORIES: CategoryKey[] = [
   "colors",
@@ -318,7 +318,17 @@ function OptionSlot({
   );
 }
 
-type TrialParams = { category?: string; targets?: string; distractorCount?: string; childId?: string; sessionId?: string; voiceEnabled?: string };
+type TrialParams = {
+  category?: string;
+  targets?: string;
+  distractorCount?: string;
+  childId?: string;
+  sessionId?: string;
+  voiceEnabled?: string;
+  trialType?: string;
+  numberOfItems?: string;
+  numberOfDistractors?: string;
+};
 
 function buildB1Config(params: TrialParams): B1Config {
   const category = (VALID_CATEGORIES.includes(params.category as CategoryKey)
@@ -360,6 +370,18 @@ export default function TrialScreen() {
         : undefined;
   if (!sessionId) {
     throw new Error("TrialScreen: sessionId is missing from route params.");
+  }
+  const trialTypeRaw = params.trialType;
+  const trialType = typeof trialTypeRaw === "string" ? trialTypeRaw : Array.isArray(trialTypeRaw) ? trialTypeRaw[0] : undefined;
+  if (trialType === "tower_over_model") {
+    const n = Math.min(5, Math.max(2, parseInt(params.numberOfItems ?? "3", 10) || 3));
+    const d = Math.min(4, Math.max(0, parseInt(params.numberOfDistractors ?? "1", 10) || 0));
+    return (
+      <TowerConstructionTrial
+        sessionId={sessionId}
+        config={{ numberOfItems: n, numberOfDistractors: d }}
+      />
+    );
   }
   const voiceEnabledRaw = params.voiceEnabled;
   const voiceEnabled = (Array.isArray(voiceEnabledRaw) ? voiceEnabledRaw[0] : voiceEnabledRaw) !== "false";
@@ -774,14 +796,14 @@ export default function TrialScreen() {
 
   if (session.completed) {
     return (
-      <ScreenContainer>
+      <View style={{ flex: 1 }}>
         <View style={styles.completedRoot}>
           <Text style={styles.completedTitle}>Sesiune finalizată</Text>
           <Text style={styles.completedScore}>
             Scor: {session.score} / {TRIAL_COUNT}
           </Text>
         </View>
-      </ScreenContainer>
+      </View>
     );
   }
 
@@ -792,7 +814,7 @@ export default function TrialScreen() {
   const progressText = `${session.currentTrialIndex + 1} / ${TRIAL_COUNT}`;
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1 }}>
       <View style={styles.trialContainer}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>{progressText}</Text>
@@ -857,7 +879,7 @@ export default function TrialScreen() {
           </View>
         </View>
       </View>
-    </ScreenContainer>
+    </View>
   );
 }
 

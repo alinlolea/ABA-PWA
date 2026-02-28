@@ -1,4 +1,5 @@
 import ItemSelector from "@/components/ItemSelector";
+import Stepper from "@/components/ui/Stepper";
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { OBJECTIVES } from "@/config/objectives";
@@ -32,6 +33,8 @@ export default function VisualSkillsRoute() {
   const [categoryId, setCategoryId] = useState<string>("colors");
   const [selectedTargets, setSelectedTargets] = useState<Stimulus[]>([]);
   const [distractorCount, setDistractorCount] = useState(0);
+  const [towerNumberOfItems, setTowerNumberOfItems] = useState(3);
+  const [towerNumberOfDistractors, setTowerNumberOfDistractors] = useState(1);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
@@ -75,7 +78,8 @@ export default function VisualSkillsRoute() {
 
   const selectedObjective = OBJECTIVES.find((o) => o.id === selectedId);
   const categories = selectedObjective?.categories ?? [];
-  const canStart = selectedTargets.length > 0;
+  const isTowerObjective = selectedObjective?.trialType === "tower_over_model";
+  const canStart = isTowerObjective || selectedTargets.length > 0;
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((c) => c.id === categoryId)) {
@@ -124,17 +128,32 @@ export default function VisualSkillsRoute() {
       });
       const childSnap = await getDoc(doc(db, "children", selectedChildId));
       const voiceEnabled = childSnap.exists() ? (childSnap.data().voiceEnabled !== false) : true;
-      router.push({
-        pathname: "/trial",
-        params: {
-          sessionId: sessionRef.id,
-          childId: selectedChildId,
-          category: categoryId,
-          targets: JSON.stringify(selectedTargets.map((t) => t.id)),
-          distractorCount: String(distractorCount),
-          voiceEnabled: String(voiceEnabled),
-        },
-      });
+      const baseParams: Record<string, string> = {
+        sessionId: sessionRef.id,
+        childId: selectedChildId,
+        voiceEnabled: String(voiceEnabled),
+      };
+      if (isTowerObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "tower_over_model",
+            numberOfItems: String(towerNumberOfItems),
+            numberOfDistractors: String(towerNumberOfDistractors),
+          },
+        });
+      } else {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            category: categoryId,
+            targets: JSON.stringify(selectedTargets.map((t) => t.id)),
+            distractorCount: String(distractorCount),
+          },
+        });
+      }
     } catch {
       // do not block navigation
     }
@@ -166,7 +185,7 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
-                const configurable = obj.categories.length > 0;
+                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model";
                 const processCategory =
                   obj.categories.length > 0
                     ? obj.categories.map((c) => c.label).join(", ")
@@ -182,7 +201,7 @@ export default function VisualSkillsRoute() {
                     onPress={() => {
                       if (isDisabled) return;
                       setSelectedId(obj.id);
-                      if (obj.categories.length > 0) setIsSetupOpen(true);
+                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model") setIsSetupOpen(true);
                     }}
                     disabled={isDisabled}
                     activeOpacity={0.8}
@@ -249,7 +268,41 @@ export default function VisualSkillsRoute() {
         {isSetupOpen && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <View style={styles.drawerBackdrop} />
-            {categories.length > 0 && (
+            {isTowerObjective ? (
+              <View style={[styles.setupDrawer, { width: 300 }]}>
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.sessionCardTitle}>Configurare</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsSetupOpen(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="close" size={24} color="#1E293B" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.drawerCard}>
+                  <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
+                    <View>
+                      <Text style={styles.towerConfigLabel}>Număr cuburi (2–5)</Text>
+                      <Stepper
+                        value={towerNumberOfItems}
+                        min={2}
+                        max={5}
+                        onChange={setTowerNumberOfItems}
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.towerConfigLabel}>Distractori (0–4)</Text>
+                      <Stepper
+                        value={towerNumberOfDistractors}
+                        min={0}
+                        max={4}
+                        onChange={setTowerNumberOfDistractors}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ) : categories.length > 0 ? (
               <View style={[styles.setupDrawer, { width: 300 }]}>
                 <View style={styles.drawerHeader}>
                   <Text style={styles.sessionCardTitle}>Categorii</Text>
@@ -307,7 +360,7 @@ export default function VisualSkillsRoute() {
                   </ScrollView>
                 </View>
               </View>
-            )}
+            ) : null}
           </View>
         )}
       </View>
@@ -645,6 +698,12 @@ const styles = StyleSheet.create({
   categoryRowTextSelected: {
     color: "#2C6468",
     fontWeight: "600",
+  },
+  towerConfigLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#334155",
+    marginBottom: 8,
   },
   placeholderText: {
     fontSize: Typography.body,
