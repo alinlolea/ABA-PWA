@@ -729,7 +729,7 @@ export default function MainDashboard() {
               disabled={!selectedChildId}
               activeOpacity={0.8}
             >
-              <Text style={styles.floatingButtonText}>Choose Objectives</Text>
+              <Text style={styles.floatingButtonText}>Alege Obiectivele</Text>
             </TouchableOpacity>
           </View>
         </View>

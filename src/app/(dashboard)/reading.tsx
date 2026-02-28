@@ -3,6 +3,7 @@ import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
+import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/services/firebaseConfig";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -43,6 +44,7 @@ export default function ReadingRoute() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const panelWidth = useMemo(() => {
     return Math.min(Math.max(screenWidth * 0.42, 520), 700);
@@ -52,6 +54,16 @@ export default function ReadingRoute() {
   const selectedObjective = READING_OBJECTIVES.find((o) => o.id === selectedId);
   const categories = selectedObjective?.configurable ? READING_DRAWER_CATEGORIES : [];
   const canStart = selectedObjective?.configurable ? selectedTargets.length > 0 : !!selectedId;
+
+  useEffect(() => {
+    if (!selectedChildId) {
+      setSelectedChildName(null);
+      return;
+    }
+    getDoc(doc(db, "children", selectedChildId)).then((snap) => {
+      setSelectedChildName(snap.exists() ? (snap.data().name ?? null) : null);
+    });
+  }, [selectedChildId]);
 
   useEffect(() => {
     if (selectorVisible) {
@@ -138,7 +150,10 @@ export default function ReadingRoute() {
         <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
           <View style={styles.mainContentWrap}>
             <View style={styles.areaHeader}>
-              <Text style={styles.areaHeaderTitle}>Citire</Text>
+              <View style={styles.areaHeaderTitleRow}>
+                <Text style={styles.areaHeaderTitle}>Citire</Text>
+                <Text style={styles.selectedChildName}>{selectedChildName ?? ""}</Text>
+              </View>
               <Text style={styles.areaHeaderSubtitle}>
                 {READING_OBJECTIVES.length} objectives
               </Text>
@@ -225,9 +240,9 @@ export default function ReadingRoute() {
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <View style={styles.drawerBackdrop} />
             {categories.length > 0 && (
-              <View style={[styles.setupDrawer, { width: screenWidth * 0.37 }]}>
+              <View style={[styles.setupDrawer, { width: 300 }]}>
                 <View style={styles.drawerHeader}>
-                  <Text style={styles.sessionCardTitle}>Categories</Text>
+                  <Text style={styles.sessionCardTitle}>Categorii</Text>
                   <TouchableOpacity
                     onPress={() => setIsSetupOpen(false)}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -271,9 +286,9 @@ export default function ReadingRoute() {
                           </View>
                           <TouchableOpacity onPress={() => openSelector(cat)}>
                             {isConfigured ? (
-                              <Text style={styles.configuredText}>Configured</Text>
+                              <Text style={styles.configuredText}>Configurat</Text>
                             ) : (
-                              <Text style={styles.setupText}>Set up</Text>
+                              <Text style={styles.setupText}>Configurează</Text>
                             )}
                           </TouchableOpacity>
                         </Pressable>
@@ -411,11 +426,21 @@ const styles = StyleSheet.create({
   areaHeader: {
     marginBottom: 20,
   },
+  areaHeaderTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   areaHeaderTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1F2937",
     marginBottom: 2,
+  },
+  selectedChildName: {
+    fontSize: Typography.body,
+    color: Colors.textSecondary,
+    fontWeight: "500",
   },
   areaHeaderSubtitle: {
     fontSize: 13,
@@ -514,7 +539,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 6,
-    gap: Spacing.sm,
+    gap: 20,
   },
   rowItemPressed: {
     backgroundColor: "rgba(44,100,104,0.08)",
@@ -523,7 +548,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(44,100,104,0.14)",
   },
   categoryRowContent: {
-    flex: 1,
+    flexShrink: 0,
   },
   setupText: {
     fontSize: 13,

@@ -219,7 +219,7 @@ export default function ItemSelector({
   const isColorsCategory = categoryId === "colors";
   const isShapesCategory = categoryId === "shapes";
   const columnCount = isShapesCategory
-    ? filteredStimuli.length
+    ? 4
     : filteredStimuli.length <= 6
       ? filteredStimuli.length
       : 6;
@@ -362,7 +362,7 @@ export default function ItemSelector({
             <View
               style={[
                 styles.gridContainer,
-                { gap: 16, flexWrap: "nowrap" },
+                { gap: 16 },
               ]}
             >
               {filteredStimuli.map((stimulus) => {

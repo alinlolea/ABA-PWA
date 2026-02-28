@@ -90,7 +90,7 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             </Text>
           </Pressable>
           <View style={styles.sidebarDivider} />
-          <Text style={styles.sidebarSectionTitle}>Therapy Areas</Text>
+          <Text style={styles.sidebarSectionTitle}>Arie Terapeutică</Text>
           {/* Visual Skills – disabled when no child selected */}
           <TouchableOpacity
             disabled={!selectedChildId}

@@ -93,66 +93,68 @@ function TrialShapeSvg({
   size: number;
   fill: string;
 }) {
-  const s = size;
-  const h = size / 2;
-  const viewBox = `0 0 ${s} ${s}`;
+  const scale = 0.88;
+  const innerSize = size * scale;
+  const offset = (size - innerSize) / 2;
+  const h = innerSize / 2;
+  const viewBox = `0 0 ${size} ${size}`;
 
   if (form === "circle") {
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Circle cx={h} cy={h} r={h} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Circle cx={offset + h} cy={offset + h} r={h} fill={fill} />
       </Svg>
     );
   }
   if (form === "square") {
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Rect width={s} height={s} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Rect x={offset} y={offset} width={innerSize} height={innerSize} fill={fill} />
       </Svg>
     );
   }
   if (form === "triangle") {
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Polygon points={`${h},0 ${s},${s} 0,${s}`} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Polygon points={`${offset + h},${offset} ${offset + innerSize},${offset + innerSize} ${offset},${offset + innerSize}`} fill={fill} />
       </Svg>
     );
   }
   if (form === "rectangle") {
-    const rectHeight = s * 0.6;
-    const y = (s - rectHeight) / 2;
+    const rectHeight = innerSize * 0.6;
+    const y = offset + (innerSize - rectHeight) / 2;
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Rect x={0} y={y} width={s} height={rectHeight} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Rect x={offset} y={y} width={innerSize} height={rectHeight} fill={fill} />
       </Svg>
     );
   }
   if (form === "oval") {
-    const ry = (s * 0.6) / 2;
+    const ry = (innerSize * 0.6) / 2;
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Ellipse cx={h} cy={h} rx={h} ry={ry} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Ellipse cx={offset + h} cy={offset + h} rx={h} ry={ry} fill={fill} />
       </Svg>
     );
   }
   if (form === "diamond") {
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
-        <Polygon points={`${h},0 ${s},${h} ${h},${s} 0,${h}`} fill={fill} />
+      <Svg width={size} height={size} viewBox={viewBox}>
+        <Polygon points={`${offset + h},${offset} ${offset + innerSize},${offset + h} ${offset + h},${offset + innerSize} ${offset},${offset + h}`} fill={fill} />
       </Svg>
     );
   }
   if (form === "star") {
-    const starPoints = `${h},0 ${s * 0.62},${s * 0.38} ${s},${s * 0.38} ${s * 0.69},${s * 0.62} ${s * 0.81},${s} ${h},${s * 0.75} ${s * 0.19},${s} ${s * 0.31},${s * 0.62} 0,${s * 0.38} ${s * 0.38},${s * 0.38}`;
+    const starPoints = `${offset + h},${offset} ${offset + innerSize * 0.62},${offset + innerSize * 0.38} ${offset + innerSize},${offset + innerSize * 0.38} ${offset + innerSize * 0.69},${offset + innerSize * 0.62} ${offset + innerSize * 0.81},${offset + innerSize} ${offset + h},${offset + innerSize * 0.75} ${offset + innerSize * 0.19},${offset + innerSize} ${offset + innerSize * 0.31},${offset + innerSize * 0.62} ${offset},${offset + innerSize * 0.38} ${offset + innerSize * 0.38},${offset + innerSize * 0.38}`;
     return (
-      <Svg width={s} height={s} viewBox={viewBox}>
+      <Svg width={size} height={size} viewBox={viewBox}>
         <Polygon points={starPoints} fill={fill} />
       </Svg>
     );
   }
   return (
-    <Svg width={s} height={s} viewBox={viewBox}>
-      <Rect width={s} height={s} fill={fill} />
+    <Svg width={size} height={size} viewBox={viewBox}>
+      <Rect x={offset} y={offset} width={innerSize} height={innerSize} fill={fill} />
     </Svg>
   );
 }
@@ -172,17 +174,21 @@ function StimulusPlaceholder({
   itemRadius: number;
   borderColorAnim: Animated.Value;
 }) {
+  const isShape = isShapeStimulus(stimulus.image);
   const animatedBorderColor = borderColorAnim.interpolate({
     inputRange: [0, 1, 2],
-    outputRange: [TARGET_BORDER_DEFAULT, TARGET_BORDER_SUCCESS, TARGET_BORDER_ERROR],
+    outputRange: isShape
+      ? ["transparent", TARGET_BORDER_SUCCESS, TARGET_BORDER_ERROR]
+      : [TARGET_BORDER_DEFAULT, TARGET_BORDER_SUCCESS, TARGET_BORDER_ERROR],
   });
   const itemBoxStyle = [
     styles.itemBox,
     { width: size, height: size, borderRadius: itemRadius },
     { borderColor: animatedBorderColor },
+    isShape && { backgroundColor: "transparent" },
   ];
 
-  if (isShapeStimulus(stimulus.image)) {
+  if (isShape) {
     return (
       <Animated.View style={itemBoxStyle}>
         <TrialShapeSvg form={stimulus.image.form} size={size} fill={stimulus.image.fill} />
@@ -232,9 +238,12 @@ function OptionSlot({
   borderColorAnim: Animated.Value;
   defaultBorderColor: string;
 }) {
+  const isShape = isShapeStimulus(stimulus.image);
   const animatedBorderColor = borderColorAnim.interpolate({
     inputRange: [0, 1, 2],
-    outputRange: [defaultBorderColor, OPTION_BORDER_SUCCESS, OPTION_BORDER_ERROR],
+    outputRange: isShape
+      ? ["transparent", OPTION_BORDER_SUCCESS, OPTION_BORDER_ERROR]
+      : [defaultBorderColor, OPTION_BORDER_SUCCESS, OPTION_BORDER_ERROR],
   });
   const borderContainerStyle = {
     width: itemSize,
@@ -245,9 +254,10 @@ function OptionSlot({
     overflow: "hidden" as const,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+    ...(isShape && { backgroundColor: "transparent" as const }),
   };
 
-  if (isShapeStimulus(stimulus.image)) {
+  if (isShape) {
     return (
       <View
         ref={optionRef}
