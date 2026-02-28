@@ -6,6 +6,7 @@ import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/services/firebaseConfig";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -376,10 +377,12 @@ export default function TrialScreen() {
   if (trialType === "tower_over_model") {
     const n = Math.min(5, Math.max(2, parseInt(params.numberOfItems ?? "3", 10) || 3));
     const d = Math.min(4, Math.max(0, parseInt(params.numberOfDistractors ?? "1", 10) || 0));
+    const voiceEnabledTower = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
     return (
       <TowerConstructionTrial
         sessionId={sessionId}
         config={{ numberOfItems: n, numberOfDistractors: d }}
+        voiceEnabled={voiceEnabledTower}
       />
     );
   }
@@ -860,6 +863,19 @@ export default function TrialScreen() {
           </View>
         </View>
 
+        <LinearGradient
+          colors={[
+            "rgba(44,100,104,0)",
+            "rgba(44,100,104,0.9)",
+            "rgba(44,100,104,0.9)",
+            "rgba(44,100,104,0)",
+          ]}
+          locations={[0, 0.2, 0.8, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.horizontalDivider}
+        />
+
         <View style={styles.bottomArea}>
           <View style={[styles.optionsRow, { gap: optionGap, maxWidth: usableWidth }]}>
             {bottomOptions.map((option, index) => (
@@ -902,6 +918,10 @@ const styles = StyleSheet.create({
     height: "40%",
     justifyContent: "center",
     alignItems: "center",
+  },
+  horizontalDivider: {
+    height: 2,
+    width: "100%",
   },
   targetsRow: {
     flexDirection: "row",

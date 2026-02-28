@@ -16,6 +16,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Tts from "react-native-tts";
 
 const CUBE_COLORS = STIMULI_BY_CATEGORY["colors"]
   .map((s) => s.image)
@@ -107,15 +108,21 @@ type Props = {
   sessionId: string;
   config: TowerTrialConfig;
   onComplete?: () => void;
+  voiceEnabled?: boolean;
 };
 
-export default function TowerConstructionTrial({ sessionId, config, onComplete }: Props) {
+export default function TowerConstructionTrial({ sessionId, config, onComplete, voiceEnabled = true }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const leftWidth = screenWidth * 0.6;
   const rightWidth = screenWidth * 0.4;
   const itemCount = Math.max(1, config.numberOfItems + (config.numberOfDistractors ?? 0));
   const itemSize = computeItemSize(screenWidth, itemCount);
   const itemRadius = Math.round(itemSize * ITEM_RADIUS_RATIO);
+
+  useEffect(() => {
+    Tts.setDefaultLanguage("ro-RO");
+    Tts.setDefaultRate(0.5);
+  }, []);
 
   const [session, setSession] = useState(() => ({
     trials: [] as TowerTrialState[],
@@ -168,6 +175,7 @@ export default function TowerConstructionTrial({ sessionId, config, onComplete }
       key={session.currentTrialIndex}
       trial={currentTrial}
       currentTrialIndex={session.currentTrialIndex}
+      voiceEnabled={voiceEnabled}
       leftWidth={leftWidth}
       rightWidth={rightWidth}
       screenHeight={screenHeight}
@@ -192,6 +200,7 @@ export default function TowerConstructionTrial({ sessionId, config, onComplete }
 type InnerProps = {
   trial: TowerTrialState;
   currentTrialIndex: number;
+  voiceEnabled?: boolean;
   leftWidth: number;
   rightWidth: number;
   screenHeight: number;
@@ -219,6 +228,7 @@ function rectsOverlap(
 function TowerTrialInner({
   trial,
   currentTrialIndex,
+  voiceEnabled = true,
   leftWidth,
   rightWidth,
   screenHeight,
@@ -228,6 +238,20 @@ function TowerTrialInner({
 }: InnerProps) {
   const progressText = `${currentTrialIndex + 1} / ${TRIAL_COUNT}`;
   const [state, setState] = useState(trial);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (voiceEnabled) {
+        Tts.stop();
+        Tts.speak("Construiește turn", {
+          pitch: 1.4,
+          rate: 0.6,
+        } as unknown as Parameters<typeof Tts.speak>[1]);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, [voiceEnabled]);
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [cubePositions, setCubePositions] = useState<{ x: number; y: number }[]>([]);
   const slotRefs = useRef<(View | null)[]>([]);
@@ -291,7 +315,17 @@ function TowerTrialInner({
 
   useEffect(() => {
     if (!allPlaced) return;
-    const t = setTimeout(onTrialComplete, 1200);
+
+    Tts.stop();
+    Tts.speak("Bravo!", {
+      pitch: 1.4,
+      rate: 0.6,
+    } as unknown as Parameters<typeof Tts.speak>[1]);
+
+    const t = setTimeout(() => {
+      onTrialComplete();
+    }, 1200);
+
     return () => clearTimeout(t);
   }, [allPlaced, onTrialComplete]);
 
