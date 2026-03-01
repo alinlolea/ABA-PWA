@@ -52,6 +52,7 @@ export default function VisualSkillsRoute() {
   const [towerNumberOfDistractors, setTowerNumberOfDistractors] = useState(1);
   const [patternLength, setPatternLength] = useState(2);
   const [patternRepetitions, setPatternRepetitions] = useState(2);
+  const [visibleRepetitions, setVisibleRepetitions] = useState<number>(1);
   const [patternNumberOfDistractors, setPatternNumberOfDistractors] = useState(0);
   const [patternUseColors, setPatternUseColors] = useState(true);
   const [patternUseShapes, setPatternUseShapes] = useState(false);
@@ -111,6 +112,12 @@ export default function VisualSkillsRoute() {
     ? patternLength * patternRepetitions
     : 0;
   const isPatternInvalid = totalItems > 14;
+
+  useEffect(() => {
+    if (visibleRepetitions >= patternRepetitions) {
+      setVisibleRepetitions(Math.max(1, patternRepetitions - 1));
+    }
+  }, [patternRepetitions]);
 
   const canStart =
     isTowerObjective ||
@@ -259,6 +266,7 @@ export default function VisualSkillsRoute() {
             trialType: "pattern-continuation",
             patternLength: String(patternLength),
             repetitions: String(patternRepetitions),
+            visibleRepetitions: String(visibleRepetitions),
             numberOfDistractors: String(patternNumberOfDistractors),
             useColors: String(patternUseColors),
             useShapes: String(patternUseShapes),
@@ -417,35 +425,67 @@ export default function VisualSkillsRoute() {
                   },
                 ]}
               >
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.sessionCardTitle}>Configurare</Text>
-                  <TouchableOpacity
-                    onPress={() => setIsSetupOpen(false)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                <View style={styles.drawerContainer}>
+                  <View style={styles.drawerHeader}>
+                    <Text style={styles.sessionCardTitle}>Configurare</Text>
+                    <TouchableOpacity
+                      onPress={() => setIsSetupOpen(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Ionicons name="close" size={24} color="#1E293B" />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    style={styles.drawerScroll}
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                    showsVerticalScrollIndicator={false}
                   >
-                    <Ionicons name="close" size={24} color="#1E293B" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.drawerCard}>
-                  <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
-                    <View>
-                      <Text style={styles.towerConfigLabel}>Număr cuburi (2–5)</Text>
-                      <Stepper
-                        value={towerNumberOfItems}
-                        min={2}
-                        max={5}
-                        onChange={setTowerNumberOfItems}
-                      />
+                    <View style={styles.drawerCard}>
+                      <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
+                        <View>
+                          <Text style={styles.towerConfigLabel}>Număr cuburi (2–5)</Text>
+                          <Stepper
+                            value={towerNumberOfItems}
+                            min={2}
+                            max={5}
+                            onChange={setTowerNumberOfItems}
+                          />
+                        </View>
+                        <View>
+                          <Text style={styles.towerConfigLabel}>Distractori (0–4)</Text>
+                          <Stepper
+                            value={towerNumberOfDistractors}
+                            min={0}
+                            max={4}
+                            onChange={setTowerNumberOfDistractors}
+                          />
+                        </View>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={styles.towerConfigLabel}>Distractori (0–4)</Text>
-                      <Stepper
-                        value={towerNumberOfDistractors}
-                        min={0}
-                        max={4}
-                        onChange={setTowerNumberOfDistractors}
-                      />
-                    </View>
+                  </ScrollView>
+                  <LinearGradient
+                    colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
+                    style={styles.drawerFadeTop}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
+                    style={styles.drawerFadeBottom}
+                    pointerEvents="none"
+                  />
+                  <View style={styles.drawerFooter}>
+                    <TouchableOpacity
+                      style={[
+                        styles.floatingButton,
+                        !canStart && styles.floatingButtonDisabled,
+                        isPatternInvalid && { opacity: 0.5 },
+                      ]}
+                      onPress={handleStartSesiune}
+                      disabled={!canStart || isPatternInvalid}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </Animated.View>
@@ -454,52 +494,61 @@ export default function VisualSkillsRoute() {
                 {...panResponder.panHandlers}
                 style={[
                   styles.setupDrawer,
-                  { width: 300 },
+                  { width: screenWidth * 0.4 },
                   {
                     transform: [
                       {
                         translateX: drawerAnim.interpolate({
                           inputRange: [0, 1],
-                          outputRange: [300, 0],
+                          outputRange: [screenWidth * 0.4, 0],
                         }),
                       },
                     ],
                   },
                 ]}
               >
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.sessionCardTitle}>Configurare</Text>
-                  <TouchableOpacity
-                    onPress={() => setIsSetupOpen(false)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                <View style={styles.drawerContainer}>
+                  <View style={styles.drawerHeader}>
+                    <Text style={styles.sessionCardTitle}>Configurare</Text>
+                    <TouchableOpacity
+                      onPress={() => setIsSetupOpen(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Ionicons name="close" size={24} color="#1E293B" />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    style={styles.drawerScroll}
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                    showsVerticalScrollIndicator={false}
                   >
-                    <Ionicons name="close" size={24} color="#1E293B" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.drawerCard}>
-                  <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
-                    <View>
-                      <Text style={styles.towerConfigLabel}>Lungime pattern (2–4)</Text>
-                      <Stepper
-                        value={patternLength}
-                        min={2}
-                        max={4}
-                        onChange={setPatternLength}
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.towerConfigLabel}>
-                        Repetiții (2–{getMaxRepetitions(patternLength)})
-                      </Text>
-                      <Stepper
-                        value={patternRepetitions}
-                        min={2}
-                        max={getMaxRepetitions(patternLength)}
-                        onChange={setPatternRepetitions}
-                      />
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionTitle}>Structură pattern</Text>
+                      <View style={{ flexDirection: "row", gap: 20 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.towerConfigLabel}>Lungime pattern (2–4)</Text>
+                          <Stepper
+                            value={patternLength}
+                            min={2}
+                            max={4}
+                            onChange={setPatternLength}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.towerConfigLabel}>
+                            Repetiții (2–{getMaxRepetitions(patternLength)})
+                          </Text>
+                          <Stepper
+                            value={patternRepetitions}
+                            min={2}
+                            max={getMaxRepetitions(patternLength)}
+                            onChange={setPatternRepetitions}
+                          />
+                        </View>
+                      </View>
                       <Text
                         style={{
-                          marginTop: 8,
+                          marginTop: 14,
                           fontSize: 13,
                           fontWeight: "500",
                           color: totalItems > 14 ? "#D32F2F" : "#6B6B6B",
@@ -507,23 +556,62 @@ export default function VisualSkillsRoute() {
                       >
                         Total itemi: {totalItems} / 14
                       </Text>
+                      <View style={{ marginTop: 14 }}>
+                        <Text style={styles.towerConfigLabel}>Distractori (0–3)</Text>
+                        <Stepper
+                          value={patternNumberOfDistractors}
+                          min={0}
+                          max={3}
+                          onChange={setPatternNumberOfDistractors}
+                        />
+                      </View>
+                      {!patternValid && (
+                        <Text style={[styles.patternValidationText, { marginTop: 12 }]}>
+                          Lungime × Repetiții trebuie să fie ≤ 14
+                        </Text>
+                      )}
                     </View>
-                    <View>
-                      <Text style={styles.towerConfigLabel}>Distractori (0–3)</Text>
-                      <Stepper
-                        value={patternNumberOfDistractors}
-                        min={0}
-                        max={3}
-                        onChange={setPatternNumberOfDistractors}
-                      />
-                    </View>
-                    {!patternValid && (
-                      <Text style={styles.patternValidationText}>
-                        Lungime × Repetiții trebuie să fie ≤ 14
-                      </Text>
+                    <LinearGradient
+                      colors={[
+                        "rgba(44,100,104,0)",
+                        "rgba(44,100,104,0.9)",
+                        "rgba(44,100,104,0)",
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.sectionGradientDivider}
+                      pointerEvents="none"
+                    />
+                    {isPatternContinuationObjective && (
+                      <>
+                        <View style={styles.sectionCard}>
+                          <Text style={styles.sectionTitle}>Nivel suport</Text>
+                        <Text style={styles.towerConfigLabel}>Repetiții afișate ca model</Text>
+                        <Stepper
+                          value={visibleRepetitions}
+                          min={1}
+                          max={Math.max(1, patternRepetitions - 1)}
+                          onChange={setVisibleRepetitions}
+                        />
+                        <Text style={{ marginTop: 12, fontSize: 12, color: "#64748B" }}>
+                          Copilul va completa {patternRepetitions - visibleRepetitions} repetiții.
+                        </Text>
+                      </View>
+                        <LinearGradient
+                          colors={[
+                            "rgba(44,100,104,0)",
+                            "rgba(44,100,104,0.9)",
+                            "rgba(44,100,104,0)",
+                          ]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.sectionGradientDivider}
+                          pointerEvents="none"
+                        />
+                      </>
                     )}
-                    <View style={{ marginTop: 8 }}>
-                      <Text style={styles.towerConfigLabel}>Stimuli utilizați</Text>
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionTitle}>Stimuli</Text>
                       <Pressable
                         style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
                         onPress={() => setPatternUseColors((v) => !v)}
@@ -556,38 +644,73 @@ export default function VisualSkillsRoute() {
                         </Text>
                         <Text style={styles.patternCheckboxSoon}>În curând</Text>
                       </Pressable>
+                      {!patternStimuliValid && (
+                        <Text style={[styles.patternValidationText, { marginTop: 12 }]}>
+                          Selectați cel puțin un tip de stimuli
+                        </Text>
+                      )}
+                      {patternUseColors && patternUseShapes && (
+                        <View style={{ marginTop: 14 }}>
+                          <Text style={styles.towerConfigLabel}>Structură pattern</Text>
+                          <Pressable
+                            style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                            onPress={() => setPatternStructure("free")}
+                          >
+                            <Ionicons
+                              name={patternStructure === "free" ? "radio-button-on" : "radio-button-off"}
+                              size={22}
+                              color={patternStructure === "free" ? "#2C6468" : "#64748B"}
+                            />
+                            <Text style={styles.patternCheckboxLabel}>Liber</Text>
+                          </Pressable>
+                          <Pressable
+                            style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                            onPress={() => setPatternStructure("alternating")}
+                          >
+                            <Ionicons
+                              name={patternStructure === "alternating" ? "radio-button-on" : "radio-button-off"}
+                              size={22}
+                              color={patternStructure === "alternating" ? "#2C6468" : "#64748B"}
+                            />
+                            <Text style={styles.patternCheckboxLabel}>Alternanță strictă</Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
-                    {!patternStimuliValid && (
-                      <Text style={styles.patternValidationText}>
-                        Selectați cel puțin un tip de stimuli
+                  </ScrollView>
+                  <LinearGradient
+                    colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
+                    style={styles.drawerFadeTop}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
+                    style={styles.drawerFadeBottom}
+                    pointerEvents="none"
+                  />
+                  <View style={styles.drawerFooter}>
+                    <TouchableOpacity
+                      style={[
+                        styles.floatingButton,
+                        !canStart && styles.floatingButtonDisabled,
+                        isPatternInvalid && { opacity: 0.5 },
+                      ]}
+                      onPress={handleStartSesiune}
+                      disabled={!canStart || isPatternInvalid}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                    </TouchableOpacity>
+                    {isPatternInvalid && (
+                      <Text
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          color: "#D32F2F",
+                        }}
+                      >
+                        Depășește limita maximă de 14 itemi.
                       </Text>
-                    )}
-                    {patternUseColors && patternUseShapes && (
-                      <View style={{ marginTop: 8 }}>
-                        <Text style={styles.towerConfigLabel}>Structură pattern</Text>
-                        <Pressable
-                          style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
-                          onPress={() => setPatternStructure("free")}
-                        >
-                          <Ionicons
-                            name={patternStructure === "free" ? "radio-button-on" : "radio-button-off"}
-                            size={22}
-                            color={patternStructure === "free" ? "#2C6468" : "#64748B"}
-                          />
-                          <Text style={styles.patternCheckboxLabel}>Liber</Text>
-                        </Pressable>
-                        <Pressable
-                          style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
-                          onPress={() => setPatternStructure("alternating")}
-                        >
-                          <Ionicons
-                            name={patternStructure === "alternating" ? "radio-button-on" : "radio-button-off"}
-                            size={22}
-                            color={patternStructure === "alternating" ? "#2C6468" : "#64748B"}
-                          />
-                          <Text style={styles.patternCheckboxLabel}>Alternanță strictă</Text>
-                        </Pressable>
-                      </View>
                     )}
                   </View>
                 </View>
@@ -610,24 +733,23 @@ export default function VisualSkillsRoute() {
                   },
                 ]}
               >
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.sessionCardTitle}>Categorii</Text>
-                  <TouchableOpacity
-                    onPress={() => setIsSetupOpen(false)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  >
-                    <Ionicons name="close" size={24} color="#1E293B" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.drawerCard}>
+                <View style={styles.drawerContainer}>
+                  <View style={styles.drawerHeader}>
+                    <Text style={styles.sessionCardTitle}>Categorii</Text>
+                    <TouchableOpacity
+                      onPress={() => setIsSetupOpen(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Ionicons name="close" size={24} color="#1E293B" />
+                    </TouchableOpacity>
+                  </View>
                   <ScrollView
-                    style={styles.columnScroll}
+                    style={styles.drawerScroll}
                     contentContainerStyle={[
                       styles.columnScrollContent,
-                      { paddingHorizontal: 12, paddingVertical: 8 },
+                      { paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 24 },
                     ]}
                     showsVerticalScrollIndicator={false}
-                    nestedScrollEnabled={true}
                   >
                     {categories.map((cat) => {
                       const isSelected = categoryId === cat.id;
@@ -664,6 +786,30 @@ export default function VisualSkillsRoute() {
                       );
                     })}
                   </ScrollView>
+                  <LinearGradient
+                    colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
+                    style={styles.drawerFadeTop}
+                    pointerEvents="none"
+                  />
+                  <LinearGradient
+                    colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
+                    style={styles.drawerFadeBottom}
+                    pointerEvents="none"
+                  />
+                  <View style={styles.drawerFooter}>
+                    <TouchableOpacity
+                      style={[
+                        styles.floatingButton,
+                        !canStart && styles.floatingButtonDisabled,
+                        isPatternInvalid && { opacity: 0.5 },
+                      ]}
+                      onPress={handleStartSesiune}
+                      disabled={!canStart || isPatternInvalid}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </Animated.View>
             ) : null}
@@ -671,31 +817,33 @@ export default function VisualSkillsRoute() {
         )}
       </View>
 
-      <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          style={[
-            styles.floatingButton,
-            !canStart && styles.floatingButtonDisabled,
-            isPatternInvalid && { opacity: 0.5 },
-          ]}
-          onPress={handleStartSesiune}
-          disabled={!canStart || isPatternInvalid}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.floatingButtonText}>Start sesiune</Text>
-        </TouchableOpacity>
-        {isPatternInvalid && (
-          <Text
-            style={{
-              marginTop: 6,
-              fontSize: 12,
-              color: "#D32F2F",
-            }}
+      {selectedObjective && !selectedObjective.requiresConfig && (
+        <View style={styles.floatingButtonContainer} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[
+              styles.floatingButton,
+              !canStart && styles.floatingButtonDisabled,
+              isPatternInvalid && { opacity: 0.5 },
+            ]}
+            onPress={handleStartSesiune}
+            disabled={!canStart || isPatternInvalid}
+            activeOpacity={0.8}
           >
-            Depășește limita maximă de 14 itemi.
-          </Text>
-        )}
-      </View>
+            <Text style={styles.floatingButtonText}>Start sesiune</Text>
+          </TouchableOpacity>
+          {isPatternInvalid && (
+            <Text
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "#D32F2F",
+              }}
+            >
+              Depășește limita maximă de 14 itemi.
+            </Text>
+          )}
+        </View>
+      )}
 
       <Modal
         visible={selectorVisible}
@@ -757,28 +905,72 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: "#FFFFFF",
-    paddingTop: 16,
-    paddingHorizontal: 16,
     shadowColor: "#000",
     shadowOffset: { width: -2, height: 0 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 8,
   },
+  drawerContainer: {
+    flex: 1,
+  },
   drawerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5EEF0",
+    borderColor: "#EEE",
+  },
+  drawerScroll: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  drawerFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderColor: "#EEE",
+    backgroundColor: "#FFFFFF",
+  },
+  drawerFadeTop: {
+    position: "absolute",
+    top: 64,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+  drawerFadeBottom: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 72,
+    height: 40,
   },
   drawerCard: {
-    flex: 1,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
+  },
+  sectionCard: {
+    backgroundColor: "transparent",
+    padding: 16,
+    marginBottom: 0,
+  },
+  sectionGradientDivider: {
+    height: 2,
+    width: "100%",
+    marginVertical: 28,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    color: "#6B6B6B",
+    marginBottom: 16,
+    textTransform: "uppercase",
   },
   sessionRow: {
     flex: 1,

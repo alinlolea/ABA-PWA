@@ -8,6 +8,8 @@ export type ObjectiveDefinition = {
   }[];
   /** For objectives with custom trial types (e.g. tower_over_model, tower-copy, pattern-reproduction, pattern-continuation). */
   trialType?: "tower_over_model" | "tower-copy" | "pattern-reproduction" | "pattern-continuation";
+  /** When true, floating Start button is hidden; user must open config drawer first. */
+  requiresConfig?: boolean;
 };
 
 export const OBJECTIVES: ObjectiveDefinition[] = [
@@ -15,6 +17,7 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
     id: 1,
     title: "Potriviri 2D la 2D",
     enabled: true,
+    requiresConfig: true,
     categories: [
       { id: "colors", label: "Culori" },
       { id: "shapes", label: "Forme" },
@@ -26,10 +29,10 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
       { id: "objects", label: "Obiecte" },
     ],
   },
-  { id: 3, title: "Construcție cuburi peste model", enabled: true, categories: [], trialType: "tower_over_model" },
-  { id: 4, title: "Construcție cuburi la fel", enabled: true, categories: [], trialType: "tower-copy" },
-  { id: 5, title: "Reproducere pattern", enabled: true, categories: [], trialType: "pattern-reproduction" },
-  { id: 6, title: "Continuare pattern", enabled: true, categories: [], trialType: "pattern-continuation" },
+  { id: 3, title: "Construcție cuburi peste model", enabled: true, categories: [], trialType: "tower_over_model", requiresConfig: true },
+  { id: 4, title: "Construcție cuburi la fel", enabled: true, categories: [], trialType: "tower-copy", requiresConfig: true },
+  { id: 5, title: "Reproducere pattern", enabled: true, categories: [], trialType: "pattern-reproduction", requiresConfig: true },
+  { id: 6, title: "Continuare pattern", enabled: true, categories: [], trialType: "pattern-continuation", requiresConfig: true },
   { id: 7, title: "Asociere logică imagini", enabled: true, categories: [] },
   { id: 2, title: "Sortare itemi non-identici", enabled: true, categories: [] },
   { id: 8, title: "Sortare după funcție", enabled: true, categories: [] },

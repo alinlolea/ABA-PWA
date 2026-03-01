@@ -20,6 +20,7 @@ export default function Stepper({ value, min = 1, max = 10, onChange }: Props) {
         style={[styles.button, !canDecrement && styles.buttonDisabled]}
         onPress={() => canDecrement && onChange(value - 1)}
         disabled={!canDecrement}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <Text style={[styles.buttonText, !canDecrement && styles.buttonTextDisabled]}>
           −
@@ -32,6 +33,7 @@ export default function Stepper({ value, min = 1, max = 10, onChange }: Props) {
         style={[styles.button, !canIncrement && styles.buttonDisabled]}
         onPress={() => canIncrement && onChange(value + 1)}
         disabled={!canIncrement}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <Text style={[styles.buttonText, !canIncrement && styles.buttonTextDisabled]}>
           +
@@ -48,8 +50,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   button: {
-    width: 48,
-    height: 48,
+    height: 32,
+    minHeight: 32,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -63,8 +67,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: Typography.title,
-    fontWeight: "400",
+    fontSize: 16,
+    fontWeight: "600",
     color: Colors.textPrimary,
   },
   buttonTextDisabled: {

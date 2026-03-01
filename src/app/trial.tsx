@@ -433,6 +433,14 @@ export default function TrialScreen() {
   if (trialType === "pattern-continuation") {
     const patternLength = Math.min(4, Math.max(2, parseInt(params.patternLength ?? "2", 10) || 2));
     const repetitions = Math.min(4, Math.max(2, parseInt(params.repetitions ?? "2", 10) || 2));
+    const visibleRepetitionsRaw = parseInt(
+      Array.isArray(params.visibleRepetitions) ? params.visibleRepetitions[0] : (params.visibleRepetitions ?? String(repetitions - 1)),
+      10
+    );
+    const visibleRepetitions = Math.min(
+      Math.max(1, repetitions - 1),
+      Math.max(1, visibleRepetitionsRaw || repetitions - 1)
+    );
     const numberOfDistractors = Math.min(3, Math.max(0, parseInt(params.numberOfDistractors ?? "0", 10) || 0));
     const useColors = (Array.isArray(params.useColors) ? params.useColors[0] : params.useColors) !== "false";
     const useShapes = (Array.isArray(params.useShapes) ? params.useShapes[0] : params.useShapes) === "true";
@@ -445,6 +453,7 @@ export default function TrialScreen() {
         config={{
           patternLength,
           repetitions,
+          visibleRepetitions,
           numberOfDistractors,
           useColors,
           useShapes,

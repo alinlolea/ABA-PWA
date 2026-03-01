@@ -196,6 +196,7 @@ function pickDistractorItems(model: PatternItem[], count: number): PatternItem[]
 export type PatternTrialConfig = {
   patternLength: number;
   repetitions: number;
+  visibleRepetitions?: number;
   numberOfDistractors: number;
   useColors?: boolean;
   useShapes?: boolean;
@@ -242,7 +243,11 @@ function generateTrial(config: PatternTrialConfig): PatternContinuationTrialStat
     fullSequence.push(...basePattern);
   }
 
-  const modelVisibleLength = basePattern.length * Math.max(0, repetitions - 1);
+  const visibleRepetitions = Math.min(
+    Math.max(1, config.visibleRepetitions ?? repetitions - 1),
+    Math.max(1, repetitions - 1)
+  );
+  const modelVisibleLength = basePattern.length * visibleRepetitions;
   const modelVisible = fullSequence.slice(0, modelVisibleLength);
   const expectedContinuation = fullSequence.slice(modelVisibleLength);
 
@@ -387,6 +392,7 @@ export default function PatternContinuationTrial({
     const normalizedConfig: PatternTrialConfig = {
       patternLength: Math.min(4, Math.max(2, config.patternLength)),
       repetitions: Math.min(4, Math.max(2, config.repetitions)),
+      visibleRepetitions: config.visibleRepetitions,
       numberOfDistractors: Math.min(3, Math.max(0, config.numberOfDistractors ?? 0)),
       useColors: config.useColors ?? true,
       useShapes: config.useShapes ?? false,
@@ -394,7 +400,7 @@ export default function PatternContinuationTrial({
     };
     const trials = Array.from({ length: TRIAL_COUNT }, () => generateTrial(normalizedConfig));
     setSession((prev) => ({ ...prev, trials }));
-  }, [config.patternLength, config.repetitions, config.numberOfDistractors, config.useColors, config.useShapes, config.patternStructure]);
+  }, [config.patternLength, config.repetitions, config.visibleRepetitions, config.numberOfDistractors, config.useColors, config.useShapes, config.patternStructure]);
 
   useEffect(() => {
     if (!session.completed) return;
