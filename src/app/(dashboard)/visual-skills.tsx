@@ -17,11 +17,13 @@ import {
   Animated,
   Easing,
   Modal,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -38,6 +40,8 @@ export default function VisualSkillsRoute() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [shouldRenderDrawer, setShouldRenderDrawer] = useState(false);
+  const drawerAnim = useRef(new Animated.Value(0)).current;
   const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
@@ -79,7 +83,54 @@ export default function VisualSkillsRoute() {
   const selectedObjective = OBJECTIVES.find((o) => o.id === selectedId);
   const categories = selectedObjective?.categories ?? [];
   const isTowerObjective = selectedObjective?.trialType === "tower_over_model";
-  const canStart = isTowerObjective || selectedTargets.length > 0;
+  const isTowerCopyObjective = selectedObjective?.trialType === "tower-copy";
+  const canStart = isTowerObjective || isTowerCopyObjective || selectedTargets.length > 0;
+
+  useEffect(() => {
+    if (isSetupOpen) {
+      setShouldRenderDrawer(true);
+      Animated.timing(drawerAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }).start();
+    } else if (shouldRenderDrawer) {
+      Animated.timing(drawerAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRenderDrawer(false);
+      });
+    }
+  }, [isSetupOpen]);
+
+  const drawerWidth = screenWidth * 0.37;
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dx) > 10,
+
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dx > 0) {
+          const progress = 1 - gesture.dx / drawerWidth;
+          drawerAnim.setValue(Math.max(0, progress));
+        }
+      },
+
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > drawerWidth * 0.35) {
+          setIsSetupOpen(false);
+        } else {
+          Animated.timing(drawerAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((c) => c.id === categoryId)) {
@@ -143,6 +194,16 @@ export default function VisualSkillsRoute() {
             numberOfDistractors: String(towerNumberOfDistractors),
           },
         });
+      } else if (isTowerCopyObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "tower-copy",
+            numberOfItems: String(towerNumberOfItems),
+            numberOfDistractors: String(towerNumberOfDistractors),
+          },
+        });
       } else {
         router.push({
           pathname: "/trial",
@@ -185,7 +246,7 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
-                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model";
+                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy";
                 const processCategory =
                   obj.categories.length > 0
                     ? obj.categories.map((c) => c.label).join(", ")
@@ -201,7 +262,7 @@ export default function VisualSkillsRoute() {
                     onPress={() => {
                       if (isDisabled) return;
                       setSelectedId(obj.id);
-                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model") setIsSetupOpen(true);
+                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy") setIsSetupOpen(true);
                     }}
                     disabled={isDisabled}
                     activeOpacity={0.8}
@@ -265,11 +326,36 @@ export default function VisualSkillsRoute() {
           </View>
         </View>
 
-        {isSetupOpen && (
+        {shouldRenderDrawer && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            <View style={styles.drawerBackdrop} />
-            {isTowerObjective ? (
-              <View style={[styles.setupDrawer, { width: 300 }]}>
+            <TouchableWithoutFeedback onPress={() => setIsSetupOpen(false)}>
+              <Animated.View
+                style={[
+                  styles.drawerBackdrop,
+                  {
+                    opacity: drawerAnim,
+                  },
+                ]}
+              />
+            </TouchableWithoutFeedback>
+            {(isTowerObjective || isTowerCopyObjective) ? (
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.setupDrawer,
+                  { width: 300 },
+                  {
+                    transform: [
+                      {
+                        translateX: drawerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [300, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
                 <View style={styles.drawerHeader}>
                   <Text style={styles.sessionCardTitle}>Configurare</Text>
                   <TouchableOpacity
@@ -301,9 +387,25 @@ export default function VisualSkillsRoute() {
                     </View>
                   </View>
                 </View>
-              </View>
+              </Animated.View>
             ) : categories.length > 0 ? (
-              <View style={[styles.setupDrawer, { width: 300 }]}>
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.setupDrawer,
+                  { width: 300 },
+                  {
+                    transform: [
+                      {
+                        translateX: drawerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [300, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
                 <View style={styles.drawerHeader}>
                   <Text style={styles.sessionCardTitle}>Categorii</Text>
                   <TouchableOpacity
@@ -359,7 +461,7 @@ export default function VisualSkillsRoute() {
                     })}
                   </ScrollView>
                 </View>
-              </View>
+              </Animated.View>
             ) : null}
           </View>
         )}

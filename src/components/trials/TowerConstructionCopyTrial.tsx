@@ -1,6 +1,6 @@
 /**
- * Tower Construction Trial – "Construcție cuburi peste model"
- * Child reproduces a vertical tower of colored cubes by dragging from pool to model slots.
+ * Tower Construction Copy Trial – Copy variant: slot tower + model tower side by side.
+ * Same logic as TowerConstructionTrial; only layout and slot behavior differ.
  */
 
 import { STIMULI_BY_CATEGORY } from "@/features/b1-2d-matching/stimuliByCategory";
@@ -52,7 +52,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Same item size logic as Matching Trial (trial.tsx). */
 function computeItemSize(screenWidth: number, itemCount: number): number {
   const usableWidth = screenWidth * 0.9;
   const gap = usableWidth * 0.02;
@@ -123,7 +122,7 @@ type Props = {
   voiceEnabled?: boolean;
 };
 
-export default function TowerConstructionTrial({ sessionId, config, onComplete, voiceEnabled = true }: Props) {
+export default function TowerConstructionCopyTrial({ sessionId, config, onComplete, voiceEnabled = true }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const leftWidth = screenWidth * 0.6;
   const rightWidth = screenWidth * 0.4;
@@ -543,142 +542,125 @@ function TowerTrialInner({
       </View>
       <View
         style={[styles.leftZone, { width: leftWidth }]}
-          ref={poolRef}
-          onLayout={() => {
-            poolRef.current?.measureInWindow((x, y) => {
-              poolLayout.current = { x, y };
-            });
-          }}
-        >
-          {trial.availableCubes.map((color, i) => {
-            const used = state.placedCubes.includes(color);
-            const pos = cubePositions[i] ?? { x: 0, y: 0 };
-            if (used) return null;
-            return (
+        ref={poolRef}
+        onLayout={() => {
+          poolRef.current?.measureInWindow((x, y) => {
+            poolLayout.current = { x, y };
+          });
+        }}
+      >
+        {trial.availableCubes.map((color, i) => {
+          const used = state.placedCubes.includes(color);
+          const pos = cubePositions[i] ?? { x: 0, y: 0 };
+          if (used) return null;
+          return (
+            <Animated.View
+              key={`${color}-${i}`}
+              {...panResponders[i].panHandlers}
+              style={[
+                styles.cubeWrap,
+                {
+                  left: pos.x,
+                  top: pos.y,
+                  width: itemSize,
+                  height: itemSize,
+                  transform: [
+                    { translateX: Animated.add(pans[i].x, shakes[i]) },
+                    { translateY: pans[i].y },
+                  ],
+                },
+              ]}
+            >
               <Animated.View
-                key={`${color}-${i}`}
-                {...panResponders[i].panHandlers}
                 style={[
-                  styles.cubeWrap,
+                  styles.cube,
                   {
-                    left: pos.x,
-                    top: pos.y,
-                    width: itemSize,
-                    height: itemSize,
-                    transform: [
-                      { translateX: Animated.add(pans[i].x, shakes[i]) },
-                      { translateY: pans[i].y },
-                    ],
+                    backgroundColor: color,
+                    borderRadius: itemRadius,
+                    borderWidth: borderAnims[i].interpolate({
+                      inputRange: [0, 1, 2],
+                      outputRange: [0, BORDER_WIDTH, BORDER_WIDTH],
+                    }),
+                    borderColor: borderColor(borderAnims[i]),
                   },
                 ]}
-              >
-                <Animated.View
-                  style={[
-                    styles.cube,
-                    {
-                      backgroundColor: color,
-                      borderRadius: itemRadius,
-                      borderWidth: borderAnims[i].interpolate({
-                        inputRange: [0, 1, 2],
-                        outputRange: [0, BORDER_WIDTH, BORDER_WIDTH],
-                      }),
-                      borderColor: borderColor(borderAnims[i]),
-                    },
-                  ]}
+              />
+            </Animated.View>
+          );
+        })}
+      </View>
+
+      <LinearGradient
+        colors={[
+          "rgba(44,100,104,0)",
+          "rgba(44,100,104,0.9)",
+          "rgba(44,100,104,0.9)",
+          "rgba(44,100,104,0)",
+        ]}
+        locations={[0, 0.2, 0.8, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.verticalDivider}
+      />
+
+      <View style={styles.rightZone} />
+
+      <View style={styles.copyTowerWrapper}>
+        <View style={styles.slotTower}>
+          {state.placedCubes.map((color, i) => (
+            <View
+              key={i}
+              ref={(el) => {
+                slotRefs.current[i] = el;
+              }}
+              onLayout={() => {
+                slotRefs.current[i]?.measureInWindow((x, y, w, h) => {
+                  slotLayouts.current[i] = { x, y, w, h };
+                });
+              }}
+              style={[
+                styles.slot,
+                {
+                  width: itemSize,
+                  height: itemSize,
+                  borderWidth: 2,
+                  borderColor:
+                    i === nextExpectedSlot
+                      ? "#2C6468"
+                      : "rgba(0,0,0,0.2)",
+                },
+              ]}
+            >
+              {color && (
+                <View
+                  style={{
+                    width: itemSize,
+                    height: itemSize,
+                    backgroundColor: color,
+                    borderRadius: itemRadius,
+                  }}
                 />
-              </Animated.View>
-            );
-          })}
+              )}
+            </View>
+          ))}
         </View>
 
-        <LinearGradient
-          colors={[
-            "rgba(44,100,104,0)",
-            "rgba(44,100,104,0.9)",
-            "rgba(44,100,104,0.9)",
-            "rgba(44,100,104,0)",
-          ]}
-          locations={[0, 0.2, 0.8, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.verticalDivider}
-        />
+        <View style={{ width: 24 }} />
 
-        <View style={styles.rightZone} />
-
-        <View style={styles.towerWrapper}>
-          <View style={styles.towerContainer}>
-            <View style={styles.modelTower}>
-              {state.modelTower.map((color, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.modelCube,
-                    {
-                      width: itemSize,
-                      height: itemSize,
-                      backgroundColor:
-                        state.placedCubes[i] !== null
-                          ? "transparent"
-                          : color,
-                      borderRadius: itemRadius,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            <View style={styles.slotsOverlay}>
-              {state.placedCubes.map((_, slotIndex) => (
-                <View
-                  key={slotIndex}
-                  ref={(el) => {
-                    slotRefs.current[slotIndex] = el;
-                  }}
-                  onLayout={() => {
-                    slotRefs.current[slotIndex]?.measureInWindow((x, y, w, h) => {
-                      slotLayouts.current[slotIndex] = { x, y, w, h };
-                    });
-                  }}
-                  style={[
-                    styles.slot,
-                    { width: itemSize, height: itemSize },
-                    slotIndex === nextExpectedSlot
-                      ? { borderWidth: 2, borderColor: "#2C6468" }
-                      : { borderWidth: 0, borderColor: "transparent" },
-                  ]}
-                >
-                  {state.placedCubes[slotIndex] && (
-                    <Animated.View
-                      style={[
-                        styles.placedCube,
-                        {
-                          width: itemSize,
-                          height: itemSize,
-                          backgroundColor: state.placedCubes[slotIndex]!,
-                          borderRadius: itemRadius,
-                          opacity:
-                            nextExpectedSlot === -1
-                              ? 0.55
-                              : slotIndex > nextExpectedSlot
-                                ? 0.55
-                                : 1,
-                          borderWidth: slotBorderAnims[slotIndex].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0, BORDER_WIDTH],
-                          }),
-                          borderColor: slotBorderAnims[slotIndex].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["transparent", BORDER_SUCCESS],
-                          }),
-                        },
-                      ]}
-                    />
-                  )}
-                </View>
-              ))}
-            </View>
-          </View>
+        <View style={styles.modelTower}>
+          {state.modelTower.map((color, i) => (
+            <View
+              key={i}
+              style={{
+                width: itemSize,
+                height: itemSize,
+                backgroundColor: color,
+                borderRadius: itemRadius,
+              }}
+            />
+          ))}
         </View>
+      </View>
     </View>
   );
 }
@@ -713,12 +695,22 @@ const styles = StyleSheet.create({
     width: 2,
     height: "100%",
   },
-  towerWrapper: {
+  copyTowerWrapper: {
     position: "absolute",
     right: 0,
     bottom: 120,
     width: "40%",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "flex-end",
+  },
+  slotTower: {
     alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  modelTower: {
+    alignItems: "center",
+    justifyContent: "flex-end",
   },
   cubeWrap: {
     position: "absolute",
@@ -730,26 +722,9 @@ const styles = StyleSheet.create({
     height: "100%",
     overflow: "hidden",
   },
-  towerContainer: {
-    position: "relative",
-  },
-  modelTower: {
-    alignItems: "center",
-  },
-  modelCube: {},
-  slotsOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
   slot: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  placedCube: {
-    position: "absolute",
   },
   completedRoot: {
     flex: 1,

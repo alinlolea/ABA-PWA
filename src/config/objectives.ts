@@ -6,8 +6,8 @@ export type ObjectiveDefinition = {
     id: string;
     label: string;
   }[];
-  /** For objectives with custom trial types (e.g. tower_over_model). */
-  trialType?: "tower_over_model";
+  /** For objectives with custom trial types (e.g. tower_over_model, tower-copy). */
+  trialType?: "tower_over_model" | "tower-copy";
 };
 
 export const OBJECTIVES: ObjectiveDefinition[] = [
@@ -28,7 +28,7 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
   },
   { id: 2, title: "Sortare itemi non-identici", enabled: true, categories: [] },
   { id: 3, title: "Construcție cuburi peste model", enabled: true, categories: [], trialType: "tower_over_model" },
-  { id: 4, title: "Construcție cuburi la fel", enabled: true, categories: [] },
+  { id: 4, title: "Construcție cuburi la fel", enabled: true, categories: [], trialType: "tower-copy" },
   { id: 5, title: "Reproducere pattern", enabled: true, categories: [] },
   { id: 6, title: "Continuare pattern", enabled: true, categories: [] },
   { id: 7, title: "Asociere logică imagini", enabled: true, categories: [] },

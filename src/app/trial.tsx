@@ -1,3 +1,4 @@
+import TowerConstructionCopyTrial from "@/components/trials/TowerConstructionCopyTrial";
 import TowerConstructionTrial from "@/components/trials/TowerConstructionTrial";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
@@ -380,6 +381,18 @@ export default function TrialScreen() {
     const voiceEnabledTower = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
     return (
       <TowerConstructionTrial
+        sessionId={sessionId}
+        config={{ numberOfItems: n, numberOfDistractors: d }}
+        voiceEnabled={voiceEnabledTower}
+      />
+    );
+  }
+  if (trialType === "tower-copy") {
+    const n = Math.min(5, Math.max(2, parseInt(params.numberOfItems ?? "3", 10) || 3));
+    const d = Math.min(4, Math.max(0, parseInt(params.numberOfDistractors ?? "1", 10) || 0));
+    const voiceEnabledTower = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <TowerConstructionCopyTrial
         sessionId={sessionId}
         config={{ numberOfItems: n, numberOfDistractors: d }}
         voiceEnabled={voiceEnabledTower}
