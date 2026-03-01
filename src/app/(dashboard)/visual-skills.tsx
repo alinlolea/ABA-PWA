@@ -28,6 +28,19 @@ import {
   useWindowDimensions,
 } from "react-native";
 
+function getMaxRepetitions(patternLength: number): number {
+  switch (patternLength) {
+    case 2:
+      return 7;
+    case 3:
+      return 4;
+    case 4:
+      return 3;
+    default:
+      return 3;
+  }
+}
+
 export default function VisualSkillsRoute() {
   const router = useRouter();
   const { selectedChildId } = useContext(SelectedChildContext);
@@ -91,12 +104,19 @@ export default function VisualSkillsRoute() {
   const isTowerObjective = selectedObjective?.trialType === "tower_over_model";
   const isTowerCopyObjective = selectedObjective?.trialType === "tower-copy";
   const isPatternReproductionObjective = selectedObjective?.trialType === "pattern-reproduction";
+  const isPatternContinuationObjective = selectedObjective?.trialType === "pattern-continuation";
   const patternValid = patternLength * patternRepetitions <= 14;
   const patternStimuliValid = patternUseColors || patternUseShapes;
+  const totalItems = patternLength && patternRepetitions
+    ? patternLength * patternRepetitions
+    : 0;
+  const isPatternInvalid = totalItems > 14;
+
   const canStart =
     isTowerObjective ||
     isTowerCopyObjective ||
     (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
+    (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
     selectedTargets.length > 0;
 
   useEffect(() => {
@@ -231,6 +251,20 @@ export default function VisualSkillsRoute() {
             patternStructure: patternStructure,
           },
         });
+      } else if (isPatternContinuationObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "pattern-continuation",
+            patternLength: String(patternLength),
+            repetitions: String(patternRepetitions),
+            numberOfDistractors: String(patternNumberOfDistractors),
+            useColors: String(patternUseColors),
+            useShapes: String(patternUseShapes),
+            patternStructure: patternStructure,
+          },
+        });
       } else {
         router.push({
           pathname: "/trial",
@@ -273,7 +307,7 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
-                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction";
+                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction" || obj.trialType === "pattern-continuation";
                 const processCategory =
                   obj.categories.length > 0
                     ? obj.categories.map((c) => c.label).join(", ")
@@ -289,7 +323,7 @@ export default function VisualSkillsRoute() {
                     onPress={() => {
                       if (isDisabled) return;
                       setSelectedId(obj.id);
-                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction") setIsSetupOpen(true);
+                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction" || obj.trialType === "pattern-continuation") setIsSetupOpen(true);
                     }}
                     disabled={isDisabled}
                     activeOpacity={0.8}
@@ -415,7 +449,7 @@ export default function VisualSkillsRoute() {
                   </View>
                 </View>
               </Animated.View>
-            ) : isPatternReproductionObjective ? (
+            ) : (isPatternReproductionObjective || isPatternContinuationObjective) ? (
               <Animated.View
                 {...panResponder.panHandlers}
                 style={[
@@ -454,13 +488,25 @@ export default function VisualSkillsRoute() {
                       />
                     </View>
                     <View>
-                      <Text style={styles.towerConfigLabel}>Repetiții (2–4)</Text>
+                      <Text style={styles.towerConfigLabel}>
+                        Repetiții (2–{getMaxRepetitions(patternLength)})
+                      </Text>
                       <Stepper
                         value={patternRepetitions}
                         min={2}
-                        max={4}
+                        max={getMaxRepetitions(patternLength)}
                         onChange={setPatternRepetitions}
                       />
+                      <Text
+                        style={{
+                          marginTop: 8,
+                          fontSize: 13,
+                          fontWeight: "500",
+                          color: totalItems > 14 ? "#D32F2F" : "#6B6B6B",
+                        }}
+                      >
+                        Total itemi: {totalItems} / 14
+                      </Text>
                     </View>
                     <View>
                       <Text style={styles.towerConfigLabel}>Distractori (0–3)</Text>
@@ -630,13 +676,25 @@ export default function VisualSkillsRoute() {
           style={[
             styles.floatingButton,
             !canStart && styles.floatingButtonDisabled,
+            isPatternInvalid && { opacity: 0.5 },
           ]}
           onPress={handleStartSesiune}
-          disabled={!canStart}
+          disabled={!canStart || isPatternInvalid}
           activeOpacity={0.8}
         >
           <Text style={styles.floatingButtonText}>Start sesiune</Text>
         </TouchableOpacity>
+        {isPatternInvalid && (
+          <Text
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              color: "#D32F2F",
+            }}
+          >
+            Depășește limita maximă de 14 itemi.
+          </Text>
+        )}
       </View>
 
       <Modal

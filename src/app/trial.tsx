@@ -1,3 +1,4 @@
+import PatternContinuationTrial from "@/components/trials/PatternContinuationTrial";
 import PatternReproductionTrial from "@/components/trials/PatternReproductionTrial";
 import TowerConstructionCopyTrial from "@/components/trials/TowerConstructionCopyTrial";
 import TowerConstructionTrial from "@/components/trials/TowerConstructionTrial";
@@ -416,6 +417,30 @@ export default function TrialScreen() {
     const voiceEnabledPattern = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
     return (
       <PatternReproductionTrial
+        sessionId={sessionId}
+        config={{
+          patternLength,
+          repetitions,
+          numberOfDistractors,
+          useColors,
+          useShapes,
+          patternStructure,
+        }}
+        voiceEnabled={voiceEnabledPattern}
+      />
+    );
+  }
+  if (trialType === "pattern-continuation") {
+    const patternLength = Math.min(4, Math.max(2, parseInt(params.patternLength ?? "2", 10) || 2));
+    const repetitions = Math.min(4, Math.max(2, parseInt(params.repetitions ?? "2", 10) || 2));
+    const numberOfDistractors = Math.min(3, Math.max(0, parseInt(params.numberOfDistractors ?? "0", 10) || 0));
+    const useColors = (Array.isArray(params.useColors) ? params.useColors[0] : params.useColors) !== "false";
+    const useShapes = (Array.isArray(params.useShapes) ? params.useShapes[0] : params.useShapes) === "true";
+    const patternStructureRaw = Array.isArray(params.patternStructure) ? params.patternStructure[0] : params.patternStructure;
+    const patternStructure = patternStructureRaw === "alternating" ? "alternating" : "free";
+    const voiceEnabledPattern = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <PatternContinuationTrial
         sessionId={sessionId}
         config={{
           patternLength,
