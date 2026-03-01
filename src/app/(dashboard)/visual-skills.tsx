@@ -427,14 +427,18 @@ export default function VisualSkillsRoute() {
               >
                 <View style={styles.drawerContainer}>
                   <View style={styles.drawerHeader}>
-                    <Text style={styles.sessionCardTitle}>Configurare</Text>
+                    <View style={styles.drawerHeaderTextContainer}>
+                      <Text style={styles.drawerTitle}>Configurare</Text>
+                    </View>
                     <TouchableOpacity
+                      style={styles.drawerCloseButton}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
                       <Ionicons name="close" size={24} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
+                  <View style={{ flex: 1 }}>
                   <ScrollView
                     style={styles.drawerScroll}
                     contentContainerStyle={{ paddingBottom: 24 }}
@@ -465,14 +469,15 @@ export default function VisualSkillsRoute() {
                   </ScrollView>
                   <LinearGradient
                     colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
-                    style={styles.drawerFadeTop}
+                    style={styles.drawerFadeTopScroll}
                     pointerEvents="none"
                   />
                   <LinearGradient
                     colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
-                    style={styles.drawerFadeBottom}
+                    style={styles.drawerFadeBottomScroll}
                     pointerEvents="none"
                   />
+                  </View>
                   <View style={styles.drawerFooter}>
                     <TouchableOpacity
                       style={[
@@ -509,14 +514,21 @@ export default function VisualSkillsRoute() {
               >
                 <View style={styles.drawerContainer}>
                   <View style={styles.drawerHeader}>
-                    <Text style={styles.sessionCardTitle}>Configurare</Text>
+                    <View style={styles.drawerHeaderTextContainer}>
+                      <Text style={styles.drawerTitle}>Configurare</Text>
+                      <Text style={styles.drawerSubtitle}>
+                        Configurează dificultatea exercițiului
+                      </Text>
+                    </View>
                     <TouchableOpacity
+                      style={styles.drawerCloseButton}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
                       <Ionicons name="close" size={24} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
+                  <View style={{ flex: 1 }}>
                   <ScrollView
                     style={styles.drawerScroll}
                     contentContainerStyle={{ paddingBottom: 24 }}
@@ -524,7 +536,7 @@ export default function VisualSkillsRoute() {
                   >
                     <View style={styles.sectionCard}>
                       <Text style={styles.sectionTitle}>Structură pattern</Text>
-                      <View style={{ flexDirection: "row", gap: 20 }}>
+                      <View style={{ flexDirection: "row", gap: 20, marginBottom: 10 }}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.towerConfigLabel}>Lungime pattern (2–4)</Text>
                           <Stepper
@@ -546,17 +558,18 @@ export default function VisualSkillsRoute() {
                           />
                         </View>
                       </View>
-                      <Text
-                        style={{
-                          marginTop: 14,
-                          fontSize: 13,
-                          fontWeight: "500",
-                          color: totalItems > 14 ? "#D32F2F" : "#6B6B6B",
-                        }}
-                      >
-                        Total itemi: {totalItems} / 14
-                      </Text>
-                      <View style={{ marginTop: 14 }}>
+                      <View style={{ marginTop: 12, marginBottom: 16 }}>
+                        <Text style={styles.totalLabel}>Total itemi</Text>
+                        <Text
+                          style={[
+                            styles.totalValue,
+                            { color: totalItems > 14 ? "#D32F2F" : "#2C6468" },
+                          ]}
+                        >
+                          {totalItems} din 14
+                        </Text>
+                      </View>
+                      <View style={{ marginBottom: 10 }}>
                         <Text style={styles.towerConfigLabel}>Distractori (0–3)</Text>
                         <Stepper
                           value={patternNumberOfDistractors}
@@ -566,7 +579,7 @@ export default function VisualSkillsRoute() {
                         />
                       </View>
                       {!patternValid && (
-                        <Text style={[styles.patternValidationText, { marginTop: 12 }]}>
+                        <Text style={[styles.patternValidationText, { marginTop: 4 }]}>
                           Lungime × Repetiții trebuie să fie ≤ 14
                         </Text>
                       )}
@@ -586,14 +599,16 @@ export default function VisualSkillsRoute() {
                       <>
                         <View style={styles.sectionCard}>
                           <Text style={styles.sectionTitle}>Nivel suport</Text>
-                        <Text style={styles.towerConfigLabel}>Repetiții afișate ca model</Text>
-                        <Stepper
-                          value={visibleRepetitions}
-                          min={1}
-                          max={Math.max(1, patternRepetitions - 1)}
-                          onChange={setVisibleRepetitions}
-                        />
-                        <Text style={{ marginTop: 12, fontSize: 12, color: "#64748B" }}>
+                          <View style={{ marginBottom: 10 }}>
+                            <Text style={styles.towerConfigLabel}>Repetiții afișate ca model</Text>
+                            <Stepper
+                              value={visibleRepetitions}
+                              min={1}
+                              max={Math.max(1, patternRepetitions - 1)}
+                              onChange={setVisibleRepetitions}
+                            />
+                          </View>
+                        <Text style={{ marginTop: 4, fontSize: 12, color: "#64748B" }}>
                           Copilul va completa {patternRepetitions - visibleRepetitions} repetiții.
                         </Text>
                       </View>
@@ -612,6 +627,7 @@ export default function VisualSkillsRoute() {
                     )}
                     <View style={styles.sectionCard}>
                       <Text style={styles.sectionTitle}>Stimuli</Text>
+                      <View style={{ marginBottom: 10 }}>
                       <Pressable
                         style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
                         onPress={() => setPatternUseColors((v) => !v)}
@@ -644,13 +660,14 @@ export default function VisualSkillsRoute() {
                         </Text>
                         <Text style={styles.patternCheckboxSoon}>În curând</Text>
                       </Pressable>
+                      </View>
                       {!patternStimuliValid && (
                         <Text style={[styles.patternValidationText, { marginTop: 12 }]}>
                           Selectați cel puțin un tip de stimuli
                         </Text>
                       )}
                       {patternUseColors && patternUseShapes && (
-                        <View style={{ marginTop: 14 }}>
+                        <View style={{ marginTop: 12 }}>
                           <Text style={styles.towerConfigLabel}>Structură pattern</Text>
                           <Pressable
                             style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
@@ -680,26 +697,26 @@ export default function VisualSkillsRoute() {
                   </ScrollView>
                   <LinearGradient
                     colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
-                    style={styles.drawerFadeTop}
+                    style={styles.drawerFadeTopScroll}
                     pointerEvents="none"
                   />
                   <LinearGradient
                     colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
-                    style={styles.drawerFadeBottom}
+                    style={styles.drawerFadeBottomScroll}
                     pointerEvents="none"
                   />
+                  </View>
                   <View style={styles.drawerFooter}>
                     <TouchableOpacity
                       style={[
-                        styles.floatingButton,
-                        !canStart && styles.floatingButtonDisabled,
-                        isPatternInvalid && { opacity: 0.5 },
+                        styles.drawerStartButton,
+                        (!canStart || isPatternInvalid) && styles.drawerStartButtonDisabled,
                       ]}
                       onPress={handleStartSesiune}
                       disabled={!canStart || isPatternInvalid}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                      <Text style={styles.drawerStartButtonText}>Start sesiune</Text>
                     </TouchableOpacity>
                     {isPatternInvalid && (
                       <Text
@@ -735,14 +752,18 @@ export default function VisualSkillsRoute() {
               >
                 <View style={styles.drawerContainer}>
                   <View style={styles.drawerHeader}>
-                    <Text style={styles.sessionCardTitle}>Categorii</Text>
+                    <View style={styles.drawerHeaderTextContainer}>
+                      <Text style={styles.drawerTitle}>Categorii</Text>
+                    </View>
                     <TouchableOpacity
+                      style={styles.drawerCloseButton}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
                       <Ionicons name="close" size={24} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
+                  <View style={{ flex: 1 }}>
                   <ScrollView
                     style={styles.drawerScroll}
                     contentContainerStyle={[
@@ -788,14 +809,15 @@ export default function VisualSkillsRoute() {
                   </ScrollView>
                   <LinearGradient
                     colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
-                    style={styles.drawerFadeTop}
+                    style={styles.drawerFadeTopScroll}
                     pointerEvents="none"
                   />
                   <LinearGradient
                     colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
-                    style={styles.drawerFadeBottom}
+                    style={styles.drawerFadeBottomScroll}
                     pointerEvents="none"
                   />
+                  </View>
                   <View style={styles.drawerFooter}>
                     <TouchableOpacity
                       style={[
@@ -916,13 +938,26 @@ const styles = StyleSheet.create({
   },
   drawerHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderColor: "#EEE",
+  },
+  drawerHeaderTextContainer: {
+    alignItems: "flex-start",
+    flex: 1,
+    paddingRight: 48,
+  },
+  drawerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  drawerCloseButton: {
+    position: "absolute",
+    right: 16,
+    top: 16,
   },
   drawerScroll: {
     flex: 1,
@@ -930,7 +965,8 @@ const styles = StyleSheet.create({
   },
   drawerFooter: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
     borderTopWidth: 1,
     borderColor: "#EEE",
     backgroundColor: "#FFFFFF",
@@ -949,6 +985,20 @@ const styles = StyleSheet.create({
     bottom: 72,
     height: 40,
   },
+  drawerFadeTopScroll: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+  drawerFadeBottomScroll: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
   drawerCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -962,15 +1012,51 @@ const styles = StyleSheet.create({
   sectionGradientDivider: {
     height: 2,
     width: "100%",
-    marginVertical: 28,
+    marginVertical: 24,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    letterSpacing: 0.8,
-    color: "#6B6B6B",
+    letterSpacing: 1,
+    color: "#7A8A8D",
     marginBottom: 16,
     textTransform: "uppercase",
+  },
+  totalLabel: {
+    fontSize: 12,
+    color: "#6B6B6B",
+    marginTop: 0,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  drawerSubtitle: {
+    fontSize: 13,
+    color: "#8A9A9D",
+    marginTop: 4,
+  },
+  drawerStartButton: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#2C6468",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  drawerStartButtonDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  drawerStartButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   sessionRow: {
     flex: 1,
@@ -1213,7 +1299,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "#334155",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   patternValidationText: {
     fontSize: 12,

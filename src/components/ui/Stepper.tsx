@@ -1,7 +1,12 @@
-import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
-import { Typography } from "@/design/typography";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useRef } from "react";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 type Props = {
   value: number;
@@ -13,31 +18,68 @@ type Props = {
 export default function Stepper({ value, min = 1, max = 10, onChange }: Props) {
   const canDecrement = value > min;
   const canIncrement = value < max;
+  const minusScale = useRef(new Animated.Value(1)).current;
+  const plusScale = useRef(new Animated.Value(1)).current;
+
+  const runPressIn = (anim: Animated.Value) => {
+    Animated.spring(anim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 100,
+      bounciness: 4,
+    }).start();
+  };
+  const runPressOut = (anim: Animated.Value) => {
+    Animated.spring(anim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 100,
+      bounciness: 6,
+    }).start();
+  };
 
   return (
     <View style={styles.container}>
       <Pressable
-        style={[styles.button, !canDecrement && styles.buttonDisabled]}
         onPress={() => canDecrement && onChange(value - 1)}
         disabled={!canDecrement}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        onPressIn={() => runPressIn(minusScale)}
+        onPressOut={() => runPressOut(minusScale)}
       >
-        <Text style={[styles.buttonText, !canDecrement && styles.buttonTextDisabled]}>
-          −
-        </Text>
+        <Animated.View
+          style={[
+            styles.button,
+            !canDecrement && styles.buttonDisabled,
+            { transform: [{ scale: minusScale }] },
+          ]}
+        >
+          <Text style={[styles.buttonText, !canDecrement && styles.buttonTextDisabled]}>
+            −
+          </Text>
+        </Animated.View>
       </Pressable>
       <View style={styles.valueContainer}>
         <Text style={styles.value}>{value}</Text>
       </View>
       <Pressable
-        style={[styles.button, !canIncrement && styles.buttonDisabled]}
         onPress={() => canIncrement && onChange(value + 1)}
         disabled={!canIncrement}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        onPressIn={() => runPressIn(plusScale)}
+        onPressOut={() => runPressOut(plusScale)}
       >
-        <Text style={[styles.buttonText, !canIncrement && styles.buttonTextDisabled]}>
-          +
-        </Text>
+        <Animated.View
+          style={[
+            styles.button,
+            !canIncrement && styles.buttonDisabled,
+            { transform: [{ scale: plusScale }] },
+          ]}
+        >
+          <Text style={[styles.buttonText, !canIncrement && styles.buttonTextDisabled]}>
+            +
+          </Text>
+        </Animated.View>
       </Pressable>
     </View>
   );
@@ -50,38 +92,34 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   button: {
-    height: 32,
-    minHeight: 32,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    height: 30,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
+    backgroundColor: "#F2F4F5",
     justifyContent: "center",
+    alignItems: "center",
+    minWidth: 40,
   },
   buttonDisabled: {
-    backgroundColor: Colors.background,
-    borderColor: Colors.border,
     opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: "#2C6468",
   },
   buttonTextDisabled: {
-    color: Colors.textSecondary,
+    color: "#94A3B8",
   },
   valueContainer: {
-    minWidth: 56,
+    minWidth: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   value: {
-    fontSize: Typography.title,
+    fontSize: 18,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: "#1E1E1E",
+    minWidth: 32,
+    textAlign: "center",
   },
 });
