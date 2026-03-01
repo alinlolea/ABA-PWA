@@ -149,15 +149,54 @@ function pickBasePatternAlternating(patternLength: number): PatternItem[] {
 }
 
 function pickDistractorItems(model: PatternItem[], count: number): PatternItem[] {
+  const hasColor = model.some((m) => m.type === "color");
+  const hasShape = model.some((m) => m.type === "shape");
   const modelKeys = new Set(model.map(patternItemKey));
   const result: PatternItem[] = [];
-  const colorPool = shuffle([...CUBE_COLORS]).filter((c) => !modelKeys.has(`color:${c}`));
-  const shapePool = shuffle([...SHAPE_FORMS]).filter((s) => !modelKeys.has(`shape:${s}`));
-  const pool: PatternItem[] = [
-    ...colorPool.map((color) => ({ type: "color" as const, color })),
-    ...shapePool.map((shape) => ({ type: "shape" as const, shape })),
-  ];
-  return shuffle(pool).slice(0, count);
+
+  if (hasColor && !hasShape) {
+    const available = shuffle([...CUBE_COLORS]).filter((c) => !modelKeys.has(`color:${c}`));
+    for (let i = 0; i < count && i < available.length; i++) {
+      result.push({ type: "color", color: available[i] });
+    }
+    return result;
+  }
+
+  if (hasShape && !hasColor) {
+    const available = shuffle([...SHAPE_FORMS]).filter((s) => !modelKeys.has(`shape:${s}`));
+    for (let i = 0; i < count && i < available.length; i++) {
+      result.push({ type: "shape", shape: available[i] });
+    }
+    return result;
+  }
+
+  if (hasColor && hasShape) {
+    const availableColors = shuffle([...CUBE_COLORS]).filter((c) => !modelKeys.has(`color:${c}`));
+    const availableShapes = shuffle([...SHAPE_FORMS]).filter((s) => !modelKeys.has(`shape:${s}`));
+    const usedColorSet = new Set<string>();
+    const usedShapeSet = new Set<string>();
+    for (let i = 0; i < count; i++) {
+      const chooseColor = Math.random() < 0.5;
+      if (chooseColor && availableColors.some((c) => !usedColorSet.has(c))) {
+        const c = availableColors.find((x) => !usedColorSet.has(x))!;
+        usedColorSet.add(c);
+        result.push({ type: "color", color: c });
+      } else if (availableShapes.some((s) => !usedShapeSet.has(s))) {
+        const s = availableShapes.find((x) => !usedShapeSet.has(x))!;
+        usedShapeSet.add(s);
+        result.push({ type: "shape", shape: s });
+      } else if (availableColors.some((c) => !usedColorSet.has(c))) {
+        const c = availableColors.find((x) => !usedColorSet.has(x))!;
+        usedColorSet.add(c);
+        result.push({ type: "color", color: c });
+      } else {
+        break;
+      }
+    }
+    return result;
+  }
+
+  return result;
 }
 
 export type PatternTrialConfig = {
