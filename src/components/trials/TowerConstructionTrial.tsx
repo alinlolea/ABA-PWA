@@ -260,7 +260,7 @@ function TowerTrialInner({
           rate: 0.6,
         } as unknown as Parameters<typeof Tts.speak>[1]);
       }
-    }, 1500);
+    }, 1000);
 
     return () => clearTimeout(timeout);
   }, [voiceEnabled]);

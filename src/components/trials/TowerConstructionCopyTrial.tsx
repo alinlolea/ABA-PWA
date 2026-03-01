@@ -254,12 +254,12 @@ function TowerTrialInner({
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
         Tts.stop();
-        Tts.speak("Construiește turn", {
+        Tts.speak("Construiește la fel", {
           pitch: 1.4,
           rate: 0.6,
         } as unknown as Parameters<typeof Tts.speak>[1]);
       }
-    }, 1500);
+    }, 1000);
 
     return () => clearTimeout(timeout);
   }, [voiceEnabled]);

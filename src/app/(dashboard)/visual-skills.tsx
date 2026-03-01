@@ -37,6 +37,12 @@ export default function VisualSkillsRoute() {
   const [distractorCount, setDistractorCount] = useState(0);
   const [towerNumberOfItems, setTowerNumberOfItems] = useState(3);
   const [towerNumberOfDistractors, setTowerNumberOfDistractors] = useState(1);
+  const [patternLength, setPatternLength] = useState(2);
+  const [patternRepetitions, setPatternRepetitions] = useState(2);
+  const [patternNumberOfDistractors, setPatternNumberOfDistractors] = useState(0);
+  const [patternUseColors, setPatternUseColors] = useState(true);
+  const [patternUseShapes, setPatternUseShapes] = useState(false);
+  const [patternStructure, setPatternStructure] = useState<"free" | "alternating">("free");
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
@@ -84,7 +90,14 @@ export default function VisualSkillsRoute() {
   const categories = selectedObjective?.categories ?? [];
   const isTowerObjective = selectedObjective?.trialType === "tower_over_model";
   const isTowerCopyObjective = selectedObjective?.trialType === "tower-copy";
-  const canStart = isTowerObjective || isTowerCopyObjective || selectedTargets.length > 0;
+  const isPatternReproductionObjective = selectedObjective?.trialType === "pattern-reproduction";
+  const patternValid = patternLength * patternRepetitions <= 14;
+  const patternStimuliValid = patternUseColors || patternUseShapes;
+  const canStart =
+    isTowerObjective ||
+    isTowerCopyObjective ||
+    (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
+    selectedTargets.length > 0;
 
   useEffect(() => {
     if (isSetupOpen) {
@@ -204,6 +217,20 @@ export default function VisualSkillsRoute() {
             numberOfDistractors: String(towerNumberOfDistractors),
           },
         });
+      } else if (isPatternReproductionObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "pattern-reproduction",
+            patternLength: String(patternLength),
+            repetitions: String(patternRepetitions),
+            numberOfDistractors: String(patternNumberOfDistractors),
+            useColors: String(patternUseColors),
+            useShapes: String(patternUseShapes),
+            patternStructure: patternStructure,
+          },
+        });
       } else {
         router.push({
           pathname: "/trial",
@@ -246,7 +273,7 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
-                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy";
+                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction";
                 const processCategory =
                   obj.categories.length > 0
                     ? obj.categories.map((c) => c.label).join(", ")
@@ -262,7 +289,7 @@ export default function VisualSkillsRoute() {
                     onPress={() => {
                       if (isDisabled) return;
                       setSelectedId(obj.id);
-                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy") setIsSetupOpen(true);
+                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction") setIsSetupOpen(true);
                     }}
                     disabled={isDisabled}
                     activeOpacity={0.8}
@@ -385,6 +412,137 @@ export default function VisualSkillsRoute() {
                         onChange={setTowerNumberOfDistractors}
                       />
                     </View>
+                  </View>
+                </View>
+              </Animated.View>
+            ) : isPatternReproductionObjective ? (
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.setupDrawer,
+                  { width: 300 },
+                  {
+                    transform: [
+                      {
+                        translateX: drawerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [300, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.sessionCardTitle}>Configurare</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsSetupOpen(false)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="close" size={24} color="#1E293B" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.drawerCard}>
+                  <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
+                    <View>
+                      <Text style={styles.towerConfigLabel}>Lungime pattern (2–4)</Text>
+                      <Stepper
+                        value={patternLength}
+                        min={2}
+                        max={4}
+                        onChange={setPatternLength}
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.towerConfigLabel}>Repetiții (2–4)</Text>
+                      <Stepper
+                        value={patternRepetitions}
+                        min={2}
+                        max={4}
+                        onChange={setPatternRepetitions}
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.towerConfigLabel}>Distractori (0–3)</Text>
+                      <Stepper
+                        value={patternNumberOfDistractors}
+                        min={0}
+                        max={3}
+                        onChange={setPatternNumberOfDistractors}
+                      />
+                    </View>
+                    {!patternValid && (
+                      <Text style={styles.patternValidationText}>
+                        Lungime × Repetiții trebuie să fie ≤ 14
+                      </Text>
+                    )}
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={styles.towerConfigLabel}>Stimuli utilizați</Text>
+                      <Pressable
+                        style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                        onPress={() => setPatternUseColors((v) => !v)}
+                      >
+                        <Ionicons
+                          name={patternUseColors ? "checkbox" : "square-outline"}
+                          size={22}
+                          color={patternUseColors ? "#2C6468" : "#64748B"}
+                        />
+                        <Text style={styles.patternCheckboxLabel}>Culori</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                        onPress={() => setPatternUseShapes((v) => !v)}
+                      >
+                        <Ionicons
+                          name={patternUseShapes ? "checkbox" : "square-outline"}
+                          size={22}
+                          color={patternUseShapes ? "#2C6468" : "#64748B"}
+                        />
+                        <Text style={styles.patternCheckboxLabel}>Forme</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.patternCheckboxRow, styles.patternCheckboxRowDisabled]}
+                        disabled={true}
+                      >
+                        <Ionicons name="square-outline" size={22} color="#94A3B8" />
+                        <Text style={[styles.patternCheckboxLabel, styles.patternCheckboxLabelDisabled]}>
+                          Imagini
+                        </Text>
+                        <Text style={styles.patternCheckboxSoon}>În curând</Text>
+                      </Pressable>
+                    </View>
+                    {!patternStimuliValid && (
+                      <Text style={styles.patternValidationText}>
+                        Selectați cel puțin un tip de stimuli
+                      </Text>
+                    )}
+                    {patternUseColors && patternUseShapes && (
+                      <View style={{ marginTop: 8 }}>
+                        <Text style={styles.towerConfigLabel}>Structură pattern</Text>
+                        <Pressable
+                          style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                          onPress={() => setPatternStructure("free")}
+                        >
+                          <Ionicons
+                            name={patternStructure === "free" ? "radio-button-on" : "radio-button-off"}
+                            size={22}
+                            color={patternStructure === "free" ? "#2C6468" : "#64748B"}
+                          />
+                          <Text style={styles.patternCheckboxLabel}>Liber</Text>
+                        </Pressable>
+                        <Pressable
+                          style={({ pressed }) => [styles.patternCheckboxRow, pressed && styles.patternCheckboxRowPressed]}
+                          onPress={() => setPatternStructure("alternating")}
+                        >
+                          <Ionicons
+                            name={patternStructure === "alternating" ? "radio-button-on" : "radio-button-off"}
+                            size={22}
+                            color={patternStructure === "alternating" ? "#2C6468" : "#64748B"}
+                          />
+                          <Text style={styles.patternCheckboxLabel}>Alternanță strictă</Text>
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
                 </View>
               </Animated.View>
@@ -806,6 +964,36 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#334155",
     marginBottom: 8,
+  },
+  patternValidationText: {
+    fontSize: 12,
+    color: "#e74c3c",
+    marginTop: 4,
+  },
+  patternCheckboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  patternCheckboxRowPressed: {
+    opacity: 0.7,
+  },
+  patternCheckboxRowDisabled: {
+    opacity: 0.6,
+  },
+  patternCheckboxLabel: {
+    fontSize: 14,
+    color: "#334155",
+    flex: 1,
+  },
+  patternCheckboxLabelDisabled: {
+    color: "#94A3B8",
+  },
+  patternCheckboxSoon: {
+    fontSize: 11,
+    color: "#94A3B8",
   },
   placeholderText: {
     fontSize: Typography.body,
