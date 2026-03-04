@@ -33,6 +33,23 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Register service worker for PWA installability (web only)
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const register = () => {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .catch((err) => console.log("SW registration failed", err));
+      };
+      if (document.readyState === "complete") {
+        register();
+      } else {
+        window.addEventListener("load", register);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
