@@ -1,11 +1,9 @@
-/**
- * Minimal service worker for PWA installability.
- * Enables "Add to Home Screen" in Chrome on Android.
- * No fetch interception - all requests go to the network.
- */
-self.addEventListener("install", function () {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
-self.addEventListener("activate", function (event) {
+
+self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
+
+self.addEventListener("fetch", () => {});

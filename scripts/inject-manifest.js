@@ -14,7 +14,7 @@ const headInject = [
 ].join("\n");
 
 const swRegistrationScript =
-  '<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>';
+  '<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js");});}</script>';
 
 try {
   let html = fs.readFileSync(distPath, "utf8");
