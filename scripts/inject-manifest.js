@@ -14,7 +14,7 @@ const headInject = [
 ].join("\n");
 
 const swRegistrationScript =
-  '<script>if(typeof window!=="undefined"&&"serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(err){console.log("SW registration failed",err);});});}</script>';
+  '<script>if(typeof window!=="undefined"&&"serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").then(function(){return navigator.serviceWorker.ready;}).catch(function(err){console.log("SW registration failed",err);});});}</script>';
 
 try {
   let html = fs.readFileSync(distPath, "utf8");

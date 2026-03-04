@@ -40,6 +40,7 @@ export default function RootLayout() {
       const register = () => {
         navigator.serviceWorker
           .register("/sw.js")
+          .then(() => navigator.serviceWorker.ready)
           .catch((err) => console.log("SW registration failed", err));
       };
       if (document.readyState === "complete") {
