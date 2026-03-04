@@ -2,6 +2,7 @@
   "name": "ABA Visual Performance",
   "short_name": "ABA Therapy",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#ffffff",

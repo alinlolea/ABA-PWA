@@ -39,7 +39,7 @@ export default function RootLayout() {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const register = () => {
         navigator.serviceWorker
-          .register("/sw.js")
+          .register("/sw.js", { scope: "/" })
           .then(() => navigator.serviceWorker.ready)
           .catch((err) => console.log("SW registration failed", err));
       };
