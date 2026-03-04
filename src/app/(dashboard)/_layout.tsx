@@ -4,6 +4,7 @@ import { Theme } from "@/design/theme";
 import { TouchTarget } from "@/design/touch";
 import { auth } from "@/config/firebase";
 import { signOut } from "firebase/auth";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useResponsive } from "@/utils/responsive";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +12,7 @@ import { useState } from "react";
 import {
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,6 +32,7 @@ function Sidebar({ selectedChildId }: SidebarProps) {
   const pathname = usePathname();
   const { rs } = useResponsive();
   const [pressedItem, setPressedItem] = useState<string | null>(null);
+  const { installPWA, canInstall } = usePWAInstall();
 
   const handleLogout = async () => {
     try {
@@ -209,6 +212,15 @@ function Sidebar({ selectedChildId }: SidebarProps) {
         </View>
         <View style={[styles.footerWrap, { gap: rs(4), paddingTop: rs(16) }]}>
         <View style={[styles.separator, { marginBottom: rs(12) }]} />
+        {Platform.OS === "web" && canInstall && (
+          <Pressable
+            style={[styles.navItem, styles.installItem, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10), minHeight: TouchTarget.minSize }]}
+            onPress={installPWA}
+          >
+            <Ionicons name="download-outline" size={rs(22)} color={Theme.colors.primary} />
+            <Text style={[styles.navLabel, { fontSize: rs(15), color: Theme.colors.primary }]}>Instalare aplicație</Text>
+          </Pressable>
+        )}
         <Pressable
           style={[styles.navItem, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) }]}
           onPress={() => router.push("/privacy-policy")}
@@ -346,6 +358,9 @@ const styles = StyleSheet.create({
   },
   logoutItem: {
     marginTop: 4,
+  },
+  installItem: {
+    backgroundColor: Theme.colors.activeBg,
   },
   content: {
     flex: 1,
