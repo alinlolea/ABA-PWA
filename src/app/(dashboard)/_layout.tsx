@@ -1,8 +1,10 @@
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Colors } from "@/design/colors";
 import { Theme } from "@/design/theme";
-import { auth } from "@/services/firebaseConfig";
+import { TouchTarget } from "@/design/touch";
+import { auth } from "@/config/firebase";
 import { signOut } from "firebase/auth";
+import { useResponsive } from "@/utils/responsive";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -10,6 +12,7 @@ import {
   Alert,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,6 +28,7 @@ type SidebarProps = {
 function Sidebar({ selectedChildId }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { rs } = useResponsive();
   const [pressedItem, setPressedItem] = useState<string | null>(null);
 
   const handleLogout = async () => {
@@ -54,21 +58,29 @@ function Sidebar({ selectedChildId }: SidebarProps) {
   ];
 
   return (
-    <View style={styles.sidebar}>
-      <View>
-        <View style={styles.brandSection}>
+    <View style={[styles.sidebar, { width: rs(270) }]}>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingVertical: rs(20),
+            paddingHorizontal: rs(16),
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={[styles.brandSection, { height: rs(130), paddingTop: rs(32), paddingBottom: rs(24), paddingHorizontal: rs(16) }]}>
           <Image
             source={require("../../../assets/images/digital-aba-therapy-logo.png")}
-            style={styles.logoImage}
+            style={[styles.logoImage, { width: rs(220), height: rs(90) }]}
           />
         </View>
-        <View style={styles.brandDivider} />
-        <View style={styles.navBlock}>
+        <View style={[styles.brandDivider, { marginVertical: rs(16) }]} />
+        <View style={[styles.navBlock, { gap: rs(4) }]}>
           {/* Home */}
           <Pressable
             style={[
               styles.navItem,
-              pathname === "/main-dashboard" && styles.navItemActive,
+              { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) },
+              pathname === "/main-dashboard" && [styles.navItemActive, { borderLeftWidth: rs(4) }],
               pressedItem === "/main-dashboard" && pathname !== "/main-dashboard" && styles.navItemHover,
             ]}
             onPress={() => router.push("/main-dashboard")}
@@ -77,20 +89,21 @@ function Sidebar({ selectedChildId }: SidebarProps) {
           >
             <Ionicons
               name="home-outline"
-              size={22}
+              size={rs(22)}
               color={pathname === "/main-dashboard" ? Theme.colors.primaryDark : Theme.colors.textSecondary}
             />
             <Text
               style={[
                 styles.navLabel,
+                { fontSize: rs(15) },
                 pathname === "/main-dashboard" && styles.navLabelActive,
               ]}
             >
               Panou principal
             </Text>
           </Pressable>
-          <View style={styles.sidebarDivider} />
-          <Text style={styles.sidebarSectionTitle}>Arie Terapeutică</Text>
+          <View style={[styles.sidebarDivider, { marginVertical: rs(16) }]} />
+          <Text style={[styles.sidebarSectionTitle, { fontSize: rs(12), marginBottom: rs(12) }]}>Arie Terapeutică</Text>
           {/* Visual Skills – disabled when no child selected */}
           <TouchableOpacity
             disabled={!selectedChildId}
@@ -102,19 +115,21 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             onPressOut={() => setPressedItem(null)}
             style={[
               styles.navItem,
+              { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) },
               !selectedChildId && { opacity: 0.4 },
-              visualSkillsIsActive && styles.navItemActive,
+              visualSkillsIsActive && [styles.navItemActive, { borderLeftWidth: rs(4) }],
               visualSkillsIsHover && !visualSkillsIsActive && styles.navItemHover,
             ]}
           >
             <Ionicons
               name="shapes-outline"
-              size={22}
+              size={rs(22)}
               color={Colors.textPrimary}
             />
             <Text
               style={[
                 styles.navLabel,
+                { fontSize: rs(15) },
                 visualSkillsIsActive && styles.navLabelActive,
               ]}
             >
@@ -132,19 +147,21 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             onPressOut={() => setPressedItem(null)}
             style={[
               styles.navItem,
+              { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) },
               !selectedChildId && { opacity: 0.4 },
-              receptiveLanguageIsActive && styles.navItemActive,
+              receptiveLanguageIsActive && [styles.navItemActive, { borderLeftWidth: rs(4) }],
               receptiveLanguageIsHover && !receptiveLanguageIsActive && styles.navItemHover,
             ]}
           >
             <Ionicons
               name="ear-outline"
-              size={22}
+              size={rs(22)}
               color={Colors.textPrimary}
             />
             <Text
               style={[
                 styles.navLabel,
+                { fontSize: rs(15) },
                 receptiveLanguageIsActive && styles.navLabelActive,
               ]}
             >
@@ -162,19 +179,21 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             onPressOut={() => setPressedItem(null)}
             style={[
               styles.navItem,
+              { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) },
               !selectedChildId && { opacity: 0.4 },
-              readingIsActive && styles.navItemActive,
+              readingIsActive && [styles.navItemActive, { borderLeftWidth: rs(4) }],
               readingIsHover && !readingIsActive && styles.navItemHover,
             ]}
           >
             <Ionicons
               name="book-outline"
-              size={22}
+              size={rs(22)}
               color={Colors.textPrimary}
             />
             <Text
               style={[
                 styles.navLabel,
+                { fontSize: rs(15) },
                 readingIsActive && styles.navLabelActive,
               ]}
             >
@@ -182,33 +201,34 @@ function Sidebar({ selectedChildId }: SidebarProps) {
             </Text>
           </TouchableOpacity>
           {disabledNavItems.map((label) => (
-            <View key={label} style={[styles.navItem, styles.navItemDisabled]}>
-              <Ionicons name="ellipse-outline" size={22} color={Theme.colors.textSecondary} />
-              <Text style={styles.navLabelMuted}>{label}</Text>
+            <View key={label} style={[styles.navItem, styles.navItemDisabled, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) }]}>
+              <Ionicons name="ellipse-outline" size={rs(22)} color={Theme.colors.textSecondary} />
+              <Text style={[styles.navLabelMuted, { fontSize: rs(15) }]}>{label}</Text>
             </View>
           ))}
         </View>
-      </View>
-      <View style={styles.footerWrap}>
-        <View style={styles.separator} />
+        <View style={[styles.footerWrap, { gap: rs(4), paddingTop: rs(16) }]}>
+        <View style={[styles.separator, { marginBottom: rs(12) }]} />
         <Pressable
-          style={styles.navItem}
+          style={[styles.navItem, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) }]}
           onPress={() => router.push("/privacy-policy")}
         >
-          <Ionicons name="shield-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Confidențialitate</Text>
+          <Ionicons name="shield-outline" size={rs(22)} color={Theme.colors.textSecondary} />
+          <Text style={[styles.navLabel, { fontSize: rs(15) }]}>Confidențialitate</Text>
         </Pressable>
         <Pressable
-          style={styles.navItem}
+          style={[styles.navItem, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) }]}
           onPress={() => router.push("/account-edit")}
         >
-          <Ionicons name="settings-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Setări</Text>
+          <Ionicons name="settings-outline" size={rs(22)} color={Theme.colors.textSecondary} />
+          <Text style={[styles.navLabel, { fontSize: rs(15) }]}>Setări</Text>
         </Pressable>
-        <Pressable style={[styles.navItem, styles.logoutItem]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={Theme.colors.textSecondary} />
-          <Text style={styles.navLabel}>Ieșire</Text>
+        <Pressable style={[styles.navItem, styles.logoutItem, { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10), marginTop: rs(4) }]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={rs(22)} color={Theme.colors.textSecondary} />
+          <Text style={[styles.navLabel, { fontSize: rs(15) }]}>Ieșire</Text>
         </Pressable>
+      </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -233,14 +253,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     flexDirection: "row",
+    overflow: "hidden",
   },
   sidebar: {
     width: SIDEBAR_WIDTH,
     backgroundColor: "#FFFFFF",
     borderRightWidth: 1,
     borderRightColor: Theme.colors.sidebarBorder,
-    paddingVertical: 20,
-    paddingHorizontal: 12,
     flexDirection: "column",
   },
   brandSection: {
@@ -285,6 +304,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     borderLeftWidth: 0,
+    minHeight: TouchTarget.minSize,
   },
   navItemActive: {
     backgroundColor: Theme.colors.activeBg,

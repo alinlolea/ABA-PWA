@@ -1,7 +1,9 @@
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
-import { auth, db } from "@/services/firebaseConfig";
+import { TouchTarget } from "@/design/touch";
+import { useResponsive } from "@/utils/responsive";
+import { auth, db } from "@/config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -100,6 +102,7 @@ function formatTimestamp(ts: unknown): string {
 
 export default function MainDashboard() {
   const router = useRouter();
+  const { rs } = useResponsive();
   const uid = auth.currentUser?.uid;
   const { setSelectedChildId: setGlobalSelectedChildId } = useContext(SelectedChildContext);
 
@@ -122,6 +125,207 @@ export default function MainDashboard() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [childSearchQuery, setChildSearchQuery] = useState("");
   const selectionAnim = useRef(new Animated.Value(0)).current;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        safeArea: { flex: 1, backgroundColor: Theme.colors.background },
+        mainContainer: { flex: 1 },
+        dashboardScrollWrapper: { flex: 1 },
+        dashboardScroll: { flex: 1 },
+        dashboardScrollContent: { padding: rs(24), paddingBottom: rs(140) },
+        contentWrapper: { padding: 0 },
+        addChildButtonRow: { alignItems: "flex-end" as const, marginBottom: rs(16) },
+        addChildButton: {
+          backgroundColor: "#2C6468",
+          paddingVertical: rs(10),
+          paddingHorizontal: rs(16),
+          borderRadius: rs(8),
+          minHeight: TouchTarget.minSize,
+          justifyContent: "center",
+        },
+        addChildButtonText: { color: "#FFFFFF", fontWeight: "600", fontSize: rs(15) },
+        childrenCardFullWidth: {
+          width: "100%",
+          marginBottom: rs(24),
+          maxHeight: 320,
+          overflow: "hidden",
+          backgroundColor: Theme.colors.card,
+          borderRadius: rs(16),
+          padding: rs(20),
+        },
+        childrenCard: {
+          width: "100%",
+          flex: 1,
+          minHeight: 340,
+          borderRadius: rs(16),
+          backgroundColor: "#FFFFFF",
+          marginBottom: rs(24),
+          position: "relative" as const,
+          overflow: "hidden",
+        },
+        childrenCardContent: { padding: rs(20), flex: 1 },
+        childrenCardHeader: {
+          flexDirection: "row" as const,
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: rs(16),
+          paddingHorizontal: rs(16),
+        },
+        childrenCardTitle: {
+          fontSize: rs(Theme.typography.title.fontSize),
+          fontWeight: Theme.typography.title.fontWeight,
+          color: Theme.colors.textPrimary,
+          fontFamily: Theme.fontFamily.semiBold,
+        },
+        searchWrapper: { position: "relative" as const, width: rs(240), height: rs(36), justifyContent: "center" },
+        searchBar: {
+          flex: 1,
+          height: rs(36),
+          borderWidth: 1,
+          borderColor: "#E2E8F0",
+          borderRadius: rs(10),
+          paddingHorizontal: rs(12),
+          fontSize: rs(14),
+          color: Theme.colors.textPrimary,
+        },
+        clearButton: { position: "absolute" as const, right: rs(8), height: rs(36), justifyContent: "center", alignItems: "center" },
+        clearButtonText: { fontSize: rs(18), color: "#94A3B8", fontWeight: "600" },
+        noResultsContainer: { paddingVertical: rs(32), alignItems: "center", justifyContent: "center" },
+        noResultsText: { fontSize: rs(14), color: "#64748B" },
+        statsRowNew: { flexDirection: "row" as const, gap: rs(24) },
+        premiumCard: {
+          flex: 1,
+          backgroundColor: "#FFFFFF",
+          borderRadius: rs(16),
+          borderWidth: 1,
+          borderColor: "#EEF2F4",
+          position: "relative" as const,
+          overflow: "hidden",
+        },
+        cardContent: { padding: rs(24) },
+        premiumCardTitle: { fontSize: rs(12), fontWeight: "600", letterSpacing: 1, color: "#64748B", marginBottom: rs(20) },
+        metricValue: { fontSize: rs(26), fontWeight: "600", color: Theme.colors.textPrimary },
+        metricValueAccent: { fontSize: rs(26), fontWeight: "600", color: Theme.colors.primary },
+        metricValuePositive: { fontSize: rs(26), fontWeight: "600", color: "#16A34A" },
+        metricLabel: { fontSize: rs(11), color: "#64748B", textAlign: "center" as const, marginTop: rs(6), textTransform: "uppercase" as const, letterSpacing: 0.5 },
+        metricDivider: { width: 1, height: rs(40), backgroundColor: "#E2E8F0" },
+        tableHeaderRow: {
+          flexDirection: "row" as const,
+          alignItems: "center",
+          height: rs(48),
+          paddingHorizontal: rs(16),
+          borderBottomWidth: 1,
+          borderBottomColor: "#E2E8F0",
+        },
+        nameColumn: { flex: 1 },
+        ageColumn: { width: rs(100) },
+        dateAddedColumn: { width: rs(130) },
+        lastSessionColumn: { width: rs(140) },
+        cellContainer: { justifyContent: "center" },
+        nameColumnAlign: { alignItems: "flex-start" as const },
+        centerColumnAlign: { alignItems: "center" },
+        endColumnAlign: { alignItems: "flex-end" as const },
+        actionsColumn: { width: rs(110), flexDirection: "row" as const, justifyContent: "center", alignItems: "center" },
+        actionsColumnHeader: { width: rs(110), flexDirection: "row" as const, justifyContent: "center" },
+        tableHeaderText: { fontWeight: "600", fontSize: rs(14), lineHeight: rs(20), color: Theme.colors.textPrimary, fontFamily: Theme.fontFamily.semiBold },
+        childRow: {
+          flexDirection: "row" as const,
+          alignItems: "center",
+          height: rs(48),
+          paddingHorizontal: rs(16),
+          borderRadius: rs(12),
+          marginBottom: rs(6),
+          position: "relative" as const,
+          overflow: "hidden",
+        },
+        selectionScrollContent: { position: "relative" as const },
+        animatedSelectionBar: { position: "absolute" as const, left: 0, width: 4, height: rs(48), backgroundColor: Theme.colors.primary, borderRadius: rs(2) },
+        childRowPressed: { backgroundColor: "rgba(44,100,104,0.08)" },
+        childRowSelected: { backgroundColor: "rgba(44,100,104,0.12)" },
+        tableRowIconButton: { width: rs(36), height: rs(36), alignItems: "center", justifyContent: "center", borderRadius: rs(8) },
+        tableCellText: { fontSize: rs(Theme.typography.body.fontSize), lineHeight: rs(20), color: Theme.colors.textPrimary, fontFamily: Theme.fontFamily.regular },
+        floatingButtonContainer: { position: "absolute" as const, bottom: rs(32), left: 0, right: 0, alignItems: "center" },
+        floatingButton: { backgroundColor: "#2C6468", paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14), alignItems: "center", justifyContent: "center", minHeight: TouchTarget.minSize },
+        floatingButtonDisabled: { opacity: 0.5 },
+        floatingButtonText: { fontSize: rs(Theme.typography.body.fontSize), fontWeight: "600", color: "#FFFFFF", fontFamily: Theme.fontFamily.semiBold },
+        modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: Spacing.xl },
+        modalBox: {
+          width: "100%",
+          maxWidth: 420,
+          backgroundColor: "#FFFFFF",
+          borderRadius: rs(16),
+          padding: rs(28),
+          borderWidth: 1,
+          borderColor: "#EEF2F4",
+          position: "relative" as const,
+        },
+        modalTitle: { fontSize: rs(18), fontWeight: "600", color: Theme.colors.textPrimary, marginBottom: rs(24) },
+        fieldLabel: { fontSize: rs(12), fontWeight: "600", letterSpacing: 0.5, color: "#64748B", textTransform: "uppercase" as const, marginBottom: rs(6), marginTop: rs(12) },
+        input: {
+          borderWidth: 1,
+          borderColor: "#E2E8F0",
+          borderRadius: rs(12),
+          paddingVertical: rs(12),
+          paddingHorizontal: rs(14),
+          fontSize: rs(15),
+          color: Theme.colors.textPrimary,
+          backgroundColor: "#F9FBFC",
+        },
+        notesInput: { height: rs(80), textAlignVertical: "top" as const },
+        voiceToggleRow: { flexDirection: "row" as const, alignItems: "center", justifyContent: "space-between", marginTop: rs(16) },
+        modalButtons: { flexDirection: "row" as const, justifyContent: "flex-end", marginTop: rs(28) },
+        saveButton: { backgroundColor: Theme.colors.primary, paddingVertical: rs(12), paddingHorizontal: rs(24), borderRadius: rs(12) },
+        saveButtonText: { color: "#FFFFFF", fontWeight: "600", fontSize: rs(14) },
+        cancelButton: { paddingVertical: rs(12), paddingHorizontal: rs(20), marginRight: rs(12) },
+        cancelText: { fontSize: rs(14), color: "#94A3B8" },
+        settingsModalBox: {
+          width: "100%",
+          maxWidth: 400,
+          backgroundColor: "#1E293B",
+          borderRadius: rs(16),
+          padding: rs(24),
+          borderWidth: 1,
+          borderColor: "#334155",
+          marginTop: "auto",
+          marginBottom: 0,
+        },
+        settingsModalTitle: { fontSize: rs(20), fontWeight: "600", color: "#F1F5F9", marginBottom: rs(20) },
+        settingsRow: {
+          flexDirection: "row" as const,
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: rs(14),
+          paddingHorizontal: rs(4),
+          borderBottomWidth: 1,
+          borderBottomColor: "#334155",
+        },
+        settingsRowText: { fontSize: rs(16), color: "#F1F5F9" },
+        settingsRowDestructive: { borderBottomWidth: 0, marginTop: rs(8) },
+        settingsRowTextDestructive: { fontSize: rs(16), color: "#EF4444", fontWeight: "500" },
+        settingsCancelButton: { marginTop: rs(20), paddingVertical: rs(14), alignItems: "center" },
+        dataExportModalBox: {
+          width: "100%",
+          maxWidth: 400,
+          maxHeight: "80%",
+          backgroundColor: "#1E293B",
+          borderRadius: rs(16),
+          padding: rs(24),
+          borderWidth: 1,
+          borderColor: "#334155",
+        },
+        dataExportScroll: { maxHeight: rs(400) },
+        dataExportScrollContent: { paddingVertical: rs(12) },
+        dataExportJson: { fontFamily: "monospace", fontSize: rs(12), color: "#94A3B8" },
+        cardAccentWrapper: { position: "absolute" as const, top: 0, left: 0, right: 0, height: 2, overflow: "hidden", borderTopLeftRadius: rs(16), borderTopRightRadius: rs(16) },
+        cardAccentLine: { flex: 1 },
+        metricsRow: { flexDirection: "row" as const, alignItems: "center", justifyContent: "space-between" },
+        metricBlock: { flex: 1, alignItems: "center" },
+        columnScroll: { flex: 1 },
+        columnScrollContent: { paddingBottom: rs(20) },
+      }),
+    [rs]
+  );
 
   const filteredAndSortedChildren = useMemo(() => {
     let result = [...children];
@@ -179,13 +383,13 @@ export default function MainDashboard() {
       (c) => c.id === selectedChildId
     );
     if (index === -1) return;
-    const rowHeight = 54; // 48 height + 6 marginBottom
+    const rowHeight = rs(54); // 48 height + 6 marginBottom
     Animated.timing(selectionAnim, {
       toValue: index * rowHeight,
       duration: 220,
       useNativeDriver: false,
     }).start();
-  }, [selectedChildId, filteredAndSortedChildren, selectionAnim]);
+  }, [selectedChildId, filteredAndSortedChildren, selectionAnim, rs]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
@@ -440,7 +644,7 @@ export default function MainDashboard() {
   const handleDeleteAccount = () => {
     Alert.alert(
       "Ștergere cont",
-      "Sigur doriți să ștergeți contul? Toate datele (copii, sesiuni) vor fi șterse permanent. Această acțiune nu poate fi anulată.",
+      "Sigur doriți să ștergeți contul? Toate datele (copii, sesiuni) vor fi șterse permanent. Aceasta acțiune nu poate fi anulată.",
       [
         { text: "Anulează", style: "cancel" },
         {
@@ -487,7 +691,11 @@ export default function MainDashboard() {
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <View style={styles.mainContainer}>
         <View style={styles.dashboardScrollWrapper}>
-          <View style={[styles.dashboardScrollContent, { flex: 1 }]}>
+          <ScrollView
+            style={{ flex: 1 }}
+          contentContainerStyle={styles.dashboardScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.contentWrapper}>
               <View style={styles.addChildButtonRow}>
                 <Pressable style={styles.addChildButton} onPress={openAddModal}>
@@ -523,10 +731,7 @@ export default function MainDashboard() {
                       onChangeText={setChildSearchQuery}
                     />
                     {childSearchQuery.length > 0 && (
-                      <Pressable
-                        style={styles.clearButton}
-                        onPress={() => setChildSearchQuery("")}
-                      >
+                      <Pressable style={styles.clearButton} onPress={() => setChildSearchQuery("")}>
                         <Text style={styles.clearButtonText}>×</Text>
                       </Pressable>
                     )}
@@ -609,7 +814,7 @@ export default function MainDashboard() {
                           >
                             <Ionicons
                               name={child.voiceEnabled !== false ? "volume-high" : "volume-mute"}
-                              size={18}
+                              size={rs(18)}
                               color={child.voiceEnabled !== false ? Theme.colors.primary : "#94A3B8"}
                             />
                           </Pressable>
@@ -620,7 +825,7 @@ export default function MainDashboard() {
                               openEditModalForChild(child);
                             }}
                           >
-                            <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
+                            <Ionicons name="pencil" size={rs(18)} color={Theme.colors.primary} />
                           </Pressable>
                           <Pressable
                             style={styles.tableRowIconButton}
@@ -629,7 +834,7 @@ export default function MainDashboard() {
                               handleDeleteChildFor(child);
                             }}
                           >
-                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                            <Ionicons name="trash-outline" size={rs(18)} color="#EF4444" />
                           </Pressable>
                         </View>
                       </Pressable>
@@ -716,15 +921,12 @@ export default function MainDashboard() {
                 </View>
               </View>
             </View>
-          </View>
+          </ScrollView>
 
-          {/* Floating button – always visible */}
+          {/* Floating button — always visible */}
           <View style={styles.floatingButtonContainer} pointerEvents="box-none">
             <TouchableOpacity
-              style={[
-                styles.floatingButton,
-                !selectedChildId && styles.floatingButtonDisabled,
-              ]}
+              style={[styles.floatingButton, !selectedChildId && styles.floatingButtonDisabled]}
               onPress={handleSessionDashboard}
               disabled={!selectedChildId}
               activeOpacity={0.8}
@@ -816,19 +1018,19 @@ export default function MainDashboard() {
             <Text style={styles.settingsModalTitle}>Setări</Text>
             <Pressable style={styles.settingsRow} onPress={() => handleSettingsOption("gdpr")}>
               <Text style={styles.settingsRowText}>GDPR</Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={rs(20)} color="#94A3B8" />
             </Pressable>
             <Pressable style={styles.settingsRow} onPress={() => handleSettingsOption("privacy")}>
               <Text style={styles.settingsRowText}>Politica de Confidențialitate</Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={rs(20)} color="#94A3B8" />
             </Pressable>
             <Pressable style={styles.settingsRow} onPress={() => handleSettingsOption("terms")}>
               <Text style={styles.settingsRowText}>Termeni și Condiții</Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={rs(20)} color="#94A3B8" />
             </Pressable>
             <Pressable style={styles.settingsRow} onPress={() => handleSettingsOption("account")}>
               <Text style={styles.settingsRowText}>Editează datele contului</Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={rs(20)} color="#94A3B8" />
             </Pressable>
             <Pressable
               style={styles.settingsRow}
@@ -838,14 +1040,14 @@ export default function MainDashboard() {
               <Text style={styles.settingsRowText}>
                 {exportLoading ? "Se încarcă..." : "Descarcă datele contului"}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={rs(20)} color="#94A3B8" />
             </Pressable>
             <Pressable
               style={[styles.settingsRow, styles.settingsRowDestructive]}
               onPress={() => handleSettingsOption("delete")}
             >
               <Text style={styles.settingsRowTextDestructive}>Ștergere cont</Text>
-              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Ionicons name="trash-outline" size={rs(20)} color="#EF4444" />
             </Pressable>
             <Pressable style={styles.settingsCancelButton} onPress={closeSettings}>
               <Text style={styles.cancelText}>Închide</Text>
@@ -885,661 +1087,3 @@ export default function MainDashboard() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  mainContainer: {
-    flex: 1,
-  },
-  dashboardScrollWrapper: {
-    flex: 1,
-  },
-  dashboardScroll: {
-    flex: 1,
-  },
-  dashboardScrollContent: {
-    padding: 24,
-    paddingBottom: 140,
-  },
-  contentWrapper: {
-    padding: 0,
-  },
-  addChildButtonRow: {
-    alignItems: "flex-end",
-    marginBottom: 16,
-  },
-  addChildButton: {
-    backgroundColor: "#2C6468",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  addChildButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  childrenCardFullWidth: {
-    width: "100%",
-    marginBottom: 24,
-    maxHeight: 320,
-    overflow: "hidden",
-    backgroundColor: Theme.colors.card,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  childrenCard: {
-    width: "100%",
-    height: 340,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 24,
-    position: "relative",
-    overflow: "hidden",
-  },
-  childrenCardContent: {
-    padding: 20,
-    flex: 1,
-  },
-  childrenCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  childrenCardTitle: {
-    fontSize: Theme.typography.title.fontSize,
-    fontWeight: Theme.typography.title.fontWeight,
-    color: Theme.colors.textPrimary,
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  childrenSearchInput: {
-    width: 260,
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: Theme.colors.textPrimary,
-  },
-  searchWrapper: {
-    position: "relative",
-    width: 240,
-    height: 36,
-    justifyContent: "center",
-  },
-  searchBar: {
-    flex: 1,
-    height: 36,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: Theme.colors.textPrimary,
-  },
-  clearButton: {
-    position: "absolute",
-    right: 8,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  clearButtonText: {
-    fontSize: 18,
-    color: "#94A3B8",
-    fontWeight: "600",
-  },
-  noResultsContainer: {
-    paddingVertical: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  noResultsText: {
-    fontSize: 14,
-    color: "#64748B",
-  },
-  childrenTableScroll: {
-    maxHeight: 200,
-  },
-  middleRow: {
-    flexDirection: "row",
-    gap: 24,
-    marginBottom: 24,
-  },
-  middleRowStacked: {
-    flexDirection: "column",
-  },
-  middleCard: {
-    flex: 1,
-    backgroundColor: Theme.colors.card,
-    borderRadius: 16,
-    padding: 20,
-    minHeight: 200,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  verticalCard: {
-    width: "48%",
-    height: 480,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
-  },
-  statsRowNew: {
-    flexDirection: "row",
-    gap: 24,
-  },
-  premiumCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#EEF2F4",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-    position: "relative",
-    overflow: "hidden",
-  },
-  cardAccentWrapper: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    overflow: "hidden",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  cardAccentLine: {
-    flex: 1,
-  },
-  cardContent: {
-    padding: 24,
-  },
-  premiumCardTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1,
-    color: "#64748B",
-    marginBottom: 20,
-  },
-  metricsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  metricBlock: {
-    flex: 1,
-    alignItems: "center",
-  },
-  metricValue: {
-    fontSize: 26,
-    fontWeight: "600",
-    color: Theme.colors.textPrimary,
-  },
-  metricValueAccent: {
-    fontSize: 26,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-  },
-  metricValuePositive: {
-    fontSize: 26,
-    fontWeight: "600",
-    color: "#16A34A",
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: "#64748B",
-    textAlign: "center",
-    marginTop: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  metricDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "#E2E8F0",
-  },
-  columnCard: {
-    flex: 1,
-    backgroundColor: Theme.colors.card,
-    borderRadius: 16,
-    padding: 20,
-    height: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  columnScroll: {
-    flex: 1,
-  },
-  columnScrollContent: {
-    paddingBottom: 20,
-  },
-  panelLabel: {
-    fontSize: Theme.typography.sectionHeader.fontSize,
-    fontWeight: Theme.typography.sectionHeader.fontWeight,
-    color: Theme.colors.textSecondary,
-    marginBottom: 10,
-    textTransform: Theme.typography.sectionHeader.textTransform,
-    letterSpacing: Theme.typography.sectionHeader.letterSpacing,
-    fontFamily: Theme.fontFamily.medium,
-  },
-  tableHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 48,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
-  nameColumn: { flex: 1 },
-  ageColumn: { width: 100 },
-  dateAddedColumn: { width: 130 },
-  lastSessionColumn: { width: 140 },
-  cellContainer: {
-    justifyContent: "center",
-  },
-  nameColumnAlign: {
-    alignItems: "flex-start",
-  },
-  centerColumnAlign: {
-    alignItems: "center",
-  },
-  endColumnAlign: {
-    alignItems: "flex-end",
-  },
-  actionsColumn: {
-    width: 110,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  actionsColumnHeader: {
-    width: 110,
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  tableHeaderText: {
-    fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 20,
-    color: Theme.colors.textPrimary,
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  tableSortIcon: {
-    fontSize: 12,
-    color: Theme.colors.primary,
-  },
-  childRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 6,
-    position: "relative",
-    overflow: "hidden",
-  },
-  selectionScrollContent: {
-    position: "relative",
-  },
-  animatedSelectionBar: {
-    position: "absolute",
-    left: 0,
-    width: 4,
-    height: 48,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: 2,
-  },
-  childRowPressed: {
-    backgroundColor: "rgba(44,100,104,0.08)",
-  },
-  childRowSelected: {
-    backgroundColor: "rgba(44,100,104,0.12)",
-  },
-  tableRowIconButton: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-  },
-  tableCellText: {
-    fontSize: Theme.typography.body.fontSize,
-    lineHeight: 20,
-    color: Theme.colors.textPrimary,
-    fontFamily: Theme.fontFamily.regular,
-  },
-  columnTitle: {
-    fontSize: Theme.typography.title.fontSize,
-    fontWeight: Theme.typography.title.fontWeight,
-    color: Theme.colors.textPrimary,
-    marginBottom: 16,
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  dropdownTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 44,
-    maxWidth: 260,
-    backgroundColor: Theme.colors.background,
-    borderWidth: 1,
-    borderColor: Theme.colors.buttonGrey,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  dropdownTriggerText: {
-    fontSize: Theme.typography.body.fontSize,
-    fontWeight: Theme.typography.body.fontWeight,
-    color: Theme.colors.textPrimary,
-    flex: 1,
-    textAlign: "center",
-    fontFamily: Theme.fontFamily.regular,
-  },
-  iconRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    backgroundColor: Theme.colors.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Theme.colors.buttonGrey,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-  },
-  iconButtonDisabled: {
-    opacity: 0.5,
-  },
-  objectiveRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.progressBg,
-  },
-  objectiveRowSelected: {
-    backgroundColor: Theme.colors.activeBg,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.primary,
-  },
-  objectiveRowText: {
-    fontSize: Theme.typography.body.fontSize,
-    fontWeight: Theme.typography.body.fontWeight,
-    color: Theme.colors.textSecondary,
-    fontFamily: Theme.fontFamily.regular,
-  },
-  objectiveRowTextSelected: {
-    color: Theme.colors.primaryDark,
-    fontWeight: "600",
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  columnPlaceholder: {
-    fontSize: Theme.typography.body.fontSize,
-    color: Theme.colors.textSecondary,
-    fontStyle: "italic",
-    fontFamily: Theme.fontFamily.regular,
-  },
-  categoryProgressRow: {
-    marginBottom: 16,
-  },
-  categoryProgressName: {
-    fontSize: Theme.typography.body.fontSize,
-    fontWeight: Theme.typography.sectionHeader.fontWeight,
-    color: Theme.colors.textPrimary,
-    marginBottom: 6,
-    fontFamily: Theme.fontFamily.medium,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: Theme.colors.progressBg,
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: 4,
-  },
-  progressBarPlaceholder: {
-    height: "100%",
-    width: "0%",
-    backgroundColor: Theme.colors.progressFill,
-    borderRadius: 4,
-  },
-  progressPlaceholderText: {
-    fontSize: 12,
-    color: Theme.colors.textSecondary,
-    fontStyle: "italic",
-    fontFamily: Theme.fontFamily.regular,
-  },
-  floatingButtonContainer: {
-    position: "absolute",
-    bottom: 32,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  floatingButton: {
-    backgroundColor: "#2C6468",
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  floatingButtonDisabled: {
-    opacity: 0.5,
-  },
-  floatingButtonText: {
-    fontSize: Theme.typography.body.fontSize,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  bottomSection: {
-    padding: 24,
-    alignItems: "center",
-  },
-  sessionButton: {
-    width: "100%",
-    maxWidth: 320,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.buttonGrey,
-    borderWidth: 1,
-    borderColor: Theme.colors.borderButton,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sessionButtonHover: {
-    backgroundColor: Theme.colors.buttonGreyHover,
-  },
-  sessionButtonDisabled: {
-    opacity: 0.5,
-  },
-  sessionButtonText: {
-    fontSize: Theme.typography.body.fontSize,
-    fontWeight: "600",
-    color: Theme.colors.primaryDark,
-    fontFamily: Theme.fontFamily.semiBold,
-  },
-  spacer: {
-    width: Spacing.md,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
-  },
-  modalBox: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: "#EEF2F4",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-    position: "relative",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Theme.colors.textPrimary,
-    marginBottom: 24,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    color: "#64748B",
-    textTransform: "uppercase",
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: Theme.colors.textPrimary,
-    backgroundColor: "#F9FBFC",
-  },
-  notesInput: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  voiceToggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 28,
-  },
-  saveButton: {
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginRight: 12,
-  },
-  cancelText: {
-    fontSize: 14,
-    color: "#94A3B8",
-  },
-  settingsModalBox: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#1E293B",
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "#334155",
-    marginTop: "auto",
-    marginBottom: 0,
-  },
-  settingsModalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#F1F5F9",
-    marginBottom: 20,
-  },
-  settingsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#334155",
-  },
-  settingsRowText: {
-    fontSize: 16,
-    color: "#F1F5F9",
-  },
-  settingsRowDestructive: {
-    borderBottomWidth: 0,
-    marginTop: 8,
-  },
-  settingsRowTextDestructive: {
-    fontSize: 16,
-    color: "#EF4444",
-    fontWeight: "500",
-  },
-  settingsCancelButton: {
-    marginTop: 20,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  dataExportModalBox: {
-    width: "100%",
-    maxWidth: 400,
-    maxHeight: "80%",
-    backgroundColor: "#1E293B",
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  dataExportScroll: {
-    maxHeight: 400,
-  },
-  dataExportScrollContent: {
-    paddingVertical: 12,
-  },
-  dataExportJson: {
-    fontFamily: "monospace",
-    fontSize: 12,
-    color: "#94A3B8",
-  },
-});

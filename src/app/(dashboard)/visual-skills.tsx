@@ -7,9 +7,10 @@ import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
-import { auth, db } from "@/services/firebaseConfig";
+import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
+import { useResponsive } from "@/hooks/useResponsive";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +26,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useWindowDimensions,
 } from "react-native";
 
 function getMaxRepetitions(patternLength: number): number {
@@ -63,7 +63,7 @@ export default function VisualSkillsRoute() {
   const [shouldRenderDrawer, setShouldRenderDrawer] = useState(false);
   const drawerAnim = useRef(new Animated.Value(0)).current;
   const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
-  const { width: screenWidth } = useWindowDimensions();
+  const { width, rs } = useResponsive();
 
   useEffect(() => {
     if (!selectedChildId) {
@@ -75,8 +75,8 @@ export default function VisualSkillsRoute() {
     });
   }, [selectedChildId]);
   const panelWidth = useMemo(() => {
-    return Math.min(Math.max(screenWidth * 0.42, 520), 700);
-  }, [screenWidth]);
+    return Math.min(Math.max(width * 0.42, 520), 700);
+  }, [width]);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function VisualSkillsRoute() {
     }
   }, [isSetupOpen]);
 
-  const drawerWidth = screenWidth * 0.37;
+  const drawerWidth = width * 0.37;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
@@ -291,27 +291,33 @@ export default function VisualSkillsRoute() {
 
   return (
     <ScreenContainer>
-      <View style={styles.sessionContainer}>
-        <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: rs(24), paddingBottom: rs(40), backgroundColor: "#F2F5F7" }}
+          showsVerticalScrollIndicator={true}
+        >
+        <View style={[styles.sessionRow, { gap: rs(24) }, isSetupOpen && styles.sessionRowDimmed]}>
           <View style={styles.mainContentWrap}>
-            <View style={styles.areaHeader}>
+            <View style={[styles.areaHeader, { marginBottom: rs(20) }]}>
               <View style={styles.areaHeaderTitleRow}>
-                <Text style={styles.areaHeaderTitle}>Discriminare vizuală</Text>
-                <Text style={styles.selectedChildName}>{selectedChildName ?? ""}</Text>
+                <Text style={[styles.areaHeaderTitle, { fontSize: rs(20), marginBottom: rs(2) }]}>Discriminare vizuală</Text>
+                <Text style={[styles.selectedChildName, { fontSize: rs(Typography.body) }]}>{selectedChildName ?? ""}</Text>
               </View>
-              <Text style={styles.areaHeaderSubtitle}>
+              <Text style={[styles.areaHeaderSubtitle, { fontSize: rs(13), marginBottom: rs(10) }]}>
                 {OBJECTIVES.length} objectives
               </Text>
-              <View style={styles.areaProgressTrack}>
-                <View style={[styles.areaProgressFill, { width: "65%" }]} />
+              <View style={[styles.areaProgressTrack, { height: rs(4), borderRadius: rs(2) }]}>
+                <View style={[styles.areaProgressFill, { width: "65%", borderRadius: rs(2) }]} />
               </View>
             </View>
             <ScrollView
               style={styles.objectiveGridScroll}
-              contentContainerStyle={styles.objectiveGridScrollContent}
+              contentContainerStyle={[styles.objectiveGridScrollContent, { paddingVertical: rs(Spacing.md), paddingHorizontal: rs(Spacing.sm), paddingBottom: rs(24) }]}
               showsVerticalScrollIndicator={true}
+              nestedScrollEnabled
             >
-              <View style={styles.objectiveGrid}>
+              <View style={[styles.objectiveGrid, { gap: rs(12) }]}>
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
@@ -325,6 +331,7 @@ export default function VisualSkillsRoute() {
                     key={obj.id}
                     style={[
                       styles.objectiveGridCard,
+                      { padding: rs(14), borderRadius: rs(12) },
                       isSelected && styles.objectiveGridCardSelected,
                       isDisabled && styles.objectiveGridCardDisabled,
                     ]}
@@ -367,6 +374,7 @@ export default function VisualSkillsRoute() {
                     <Text
                       style={[
                         styles.objectiveGridCardTitle,
+                        { fontSize: rs(15), marginBottom: rs(4) },
                         isDisabled && styles.objectiveTextDisabled,
                       ]}
                       numberOfLines={2}
@@ -376,14 +384,15 @@ export default function VisualSkillsRoute() {
                     <Text
                       style={[
                         styles.objectiveGridCardCategory,
+                        { fontSize: rs(13), marginBottom: rs(8) },
                         isDisabled && styles.objectiveTextDisabled,
                       ]}
                       numberOfLines={1}
                     >
                       {processCategory}
                     </Text>
-                    <View style={styles.objectiveGridBadge}>
-                      <Text style={styles.objectiveGridBadgeText}>
+                    <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
+                      <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
                         {configurable ? "⚙ Configurabil" : "Standard"}
                       </Text>
                     </View>
@@ -394,6 +403,8 @@ export default function VisualSkillsRoute() {
             </ScrollView>
           </View>
         </View>
+        </ScrollView>
+      </View>
 
         {shouldRenderDrawer && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -412,13 +423,13 @@ export default function VisualSkillsRoute() {
                 {...panResponder.panHandlers}
                 style={[
                   styles.setupDrawer,
-                  { width: 300 },
+                  { width: width * 0.4 },
                   {
                     transform: [
                       {
                         translateX: drawerAnim.interpolate({
                           inputRange: [0, 1],
-                          outputRange: [300, 0],
+                          outputRange: [width * 0.4, 0],
                         }),
                       },
                     ],
@@ -426,28 +437,28 @@ export default function VisualSkillsRoute() {
                 ]}
               >
                 <View style={styles.drawerContainer}>
-                  <View style={styles.drawerHeader}>
-                    <View style={styles.drawerHeaderTextContainer}>
-                      <Text style={styles.drawerTitle}>Configurare</Text>
+                  <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
+                    <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
+                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Configurare</Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.drawerCloseButton}
+                      style={[styles.drawerCloseButton, { right: rs(16), top: rs(16) }]}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
-                      <Ionicons name="close" size={24} color="#1E293B" />
+                      <Ionicons name="close" size={rs(24)} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
                   <View style={{ flex: 1 }}>
                   <ScrollView
                     style={styles.drawerScroll}
-                    contentContainerStyle={{ paddingBottom: 24 }}
+                    contentContainerStyle={{ padding: rs(24), paddingBottom: rs(40) }}
                     showsVerticalScrollIndicator={false}
                   >
-                    <View style={styles.drawerCard}>
-                      <View style={{ paddingHorizontal: 12, paddingVertical: 16, gap: 16 }}>
+                    <View style={[styles.drawerCard, { borderRadius: rs(12), padding: rs(16) }]}>
+                      <View style={{ paddingHorizontal: rs(12), paddingVertical: rs(16), gap: rs(16) }}>
                         <View>
-                          <Text style={styles.towerConfigLabel}>Număr cuburi (2–5)</Text>
+                          <Text style={[styles.towerConfigLabel, { fontSize: rs(14), marginBottom: rs(6) }]}>Număr cuburi (2–5)</Text>
                           <Stepper
                             value={towerNumberOfItems}
                             min={2}
@@ -456,7 +467,7 @@ export default function VisualSkillsRoute() {
                           />
                         </View>
                         <View>
-                          <Text style={styles.towerConfigLabel}>Distractori (0–4)</Text>
+                          <Text style={[styles.towerConfigLabel, { fontSize: rs(14), marginBottom: rs(6) }]}>Distractori (0–4)</Text>
                           <Stepper
                             value={towerNumberOfDistractors}
                             min={0}
@@ -478,10 +489,11 @@ export default function VisualSkillsRoute() {
                     pointerEvents="none"
                   />
                   </View>
-                  <View style={styles.drawerFooter}>
+                  <View style={[styles.drawerFooter, { paddingHorizontal: rs(20), paddingTop: rs(24), paddingBottom: rs(16) }]}>
                     <TouchableOpacity
                       style={[
                         styles.floatingButton,
+                        { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
                         !canStart && styles.floatingButtonDisabled,
                         isPatternInvalid && { opacity: 0.5 },
                       ]}
@@ -489,7 +501,7 @@ export default function VisualSkillsRoute() {
                       disabled={!canStart || isPatternInvalid}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                      <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -499,13 +511,13 @@ export default function VisualSkillsRoute() {
                 {...panResponder.panHandlers}
                 style={[
                   styles.setupDrawer,
-                  { width: screenWidth * 0.4 },
+                  { width: width * 0.4 },
                   {
                     transform: [
                       {
                         translateX: drawerAnim.interpolate({
                           inputRange: [0, 1],
-                          outputRange: [screenWidth * 0.4, 0],
+                          outputRange: [width * 0.4, 0],
                         }),
                       },
                     ],
@@ -513,29 +525,29 @@ export default function VisualSkillsRoute() {
                 ]}
               >
                 <View style={styles.drawerContainer}>
-                  <View style={styles.drawerHeader}>
-                    <View style={styles.drawerHeaderTextContainer}>
-                      <Text style={styles.drawerTitle}>Configurare</Text>
-                      <Text style={styles.drawerSubtitle}>
+                  <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
+                    <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
+                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Configurare</Text>
+                      <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(4) }]}>
                         Configurează dificultatea exercițiului
                       </Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.drawerCloseButton}
+                      style={[styles.drawerCloseButton, { right: rs(16), top: rs(16) }]}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
-                      <Ionicons name="close" size={24} color="#1E293B" />
+                      <Ionicons name="close" size={rs(24)} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
                   <View style={{ flex: 1 }}>
                   <ScrollView
                     style={styles.drawerScroll}
-                    contentContainerStyle={{ paddingBottom: 24 }}
+                    contentContainerStyle={{ padding: rs(24), paddingBottom: rs(40) }}
                     showsVerticalScrollIndicator={false}
                   >
-                    <View style={styles.sectionCard}>
-                      <Text style={styles.sectionTitle}>Structură pattern</Text>
+                    <View style={[styles.sectionCard, { padding: rs(16) }]}>
+                      <Text style={[styles.sectionTitle, { fontSize: rs(11), marginBottom: rs(16) }]}>Structură pattern</Text>
                       <View style={{ flexDirection: "row", gap: 20, marginBottom: 10 }}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.towerConfigLabel}>Lungime pattern (2–4)</Text>
@@ -558,12 +570,12 @@ export default function VisualSkillsRoute() {
                           />
                         </View>
                       </View>
-                      <View style={{ marginTop: 12, marginBottom: 16 }}>
-                        <Text style={styles.totalLabel}>Total itemi</Text>
+                      <View style={{ marginTop: rs(12), marginBottom: rs(16) }}>
+                        <Text style={[styles.totalLabel, { fontSize: rs(12) }]}>Total itemi</Text>
                         <Text
                           style={[
                             styles.totalValue,
-                            { color: totalItems > 14 ? "#D32F2F" : "#2C6468" },
+                            { fontSize: rs(16), color: totalItems > 14 ? "#D32F2F" : "#2C6468" },
                           ]}
                         >
                           {totalItems} din 14
@@ -706,23 +718,24 @@ export default function VisualSkillsRoute() {
                     pointerEvents="none"
                   />
                   </View>
-                  <View style={styles.drawerFooter}>
+                  <View style={[styles.drawerFooter, { paddingHorizontal: rs(20), paddingTop: rs(24), paddingBottom: rs(16) }]}>
                     <TouchableOpacity
                       style={[
                         styles.drawerStartButton,
+                        { height: rs(52), borderRadius: rs(14) },
                         (!canStart || isPatternInvalid) && styles.drawerStartButtonDisabled,
                       ]}
                       onPress={handleStartSesiune}
                       disabled={!canStart || isPatternInvalid}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.drawerStartButtonText}>Start sesiune</Text>
+                      <Text style={[styles.drawerStartButtonText, { fontSize: rs(16) }]}>Start sesiune</Text>
                     </TouchableOpacity>
                     {isPatternInvalid && (
                       <Text
                         style={{
-                          marginTop: 6,
-                          fontSize: 12,
+                          marginTop: rs(6),
+                          fontSize: rs(12),
                           color: "#D32F2F",
                         }}
                       >
@@ -737,13 +750,13 @@ export default function VisualSkillsRoute() {
                 {...panResponder.panHandlers}
                 style={[
                   styles.setupDrawer,
-                  { width: 300 },
+                  { width: width * 0.4 },
                   {
                     transform: [
                       {
                         translateX: drawerAnim.interpolate({
                           inputRange: [0, 1],
-                          outputRange: [300, 0],
+                          outputRange: [width * 0.4, 0],
                         }),
                       },
                     ],
@@ -751,16 +764,16 @@ export default function VisualSkillsRoute() {
                 ]}
               >
                 <View style={styles.drawerContainer}>
-                  <View style={styles.drawerHeader}>
-                    <View style={styles.drawerHeaderTextContainer}>
-                      <Text style={styles.drawerTitle}>Categorii</Text>
+                  <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
+                    <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
+                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Categorii</Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.drawerCloseButton}
+                      style={[styles.drawerCloseButton, { right: rs(16), top: rs(16) }]}
                       onPress={() => setIsSetupOpen(false)}
                       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     >
-                      <Ionicons name="close" size={24} color="#1E293B" />
+                      <Ionicons name="close" size={rs(24)} color="#1E293B" />
                     </TouchableOpacity>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -768,7 +781,7 @@ export default function VisualSkillsRoute() {
                     style={styles.drawerScroll}
                     contentContainerStyle={[
                       styles.columnScrollContent,
-                      { paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 24 },
+                      { padding: rs(24), paddingBottom: rs(40) },
                     ]}
                     showsVerticalScrollIndicator={false}
                   >
@@ -818,10 +831,11 @@ export default function VisualSkillsRoute() {
                     pointerEvents="none"
                   />
                   </View>
-                  <View style={styles.drawerFooter}>
+                  <View style={[styles.drawerFooter, { paddingHorizontal: rs(20), paddingTop: rs(24), paddingBottom: rs(16) }]}>
                     <TouchableOpacity
                       style={[
                         styles.floatingButton,
+                        { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
                         !canStart && styles.floatingButtonDisabled,
                         isPatternInvalid && { opacity: 0.5 },
                       ]}
@@ -829,7 +843,7 @@ export default function VisualSkillsRoute() {
                       disabled={!canStart || isPatternInvalid}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.floatingButtonText}>Start sesiune</Text>
+                      <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -837,13 +851,13 @@ export default function VisualSkillsRoute() {
             ) : null}
           </View>
         )}
-      </View>
 
       {selectedObjective && !selectedObjective.requiresConfig && (
-        <View style={styles.floatingButtonContainer} pointerEvents="box-none">
+        <View style={[styles.floatingButtonContainer, { bottom: rs(32) }]} pointerEvents="box-none">
           <TouchableOpacity
             style={[
               styles.floatingButton,
+              { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
               !canStart && styles.floatingButtonDisabled,
               isPatternInvalid && { opacity: 0.5 },
             ]}
@@ -851,13 +865,13 @@ export default function VisualSkillsRoute() {
             disabled={!canStart || isPatternInvalid}
             activeOpacity={0.8}
           >
-            <Text style={styles.floatingButtonText}>Start sesiune</Text>
+            <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
           </TouchableOpacity>
           {isPatternInvalid && (
             <Text
               style={{
-                marginTop: 6,
-                fontSize: 12,
+                marginTop: rs(6),
+                fontSize: rs(12),
                 color: "#D32F2F",
               }}
             >
@@ -961,7 +975,6 @@ const styles = StyleSheet.create({
   },
   drawerScroll: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   drawerFooter: {
     paddingHorizontal: 20,
@@ -1139,7 +1152,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   areaProgressFill: {
-    height: "100%",
+    flex: 1,
     backgroundColor: "#2C6468",
     borderRadius: 2,
   },
@@ -1366,7 +1379,7 @@ const styles = StyleSheet.create({
   sidePanelContainer: {
     minWidth: 520,
     maxWidth: 700,
-    height: "100%",
+    flex: 1,
     backgroundColor: "#FFFFFF",
     padding: 28,
     borderTopLeftRadius: 20,

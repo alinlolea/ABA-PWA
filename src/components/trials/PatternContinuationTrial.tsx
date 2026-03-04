@@ -6,7 +6,7 @@
 import { Colors } from "@/design/colors";
 import { STIMULI_BY_CATEGORY } from "@/features/b1-2d-matching/stimuliByCategory";
 import { LinearGradient } from "expo-linear-gradient";
-import { db } from "@/services/firebaseConfig";
+import { db } from "@/config/firebase";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,8 +15,8 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
+import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 import Tts from "react-native-tts";
 
@@ -53,7 +53,7 @@ const CUBE_COLORS = STIMULI_BY_CATEGORY["colors"]
 const SHAPE_FORMS: ShapeType[] = ["circle", "square", "triangle", "rectangle", "oval", "star", "diamond"];
 const SHAPE_FILL_NEUTRAL = Colors.textPrimary;
 
-const ITEM_SIZE = 90;
+const ITEM_SIZE_DEFAULT = 90;
 const ITEM_RADIUS = 16;
 const SNAP_DURATION = 200;
 const SHAKE_DURATION = 300;
@@ -338,7 +338,7 @@ function PatternShapeSvg({
   );
 }
 
-function renderPatternItem(item: PatternItem, size: number = ITEM_SIZE) {
+function renderPatternItem(item: PatternItem, size: number = ITEM_SIZE_DEFAULT) {
   if (item.type === "color") {
     return (
       <View
@@ -371,7 +371,9 @@ export default function PatternContinuationTrial({
   onComplete,
   voiceEnabled = true,
 }: Props) {
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight, rs } = useResponsive();
+  const topZoneHeight = screenHeight * 0.6;
+  const topZoneWidth = screenWidth;
 
   useEffect(() => {
     Tts.setDefaultLanguage("ro-RO");
@@ -429,6 +431,12 @@ export default function PatternContinuationTrial({
     );
   }
 
+  const totalItems = Math.max(1, currentTrial.availableCubes.length);
+  const availableWidth = screenWidth * 0.9;
+  const sizeFromWidth = availableWidth / totalItems;
+  const maxItemSize = rs(90);
+  const itemSize = Math.min(maxItemSize, sizeFromWidth);
+
   return (
     <PatternContinuationTrialInner
       key={session.currentTrialIndex}
@@ -437,6 +445,7 @@ export default function PatternContinuationTrial({
       voiceEnabled={voiceEnabled}
       screenWidth={screenWidth}
       screenHeight={screenHeight}
+      itemSize={itemSize}
       onTrialComplete={() => {
         setSession((prev) => {
           if (prev.currentTrialIndex >= TRIAL_COUNT - 1) {
@@ -459,6 +468,7 @@ type InnerProps = {
   voiceEnabled?: boolean;
   screenWidth: number;
   screenHeight: number;
+  itemSize: number;
   onTrialComplete: () => void;
 };
 
@@ -484,10 +494,13 @@ function PatternContinuationTrialInner({
   voiceEnabled = true,
   screenWidth,
   screenHeight,
+  itemSize,
   onTrialComplete,
 }: InnerProps) {
   const progressText = `${currentTrialIndex + 1} / ${TRIAL_COUNT}`;
   const [state, setState] = useState(trial);
+  const topZoneWidth = screenWidth;
+  const topZoneHeight = screenHeight * 0.6;
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -519,13 +532,11 @@ function PatternContinuationTrialInner({
   ).current;
 
   const n = state.expectedContinuation.length;
-  const topZoneWidth = screenWidth;
-  const topZoneHeight = screenHeight * 0.6;
 
   const initPositions = useCallback(() => {
     const count = trial.availableCubes.length;
-    const maxX = Math.max(0, topZoneWidth - ITEM_SIZE);
-    const maxY = Math.max(0, topZoneHeight - ITEM_SIZE);
+    const maxX = Math.max(0, topZoneWidth - itemSize);
+    const maxY = Math.max(0, topZoneHeight - itemSize);
     const positions: { x: number; y: number }[] = [];
     const maxTries = 50;
     for (let i = 0; i < count; i++) {
@@ -534,7 +545,7 @@ function PatternContinuationTrialInner({
         const x = Math.random() * maxX;
         const y = Math.random() * maxY;
         const overlaps = positions.some((p) =>
-          rectsOverlap(x, y, ITEM_SIZE, p.x, p.y, ITEM_SIZE)
+          rectsOverlap(x, y, itemSize, p.x, p.y, itemSize)
         );
         if (!overlaps) {
           positions.push({ x, y });
@@ -542,8 +553,8 @@ function PatternContinuationTrialInner({
         }
       }
       if (!placed) {
-        const fallbackX = (i % 4) * (ITEM_SIZE + 8);
-        const fallbackY = Math.floor(i / 4) * (ITEM_SIZE + 8);
+        const fallbackX = (i % 4) * (itemSize + 8);
+        const fallbackY = Math.floor(i / 4) * (itemSize + 8);
         positions.push({
           x: Math.min(fallbackX, maxX),
           y: Math.min(fallbackY, maxY),
@@ -551,7 +562,7 @@ function PatternContinuationTrialInner({
       }
     }
     setCubePositions(positions);
-  }, [trial.availableCubes.length, topZoneWidth, topZoneHeight]);
+  }, [trial.availableCubes.length, topZoneWidth, topZoneHeight, itemSize]);
 
   useEffect(() => {
     const t = setTimeout(initPositions, 100);
@@ -633,8 +644,8 @@ function PatternContinuationTrialInner({
           const pos = cubePositions[cubeIndex];
           if (!pos) return;
           const pool = poolLayout.current;
-          const cubeScreenX = pool.x + pos.x + ITEM_SIZE / 2 + dx;
-          const cubeScreenY = pool.y + pos.y + ITEM_SIZE / 2 + dy;
+          const cubeScreenX = pool.x + pos.x + itemSize / 2 + dx;
+          const cubeScreenY = pool.y + pos.y + itemSize / 2 + dy;
           const dist = Math.sqrt(
             (slotCenterX - cubeScreenX) ** 2 + (slotCenterY - cubeScreenY) ** 2
           );
@@ -647,7 +658,7 @@ function PatternContinuationTrialInner({
           if (r && (!best || r.dist < best.dist)) best = r;
         }
 
-        if (!best || best.dist > ITEM_SIZE * 1.2) {
+        if (!best || best.dist > itemSize * 1.2) {
           runShakeAndReturn(cubeIndex);
           return;
         }
@@ -716,6 +727,7 @@ function PatternContinuationTrialInner({
       state.placedPoolIndices,
       cubePositions,
       n,
+      itemSize,
       runShakeAndReturn,
     ]
   );
@@ -777,8 +789,8 @@ function PatternContinuationTrialInner({
                 {
                   left: pos.x,
                   top: pos.y,
-                  width: ITEM_SIZE,
-                  height: ITEM_SIZE,
+                  width: itemSize,
+                  height: itemSize,
                   transform: [
                     { translateX: Animated.add(pans[i].x, shakes[i]) },
                     { translateY: pans[i].y },
@@ -821,8 +833,8 @@ function PatternContinuationTrialInner({
       <View style={styles.bottomZone}>
         <View style={styles.sequenceRow}>
           {state.modelVisible.map((item, i) => (
-            <View key={`model-${i}`} style={{ width: ITEM_SIZE, height: ITEM_SIZE }}>
-              {renderPatternItem(item)}
+            <View key={`model-${i}`} style={{ width: itemSize, height: itemSize }}>
+              {renderPatternItem(item, itemSize)}
             </View>
           ))}
           {state.placedCubes.map((item, i) => (
@@ -839,8 +851,8 @@ function PatternContinuationTrialInner({
               style={[
                 styles.slot,
                 {
-                  width: ITEM_SIZE,
-                  height: ITEM_SIZE,
+                  width: itemSize,
+                  height: itemSize,
                   borderWidth: 2,
                   borderColor:
                     i === nextExpectedIndex
@@ -849,7 +861,7 @@ function PatternContinuationTrialInner({
                 },
               ]}
             >
-              {item && renderPatternItem(item)}
+              {item && renderPatternItem(item, itemSize)}
             </View>
           ))}
         </View>
@@ -901,8 +913,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   cube: {
-    width: "100%",
-    height: "100%",
+    flex: 1,
     overflow: "hidden",
   },
   completedRoot: {

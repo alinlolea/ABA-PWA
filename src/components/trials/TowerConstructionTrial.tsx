@@ -5,7 +5,7 @@
 
 import { STIMULI_BY_CATEGORY } from "@/features/b1-2d-matching/stimuliByCategory";
 import { LinearGradient } from "expo-linear-gradient";
-import { db } from "@/services/firebaseConfig";
+import { db } from "@/config/firebase";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,8 +14,8 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
+import { useResponsive } from "@/utils/responsive";
 import Tts from "react-native-tts";
 
 function isWhiteLike(color: string): boolean {
@@ -38,7 +38,7 @@ const CUBE_COLORS = STIMULI_BY_CATEGORY["colors"]
 type CubeColor = string;
 
 const MIN_ITEM_SIZE = 70;
-const MAX_ITEM_SIZE = 120;
+const MAX_ITEM_SIZE = 90;
 const ITEM_RADIUS_RATIO = 0.18;
 const SNAP_DURATION = 200;
 const SHAKE_DURATION = 300;
@@ -52,11 +52,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Same item size logic as Matching Trial (trial.tsx). */
-function computeItemSize(screenWidth: number, itemCount: number): number {
-  const usableWidth = screenWidth * 0.9;
-  const gap = usableWidth * 0.02;
+/** Width-based item size for the pool layout. */
+function computeItemSize(width: number, itemCount: number): number {
   const count = Math.max(1, itemCount);
+  const usableWidth = width * 0.9;
+  const gap = width * 0.02;
   return clamp(
     (usableWidth - gap * (count - 1)) / count,
     MIN_ITEM_SIZE,
@@ -124,11 +124,18 @@ type Props = {
 };
 
 export default function TowerConstructionTrial({ sessionId, config, onComplete, voiceEnabled = true }: Props) {
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight, rs } = useResponsive();
   const leftWidth = screenWidth * 0.6;
   const rightWidth = screenWidth * 0.4;
+  const leftZoneHeight = screenHeight;
   const itemCount = Math.max(1, config.numberOfItems + (config.numberOfDistractors ?? 0));
-  const itemSize = computeItemSize(screenWidth, itemCount);
+  const numberOfItems = Math.min(5, Math.max(2, config.numberOfItems));
+
+  const availableWidth = screenWidth * 0.6;
+  const availableHeight = screenHeight * 0.8;
+  const sizeFromWidth = computeItemSize(screenWidth, itemCount);
+  const sizeFromHeight = availableHeight / numberOfItems;
+  const itemSize = clamp(Math.min(sizeFromWidth, sizeFromHeight), MIN_ITEM_SIZE, MAX_ITEM_SIZE);
   const itemRadius = Math.round(itemSize * ITEM_RADIUS_RATIO);
 
   useEffect(() => {
@@ -173,8 +180,8 @@ export default function TowerConstructionTrial({ sessionId, config, onComplete, 
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.completedRoot}>
-          <Text style={styles.completedTitle}>Sesiune finalizată</Text>
-          <Text style={styles.completedScore}>
+          <Text style={[styles.completedTitle, { fontSize: rs(20), marginBottom: rs(12) }]}>Sesiune finalizată</Text>
+          <Text style={[styles.completedScore, { fontSize: rs(16) }]}>
             Scor: {session.score} / {TRIAL_COUNT}
           </Text>
         </View>
@@ -193,6 +200,7 @@ export default function TowerConstructionTrial({ sessionId, config, onComplete, 
       screenHeight={screenHeight}
       itemSize={itemSize}
       itemRadius={itemRadius}
+      rs={rs}
       onTrialComplete={() => {
         setSession((prev) => {
           if (prev.currentTrialIndex >= TRIAL_COUNT - 1) {
@@ -218,6 +226,7 @@ type InnerProps = {
   screenHeight: number;
   itemSize: number;
   itemRadius: number;
+  rs: (size: number) => number;
   onTrialComplete: () => void;
 };
 
@@ -246,6 +255,7 @@ function TowerTrialInner({
   screenHeight,
   itemSize,
   itemRadius,
+  rs,
   onTrialComplete,
 }: InnerProps) {
   const progressText = `${currentTrialIndex + 1} / ${TRIAL_COUNT}`;
@@ -538,8 +548,8 @@ function TowerTrialInner({
 
   return (
     <View style={styles.root}>
-      <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>{progressText}</Text>
+      <View style={[styles.progressContainer, { top: rs(20), left: rs(24) }]}>
+        <Text style={[styles.progressText, { fontSize: rs(14) }]}>{progressText}</Text>
       </View>
       <View
         style={[styles.leftZone, { width: leftWidth }]}
@@ -606,7 +616,7 @@ function TowerTrialInner({
 
         <View style={styles.rightZone} />
 
-        <View style={styles.towerWrapper}>
+        <View style={[styles.towerWrapper, { bottom: rs(120) }]}>
           <View style={styles.towerContainer}>
             <View style={styles.modelTower}>
               {state.modelTower.map((color, i) => (
@@ -710,8 +720,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   verticalDivider: {
-    width: 2,
-    height: "100%",
+    width: StyleSheet.hairlineWidth,
   },
   towerWrapper: {
     position: "absolute",

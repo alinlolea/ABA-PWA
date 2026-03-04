@@ -1,5 +1,5 @@
 import PrimaryButton from "@/components/ui/PrimaryButton";
-import { auth } from "@/services/firebaseConfig";
+import { auth } from "@/config/firebase";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,

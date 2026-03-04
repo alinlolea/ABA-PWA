@@ -3,7 +3,7 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
-import { auth } from "@/services/firebaseConfig";
+import { auth } from "@/config/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";

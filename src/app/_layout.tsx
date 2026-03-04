@@ -1,5 +1,5 @@
 import { Theme } from "@/design/theme";
-import { auth } from "@/services/firebaseConfig";
+import { auth } from "@/config/firebase";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -11,6 +11,7 @@ import * as Font from "expo-font";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
@@ -25,9 +26,11 @@ export default function RootLayout() {
   const initialAuthRedirectDone = useRef(false);
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE
-    );
+    if (Platform.OS !== "web") {
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -58,9 +61,18 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <View style={styles.root}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }} />
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    ...(Platform.OS === "web"
+      ? { width: "100vw" as const, height: "100vh" as const, overflow: "hidden" as const }
+      : {}),
+  },
+});

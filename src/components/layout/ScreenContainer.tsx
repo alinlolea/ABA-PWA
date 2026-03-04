@@ -1,6 +1,6 @@
 import { Colors } from "@/design/colors";
 import { ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 type Props = {
   children: ReactNode;
@@ -15,5 +15,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
     width: "100%",
+    ...(Platform.OS === "web"
+      ? { height: "100%", minHeight: "100vh", overflow: "hidden" as const }
+      : {}),
   },
 });

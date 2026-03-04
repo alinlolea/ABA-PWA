@@ -8,7 +8,7 @@ import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
-import { auth, db } from "@/services/firebaseConfig";
+import { auth, db } from "@/config/firebase";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";

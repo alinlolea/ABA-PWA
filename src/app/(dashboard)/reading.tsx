@@ -5,9 +5,10 @@ import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
-import { auth, db } from "@/services/firebaseConfig";
+import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
+import { useResponsive } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +22,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 
 const READING_OBJECTIVES = [
@@ -45,10 +45,10 @@ export default function ReadingRoute() {
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
-  const { width: screenWidth } = useWindowDimensions();
+  const { width, rs } = useResponsive();
   const panelWidth = useMemo(() => {
-    return Math.min(Math.max(screenWidth * 0.42, 520), 700);
-  }, [screenWidth]);
+    return Math.min(Math.max(width * 0.42, 520), 700);
+  }, [width]);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const selectedObjective = READING_OBJECTIVES.find((o) => o.id === selectedId);
@@ -146,27 +146,28 @@ export default function ReadingRoute() {
 
   return (
     <ScreenContainer>
-      <View style={styles.sessionContainer}>
-        <View style={[styles.sessionRow, isSetupOpen && styles.sessionRowDimmed]}>
-          <View style={styles.mainContentWrap}>
-            <View style={styles.areaHeader}>
-              <View style={styles.areaHeaderTitleRow}>
-                <Text style={styles.areaHeaderTitle}>Citire</Text>
-                <Text style={styles.selectedChildName}>{selectedChildName ?? ""}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={[styles.sessionContainer, { padding: rs(24) }]}>
+          <View style={[styles.sessionRow, { gap: rs(24) }, isSetupOpen && styles.sessionRowDimmed]}>
+            <View style={styles.mainContentWrap}>
+              <View style={[styles.areaHeader, { marginBottom: rs(20) }]}>
+                <View style={styles.areaHeaderTitleRow}>
+                  <Text style={[styles.areaHeaderTitle, { fontSize: rs(20), marginBottom: rs(2) }]}>Citire</Text>
+                  <Text style={[styles.selectedChildName, { fontSize: rs(Typography.body) }]}>{selectedChildName ?? ""}</Text>
+                </View>
+                <Text style={[styles.areaHeaderSubtitle, { fontSize: rs(13), marginBottom: rs(10) }]}>
+                  {READING_OBJECTIVES.length} objectives
+                </Text>
+                <View style={[styles.areaProgressTrack, { height: rs(4), borderRadius: rs(2) }]}>
+                  <View style={[styles.areaProgressFill, { width: "65%", borderRadius: rs(2) }]} />
+                </View>
               </View>
-              <Text style={styles.areaHeaderSubtitle}>
-                {READING_OBJECTIVES.length} objectives
-              </Text>
-              <View style={styles.areaProgressTrack}>
-                <View style={[styles.areaProgressFill, { width: "65%" }]} />
-              </View>
-            </View>
-            <ScrollView
-              style={styles.objectiveGridScroll}
-              contentContainerStyle={styles.objectiveGridScrollContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <View style={styles.objectiveGrid}>
+              <ScrollView
+                style={styles.objectiveGridScroll}
+                contentContainerStyle={[styles.objectiveGridScrollContent, { paddingVertical: rs(Spacing.md), paddingHorizontal: rs(Spacing.sm), paddingBottom: rs(24) }]}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={[styles.objectiveGrid, { gap: rs(12) }]}>
                 {READING_OBJECTIVES.map((obj) => {
                   const isSelected = obj.id === selectedId;
                   const configurable = obj.configurable;
@@ -175,6 +176,7 @@ export default function ReadingRoute() {
                       key={obj.id}
                       style={[
                         styles.objectiveGridCard,
+                        { padding: rs(14), borderRadius: rs(12) },
                         isSelected && styles.objectiveGridCardSelected,
                       ]}
                       onPress={() => {
@@ -212,19 +214,19 @@ export default function ReadingRoute() {
                         />
                       )}
                       <Text
-                        style={styles.objectiveGridCardTitle}
+                        style={[styles.objectiveGridCardTitle, { fontSize: rs(15), marginBottom: rs(4) }]}
                         numberOfLines={2}
                       >
                         {obj.name}
                       </Text>
                       <Text
-                        style={styles.objectiveGridCardCategory}
+                        style={[styles.objectiveGridCardCategory, { fontSize: rs(13), marginBottom: rs(8) }]}
                         numberOfLines={1}
                       >
                         {obj.processCategory}
                       </Text>
-                      <View style={styles.objectiveGridBadge}>
-                        <Text style={styles.objectiveGridBadgeText}>
+                      <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
+                        <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
                           {configurable ? "⚙ Configurabil" : "Standard"}
                         </Text>
                       </View>
@@ -240,22 +242,22 @@ export default function ReadingRoute() {
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <View style={styles.drawerBackdrop} />
             {categories.length > 0 && (
-              <View style={[styles.setupDrawer, { width: 300 }]}>
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.sessionCardTitle}>Categorii</Text>
+              <View style={[styles.setupDrawer, { width: width * 0.4, paddingTop: rs(16), paddingHorizontal: rs(16) }]}>
+                <View style={[styles.drawerHeader, { marginBottom: rs(16), paddingBottom: rs(12) }]}>
+                  <Text style={[styles.sessionCardTitle, { fontSize: rs(18), marginBottom: rs(18) }]}>Categorii</Text>
                   <TouchableOpacity
                     onPress={() => setIsSetupOpen(false)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    hitSlop={{ top: rs(12), bottom: rs(12), left: rs(12), right: rs(12) }}
                   >
-                    <Ionicons name="close" size={24} color="#1E293B" />
+                    <Ionicons name="close" size={rs(24)} color="#1E293B" />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.drawerCard}>
+                <View style={[styles.drawerCard, { borderRadius: rs(12), padding: rs(16) }]}>
                   <ScrollView
                     style={styles.columnScroll}
                     contentContainerStyle={[
                       styles.columnScrollContent,
-                      { paddingHorizontal: 12, paddingVertical: 8 },
+                      { paddingHorizontal: rs(12), paddingVertical: rs(8) },
                     ]}
                     showsVerticalScrollIndicator={false}
                     nestedScrollEnabled={true}
@@ -268,6 +270,7 @@ export default function ReadingRoute() {
                           key={cat.id}
                           style={({ pressed }) => [
                             styles.rowItem,
+                            { paddingVertical: rs(12), paddingHorizontal: rs(16), borderRadius: rs(12), marginBottom: rs(6), gap: rs(20) },
                             pressed && styles.rowItemPressed,
                             isSelected && styles.rowItemSelected,
                           ]}
@@ -278,6 +281,7 @@ export default function ReadingRoute() {
                               style={[
                                 styles.categoryRowText,
                                 isSelected && styles.categoryRowTextSelected,
+                                { fontSize: rs(15) },
                               ]}
                               numberOfLines={1}
                             >
@@ -286,9 +290,9 @@ export default function ReadingRoute() {
                           </View>
                           <TouchableOpacity onPress={() => openSelector(cat)}>
                             {isConfigured ? (
-                              <Text style={styles.configuredText}>Configurat</Text>
+                              <Text style={[styles.configuredText, { fontSize: rs(13) }]}>Configurat</Text>
                             ) : (
-                              <Text style={styles.setupText}>Configurează</Text>
+                              <Text style={[styles.setupText, { fontSize: rs(13) }]}>Configurează</Text>
                             )}
                           </TouchableOpacity>
                         </Pressable>
@@ -302,18 +306,20 @@ export default function ReadingRoute() {
         )}
       </View>
 
-      <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          style={[
-            styles.floatingButton,
-            !canStart && styles.floatingButtonDisabled,
-          ]}
-          onPress={handleStartSesiune}
-          disabled={!canStart}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.floatingButtonText}>Start sesiune</Text>
-        </TouchableOpacity>
+        <View style={[styles.floatingButtonContainer, { bottom: rs(32) }]} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[
+              styles.floatingButton,
+              { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
+              !canStart && styles.floatingButtonDisabled,
+            ]}
+            onPress={handleStartSesiune}
+            disabled={!canStart}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Modal
@@ -339,6 +345,9 @@ export default function ReadingRoute() {
                   bottom: 0,
                   width: panelWidth,
                   transform: [{ translateX: slideAnim }],
+                  padding: rs(28),
+                  borderTopLeftRadius: rs(20),
+                  borderBottomLeftRadius: rs(20),
                 },
               ]}
             >

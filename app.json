@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "aba-visual-performance",
+    "name": "ABA Visual Performance",
     "slug": "aba-visual-performance",
     "version": "1.0.0",
     "orientation": "landscape",
@@ -23,6 +23,7 @@
       "package": "com.alinlolea.abavisualperformance"
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
@@ -44,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a3725e06-8ec3-48fa-80ad-8053c61082ee"
+      }
     }
   }
 }
