@@ -1,7 +1,7 @@
 {
   "name": "ABA Visual Performance",
   "short_name": "ABA Therapy",
-  "start_url": "/",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",
