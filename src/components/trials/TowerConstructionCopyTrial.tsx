@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
-import Tts from "react-native-tts";
+import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 
 function isWhiteLike(color: string): boolean {
   const c = color.toLowerCase().trim();
@@ -139,8 +139,7 @@ export default function TowerConstructionCopyTrial({ sessionId, config, onComple
   const itemRadius = Math.round(itemSize * ITEM_RADIUS_RATIO);
 
   useEffect(() => {
-    Tts.setDefaultLanguage("ro-RO");
-    Tts.setDefaultRate(0.5);
+    initSpeech();
   }, []);
 
   const [session, setSession] = useState(() => ({
@@ -261,11 +260,8 @@ function TowerTrialInner({
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
-        Tts.stop();
-        Tts.speak("Construiește la fel", {
-          pitch: 1.4,
-          rate: 0.6,
-        } as unknown as Parameters<typeof Tts.speak>[1]);
+        stopSpeech();
+        speak("Construiește la fel", { pitch: 1.4, rate: 0.6 });
       }
     }, 1000);
 
@@ -335,11 +331,8 @@ function TowerTrialInner({
   useEffect(() => {
     if (!allPlaced) return;
 
-    Tts.stop();
-    Tts.speak("Bravo!", {
-      pitch: 1.4,
-      rate: 0.6,
-    } as unknown as Parameters<typeof Tts.speak>[1]);
+    stopSpeech();
+    speak("Bravo!", { pitch: 1.4, rate: 0.6 });
 
     const t = setTimeout(() => {
       onTrialComplete();

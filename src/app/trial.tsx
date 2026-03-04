@@ -21,7 +21,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Tts from "react-native-tts";
+import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
@@ -481,8 +481,7 @@ export default function TrialScreen() {
   const [correctAttempts, setCorrectAttempts] = useState(0);
 
   useEffect(() => {
-    Tts.setDefaultLanguage("ro-RO");
-    Tts.setDefaultRate(0.5);
+    initSpeech();
   }, []);
 
   const trialsInitializedRef = useRef(false);
@@ -497,11 +496,8 @@ export default function TrialScreen() {
 
   useEffect(() => {
     if (!session.completed && session.trials.length > 0 && voiceEnabled) {
-      Tts.stop();
-      Tts.speak("Potrivește!", {
-        pitch: 1.0,
-        rate: 0.5,
-      } as unknown as Parameters<typeof Tts.speak>[1]);
+      stopSpeech();
+      speak("Potrivește!", { pitch: 1.0, rate: 0.5 });
     }
   }, [session.currentTrialIndex, session.trials.length, voiceEnabled]);
 
@@ -788,11 +784,8 @@ export default function TrialScreen() {
               if (isCorrect) {
                 runOptionBorderFeedback(bestIndex, true);
                 if (voiceEnabled) {
-                  Tts.stop();
-                  Tts.speak("Bravo!", {
-                    pitch: 1.4,
-                    rate: 0.6,
-                  } as unknown as Parameters<typeof Tts.speak>[1]);
+                  stopSpeech();
+                  speak("Bravo!", { pitch: 1.4, rate: 0.6 });
                 }
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
@@ -800,11 +793,8 @@ export default function TrialScreen() {
               } else {
                 runOptionBorderFeedback(bestIndex, false);
                 if (voiceEnabled) {
-                  Tts.stop();
-                  Tts.speak("Mai încearcă!", {
-                    pitch: 0.9,
-                    rate: 0.48,
-                  } as unknown as Parameters<typeof Tts.speak>[1]);
+                  stopSpeech();
+                  speak("Mai încearcă!", { pitch: 0.9, rate: 0.48 });
                 }
                 runShakeThenBack(targetIndex);
               }

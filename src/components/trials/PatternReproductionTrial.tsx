@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
-import Tts from "react-native-tts";
+import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 
 export type ShapeType =
   | "circle"
@@ -372,8 +372,7 @@ export default function PatternReproductionTrial({
   const topZoneWidth = screenWidth;
 
   useEffect(() => {
-    Tts.setDefaultLanguage("ro-RO");
-    Tts.setDefaultRate(0.5);
+    initSpeech();
   }, []);
 
   const [session, setSession] = useState(() => ({
@@ -500,11 +499,8 @@ function PatternTrialInner({
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
-        Tts.stop();
-        Tts.speak("Pune la fel", {
-          pitch: 1.4,
-          rate: 0.6,
-        } as unknown as Parameters<typeof Tts.speak>[1]);
+        stopSpeech();
+        speak("Pune la fel", { pitch: 1.4, rate: 0.6 });
       }
     }, 1000);
     return () => clearTimeout(timeout);
@@ -569,11 +565,8 @@ function PatternTrialInner({
 
   useEffect(() => {
     if (!allPlaced) return;
-    Tts.stop();
-    Tts.speak("Bravo!", {
-      pitch: 1.4,
-      rate: 0.6,
-    } as unknown as Parameters<typeof Tts.speak>[1]);
+    stopSpeech();
+    speak("Bravo!", { pitch: 1.4, rate: 0.6 });
     const t = setTimeout(() => {
       onTrialComplete();
     }, 1200);
