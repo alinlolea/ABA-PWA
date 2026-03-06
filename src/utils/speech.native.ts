@@ -1,8 +1,14 @@
 import Tts from "react-native-tts";
+import { SPEECH_LANG, normalizeSpeechResult } from "./speechConfig";
 
 /**
  * Native (Android/iOS): use react-native-tts.
  */
+export { SPEECH_LANG, normalizeSpeechResult };
+
+export function getConfiguredSpeechRecognition(): null {
+  return null;
+}
 
 export function initSpeech(): void {
   Tts.setDefaultLanguage("ro-RO");

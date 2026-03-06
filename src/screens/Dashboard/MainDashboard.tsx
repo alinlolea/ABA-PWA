@@ -1,4 +1,5 @@
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
+import { useSpeechRecommendation } from "@/contexts/SpeechRecommendationContext";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import { TouchTarget } from "@/design/touch";
@@ -105,6 +106,7 @@ export default function MainDashboard() {
   const { rs } = useResponsive();
   const uid = auth.currentUser?.uid;
   const { setSelectedChildId: setGlobalSelectedChildId } = useContext(SelectedChildContext);
+  const { speechEngineRecommended, showRecommendationModal } = useSpeechRecommendation();
 
   const [children, setChildren] = useState<ChildDoc[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -135,7 +137,20 @@ export default function MainDashboard() {
         dashboardScroll: { flex: 1 },
         dashboardScrollContent: { padding: rs(24), paddingBottom: rs(140) },
         contentWrapper: { padding: 0 },
-        addChildButtonRow: { alignItems: "flex-end" as const, marginBottom: rs(16) },
+        addChildButtonRow: {
+          flexDirection: "row" as const,
+          justifyContent: "space-between" as const,
+          alignItems: "center" as const,
+          marginBottom: rs(16),
+        },
+        speechWarningIcon: {
+          padding: rs(8),
+          minWidth: TouchTarget.minSize,
+          minHeight: TouchTarget.minSize,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        speechWarningIconPlaceholder: { width: TouchTarget.minSize, height: TouchTarget.minSize },
         addChildButton: {
           backgroundColor: "#2C6468",
           paddingVertical: rs(10),
@@ -375,6 +390,39 @@ export default function MainDashboard() {
       );
     });
     return () => unsubscribe();
+  }, [uid]);
+
+  // Refetch children when PWA resumes from background (restore session state)
+  useEffect(() => {
+    if (typeof window === "undefined" || !uid) return;
+    const handleAppResume = async () => {
+      try {
+        const childrenSnap = await getDocs(
+          query(collection(db, "children"), where("userId", "==", uid))
+        );
+        const list: ChildDoc[] = childrenSnap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: data.name ?? "",
+            birthDate: data.birthDate ?? "",
+            notes: data.notes ?? "",
+            userId: data.userId ?? "",
+            createdAt: data.createdAt,
+            lastSessionAt: data.lastSessionAt,
+            voiceEnabled: data.voiceEnabled !== false,
+          };
+        });
+        setChildren(list);
+        setSelectedChildId((current) =>
+          current && list.some((c) => c.id === current) ? current : null
+        );
+      } catch {
+        // Keep existing state on refetch error
+      }
+    };
+    window.addEventListener("appresume", handleAppResume);
+    return () => window.removeEventListener("appresume", handleAppResume);
   }, [uid]);
 
   useEffect(() => {
@@ -698,6 +746,17 @@ export default function MainDashboard() {
           >
             <View style={styles.contentWrapper}>
               <View style={styles.addChildButtonRow}>
+                {!speechEngineRecommended ? (
+                  <Pressable
+                    onPress={showRecommendationModal}
+                    style={styles.speechWarningIcon}
+                    accessibilityLabel="Recomandare servicii de vorbire Google"
+                  >
+                    <Ionicons name="warning-outline" size={rs(28)} color="#F59E0B" />
+                  </Pressable>
+                ) : (
+                  <View style={styles.speechWarningIconPlaceholder} />
+                )}
                 <Pressable style={styles.addChildButton} onPress={openAddModal}>
                   <Text style={styles.addChildButtonText}>Adaugă Copil</Text>
                 </Pressable>

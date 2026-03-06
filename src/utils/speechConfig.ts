@@ -1,0 +1,26 @@
+/**
+ * Shared speech configuration and helpers for Romanian.
+ * Used by both TTS and STT so all speech features default to Romanian.
+ */
+
+export const SPEECH_LANG = "ro-RO";
+
+const ROMANIAN_DIACRITICS: [RegExp, string][] = [
+  [/ș/g, "s"], [/ş/g, "s"],
+  [/ț/g, "t"], [/ţ/g, "t"],
+  [/ă/g, "a"], [/â/g, "a"], [/î/g, "i"],
+];
+
+/**
+ * Normalize speech recognition text for comparison.
+ * - Converts to lowercase.
+ * - Removes Romanian diacritics so e.g. "roșu" and "rosu" are equivalent.
+ */
+export function normalizeSpeechResult(text: string): string {
+  if (typeof text !== "string") return "";
+  let out = text.trim().toLowerCase();
+  for (const [re, replacement] of ROMANIAN_DIACRITICS) {
+    out = out.replace(re, replacement);
+  }
+  return out.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+}
