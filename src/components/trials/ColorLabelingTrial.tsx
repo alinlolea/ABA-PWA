@@ -92,7 +92,7 @@ export default function ColorLabelingTrial({
         const synth = window.speechSynthesis;
         const voices = synth.getVoices();
         const roVoice = voices.find((v) => v.lang === "ro-RO") ?? null;
-        const u1 = new SpeechSynthesisUtterance("Ce");
+        const u1 = new SpeechSynthesisUtterance("Ce ");
         u1.lang = "ro-RO";
         u1.rate = 1.0;
         u1.pitch = 1.2;
@@ -102,11 +102,21 @@ export default function ColorLabelingTrial({
         u2.rate = 0.95;
         u2.pitch = 0.95;
         if (roVoice) u2.voice = roVoice;
-        synth.speak(u1);
-        synth.speak(u2);
         await new Promise<void>((resolve) => {
+          let startedSecond = false;
+          const startSecond = () => {
+            if (!startedSecond) {
+              startedSecond = true;
+              synth.speak(u2);
+            }
+          };
+          u1.onboundary = (event: SpeechSynthesisEvent) => {
+            if (event.charIndex >= 1) startSecond();
+          };
+          u1.onend = () => startSecond();
           u2.onend = () => resolve();
           u2.onerror = () => resolve();
+          synth.speak(u1);
         });
       } else {
         await speakAndWait("Ce", "instructionCe");
