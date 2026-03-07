@@ -164,14 +164,20 @@ export default function ColorLabelingTrial({
           for (let i = 0; i < event.results.length; i++) {
             fullTranscript += event.results[i][0]?.transcript ?? "";
           }
-          setRecognizedText(fullTranscript.trim());
-          const result = event.results[event.results.length - 1];
-          if (!result?.isFinal) return;
-          const transcript = result[0]?.transcript ?? "";
+          const transcript = fullTranscript.trim();
+          setRecognizedText(transcript);
+
           const normalized = normalizeSpeechResult(transcript).replace(/[^\p{L}\s]/gu, "").replace(/\s+/g, " ").trim();
-          const words = normalized.split(/\s+/);
+          const words = normalized.split(/\s+/).filter(Boolean);
           const match = words.some((w) => normalizeSpeechResult(w) === correctLabel);
-          resolveOnce(match);
+          if (match) {
+            resolveOnce(true);
+            return;
+          }
+          const result = event.results[event.results.length - 1];
+          if (result?.isFinal) {
+            resolveOnce(false);
+          }
         };
         recognition.onerror = () => {
           if (!trialResolvedRef.current) resolveOnce(false);

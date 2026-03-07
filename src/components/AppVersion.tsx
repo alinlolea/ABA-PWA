@@ -1,22 +1,22 @@
 /**
- * Displays app version and optional git commit hash in the bottom-left corner.
- * Visible on all screens for deployment identification.
- * Version from package.json; commit from EXPO_PUBLIC_GIT_COMMIT.
+ * Displays app version and commit hash in the bottom-left corner.
+ * On Vercel: v1.0.0-{first 6 of VERCEL_GIT_COMMIT_SHA}. Locally: v1.0.0-dev.
  */
 import { Platform, StyleSheet, Text, View } from "react-native";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appVersion = (require("../../package.json") as { version?: string }).version ?? "0.0.0";
-const commitHash =
-  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_GIT_COMMIT) || "";
+
+const commitSha =
+  (typeof process !== "undefined" && process.env?.VERCEL_GIT_COMMIT_SHA) || "";
 
 function formatVersion(): string {
   const v = appVersion;
-  if (commitHash) {
-    const short = commitHash.length >= 6 ? commitHash.slice(0, 6) : commitHash;
+  if (commitSha) {
+    const short = commitSha.length >= 6 ? commitSha.slice(0, 6) : commitSha;
     return `v${v}-${short}`;
   }
-  return `v${v}`;
+  return `v${v}-dev`;
 }
 
 export default function AppVersion() {
