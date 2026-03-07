@@ -20,10 +20,9 @@ export const SPEECH_STYLE_PRESETS: Record<
 > = {
   praise: { rate: 1.1, pitch: 1.05 },
   instruction: { rate: 1.0, pitch: 0.95 },
-  instructionSubtle: { rate: 0.93, pitch: 1.1 },
-  /** Interrogative "Ce" – higher pitch. */
+  /** Single utterance for "Ce culoare este?" – natural emphasis on Ce. */
+  instructionSubtle: { rate: 0.95, pitch: 1.12 },
   instructionCe: { rate: 1.0, pitch: 1.2 },
-  /** Rest of question " culoare este?" – lower pitch, slightly slower. */
   instructionRest: { rate: 0.95, pitch: 0.95 },
   neutral: { rate: 1.0, pitch: 1.0 },
 };
