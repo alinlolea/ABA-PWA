@@ -55,8 +55,11 @@ function Sidebar({ selectedChildId }: SidebarProps) {
   const readingIsActive = pathname === readingHref;
   const readingIsHover = pressedItem === readingHref && !!selectedChildId;
 
+  const labelingHref = "/labeling";
+  const labelingIsActive = pathname === labelingHref;
+  const labelingIsHover = pressedItem === labelingHref && !!selectedChildId;
+
   const disabledNavItems = [
-    "Etichetare",
     "Limbaj expresiv",
   ];
 
@@ -201,6 +204,38 @@ function Sidebar({ selectedChildId }: SidebarProps) {
               ]}
             >
               Citire
+            </Text>
+          </TouchableOpacity>
+          {/* Etichetare – disabled when no child selected */}
+          <TouchableOpacity
+            disabled={!selectedChildId}
+            onPress={() => {
+              if (!selectedChildId) return;
+              router.push("/labeling");
+            }}
+            onPressIn={() => selectedChildId && setPressedItem(labelingHref)}
+            onPressOut={() => setPressedItem(null)}
+            style={[
+              styles.navItem,
+              { gap: rs(12), paddingVertical: rs(12), paddingHorizontal: rs(12), borderRadius: rs(10) },
+              !selectedChildId && { opacity: 0.4 },
+              labelingIsActive && [styles.navItemActive, { borderLeftWidth: rs(4) }],
+              labelingIsHover && !labelingIsActive && styles.navItemHover,
+            ]}
+          >
+            <Ionicons
+              name="pricetag-outline"
+              size={rs(22)}
+              color={Colors.textPrimary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                { fontSize: rs(15) },
+                labelingIsActive && styles.navLabelActive,
+              ]}
+            >
+              Etichetare
             </Text>
           </TouchableOpacity>
           {disabledNavItems.map((label) => (

@@ -4,6 +4,7 @@ import { Theme } from "@/design/theme";
 import { auth } from "@/config/firebase";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import { useAppResume } from "@/hooks/useAppResume";
+import { initSpeech } from "@/utils/speech";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -52,8 +53,12 @@ export default function RootLayout() {
     return () => unsubscribe();
   }, []);
 
-  // On PWA resume: sync auth state and notify app to refresh session-dependent data
+  // On PWA resume (visibilitychange → visible): reinit speech, check updates, restore session
   const handleAppResume = useCallback(() => {
+    initSpeech();
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => reg?.update()).catch(() => {});
+    }
     const currentUser = auth.currentUser ?? null;
     setUser(currentUser);
     if (typeof window !== "undefined") {

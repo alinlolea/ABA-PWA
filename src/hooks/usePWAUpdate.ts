@@ -1,14 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 
+const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
 export type PWAUpdateState = {
   updateAvailable: boolean;
   reloadApp: () => void;
 };
 
+function triggerReloadWithNewWorker(registration: ServiceWorkerRegistration): void {
+  const worker = registration.waiting;
+  if (!worker) return;
+  const onControllerChange = () => {
+    navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+    window.location.reload();
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+  worker.postMessage({ type: "SKIP_WAITING" });
+}
+
 /**
- * Registers the service worker (web only) and detects when a new worker enters the "waiting" state.
- * Exposes updateAvailable and reloadApp() so the root layout can show an update banner.
+ * Registers the service worker (web only), shows banner when a waiting worker exists on load,
+ * and runs a 10-minute periodic check that auto-reloads when a new deployment is detected.
  */
 export function usePWAUpdate(): PWAUpdateState {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -17,7 +30,7 @@ export function usePWAUpdate(): PWAUpdateState {
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    const checkWaiting = (registration: ServiceWorkerRegistration) => {
+    const checkWaitingForBanner = (registration: ServiceWorkerRegistration) => {
       if (registration.waiting) setUpdateAvailable(true);
       if (registration.installing) {
         registration.installing.addEventListener("statechange", () => {
@@ -31,7 +44,7 @@ export function usePWAUpdate(): PWAUpdateState {
         .register("/sw.js", { scope: "/" })
         .then((registration) => {
           registrationRef.current = registration;
-          checkWaiting(registration);
+          checkWaitingForBanner(registration);
         })
         .catch((err) => console.log("SW registration failed", err));
     };
@@ -42,12 +55,29 @@ export function usePWAUpdate(): PWAUpdateState {
       window.addEventListener("load", register);
     }
 
-    const interval = setInterval(() => {
-      registrationRef.current?.update().then(() => {
-        const reg = registrationRef.current;
-        if (reg) checkWaiting(reg);
-      });
-    }, 60 * 1000);
+    const periodicCheck = () => {
+      navigator.serviceWorker
+        .getRegistration()
+        .then((reg) => {
+          if (!reg) return undefined;
+          return reg.update().then(() => reg);
+        })
+        .then((reg) => {
+          if (!reg) return;
+          if (reg.waiting) {
+            triggerReloadWithNewWorker(reg);
+            return;
+          }
+          if (reg.installing) {
+            reg.installing.addEventListener("statechange", () => {
+              if (reg.waiting) triggerReloadWithNewWorker(reg);
+            });
+          }
+        })
+        .catch(() => {});
+    };
+
+    const interval = setInterval(periodicCheck, CHECK_INTERVAL_MS);
 
     return () => {
       window.removeEventListener("load", register);
@@ -61,12 +91,7 @@ export function usePWAUpdate(): PWAUpdateState {
       window.location.reload();
       return;
     }
-    const onControllerChange = () => {
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-      window.location.reload();
-    };
-    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
-    reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    triggerReloadWithNewWorker(reg);
   }, []);
 
   return { updateAvailable, reloadApp };
