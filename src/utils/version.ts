@@ -1,19 +1,12 @@
 /**
  * Application version for display in the UI.
- * Format: v1.0.<buildNumber> when EXPO_PUBLIC_BUILD_VERSION is set (e.g. on Vercel);
- * v1.0.dev when running locally.
- *
- * Expo only exposes env vars prefixed with EXPO_PUBLIC_ to the client bundle.
- * Set during build: export EXPO_PUBLIC_BUILD_VERSION=$(git rev-list --count HEAD)
+ * Read from src/version.json generated during build (scripts/generate-version.js).
+ * Vercel: v1.0.<count>. Local/default: v1.0.dev.
  */
 
-const BASE_VERSION = "1.0";
+import versionData from "@/version.json";
 
 export function getAppVersion(): string {
-  const buildNumber =
-    typeof process !== "undefined" && process.env?.EXPO_PUBLIC_BUILD_VERSION;
-  if (buildNumber != null && String(buildNumber).trim() !== "") {
-    return `v${BASE_VERSION}.${String(buildNumber).trim()}`;
-  }
-  return `v${BASE_VERSION}.dev`;
+  const v = versionData?.version;
+  return v != null && String(v).trim() !== "" ? `v${String(v).trim()}` : "v1.0.dev";
 }
