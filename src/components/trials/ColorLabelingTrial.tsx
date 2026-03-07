@@ -27,7 +27,6 @@ const INITIAL_DELAY_MS = 500;
 const DELAY_AFTER_TTS_MS = 500;
 const LISTEN_TIMEOUT_MS = 5000;
 const LISTEN_COUNTDOWN_SECONDS = 5;
-const QUESTION_WORD_PAUSE_MS = 100;
 const MIC_ICON_SIZE = 96;
 
 const COLORS: { id: string; hex: string }[] = [
@@ -89,9 +88,30 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      speak("Ce", "instructionCe");
-      await new Promise((r) => setTimeout(r, QUESTION_WORD_PAUSE_MS));
-      await speakAndWait("culoare este?", "instructionRest");
+      if (Platform.OS === "web" && typeof window !== "undefined" && window.speechSynthesis) {
+        const synth = window.speechSynthesis;
+        const voices = synth.getVoices();
+        const roVoice = voices.find((v) => v.lang === "ro-RO") ?? null;
+        const u1 = new SpeechSynthesisUtterance("Ce");
+        u1.lang = "ro-RO";
+        u1.rate = 1.0;
+        u1.pitch = 1.2;
+        if (roVoice) u1.voice = roVoice;
+        const u2 = new SpeechSynthesisUtterance("culoare este?");
+        u2.lang = "ro-RO";
+        u2.rate = 0.95;
+        u2.pitch = 0.95;
+        if (roVoice) u2.voice = roVoice;
+        synth.speak(u1);
+        synth.speak(u2);
+        await new Promise<void>((resolve) => {
+          u2.onend = () => resolve();
+          u2.onerror = () => resolve();
+        });
+      } else {
+        await speakAndWait("Ce", "instructionCe");
+        await speakAndWait("culoare este?", "instructionRest");
+      }
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
