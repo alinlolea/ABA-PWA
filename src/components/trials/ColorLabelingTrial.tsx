@@ -25,8 +25,8 @@ import { Theme } from "@/design/theme";
 const TRIAL_COUNT = 10;
 const INITIAL_DELAY_MS = 500;
 const DELAY_AFTER_TTS_MS = 500;
-const LISTEN_TIMEOUT_MS = 10000;
-const LISTEN_COUNTDOWN_SECONDS = 10;
+const LISTEN_TIMEOUT_MS = 5000;
+const LISTEN_COUNTDOWN_SECONDS = 5;
 const MIC_ICON_SIZE = 96;
 
 const COLORS: { id: string; hex: string }[] = [
@@ -35,7 +35,7 @@ const COLORS: { id: string; hex: string }[] = [
   { id: "albastru", hex: "#3498DB" },
   { id: "galben", hex: "#F1C40F" },
   { id: "mov", hex: "#9B59B6" },
-  { id: "negru", hex: "#2C3E50" },
+  { id: "negru", hex: "#000000" },
   { id: "maro", hex: "#795548" },
   { id: "alb", hex: "#ECF0F1" },
   { id: "roz", hex: "#FD79A8" },
@@ -62,6 +62,7 @@ export default function ColorLabelingTrial({
   const [phase, setPhase] = useState<"delay" | "prompt" | "listen" | "feedback">("delay");
   const [listeningActive, setListeningActive] = useState(false);
   const [countdown, setCountdown] = useState(LISTEN_COUNTDOWN_SECONDS);
+  const [recognizedText, setRecognizedText] = useState("");
   const sequenceRef = useRef(false);
   const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,7 +86,9 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      await speakAndWait("Ce culoare este?", "instruction");
+      await speakAndWait("Ce", "instructionEmphasis");
+      await new Promise((r) => setTimeout(r, 180));
+      await speakAndWait("culoare este?", "instruction");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
@@ -98,6 +101,7 @@ export default function ColorLabelingTrial({
 
     const clearListenState = () => {
       setListeningActive(false);
+      setRecognizedText("");
       if (listenTimeoutRef.current) {
         clearTimeout(listenTimeoutRef.current);
         listenTimeoutRef.current = null;
@@ -114,7 +118,9 @@ export default function ColorLabelingTrial({
         recognitionRef.current = recognition;
         let resolved = false;
         setListeningActive(true);
+        setRecognizedText("");
         setCountdown(LISTEN_COUNTDOWN_SECONDS);
+        recognition.interimResults = true;
         countdownIntervalRef.current = setInterval(() => {
           setCountdown((c) => (c > 0 ? c - 1 : 0));
         }, 1000);
@@ -140,7 +146,7 @@ export default function ColorLabelingTrial({
             if (voiceEnabled) {
               setPhase("feedback");
               stopSpeech();
-              await speakAndWait("Gresit!", "neutral");
+              await speakAndWait("Greșit!", "neutral");
             }
           }
           setTrialIndex((i) => i + 1);
@@ -148,6 +154,11 @@ export default function ColorLabelingTrial({
         };
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let fullTranscript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            fullTranscript += event.results[i][0]?.transcript ?? "";
+          }
+          setRecognizedText(fullTranscript.trim());
           const result = event.results[event.results.length - 1];
           if (!result?.isFinal) return;
           const transcript = result[0]?.transcript ?? "";
@@ -302,6 +313,10 @@ export default function ColorLabelingTrial({
             </Animated.View>
             <Text style={styles.ascultLabel}>ASCULT...</Text>
             <Text style={styles.countdownText}>{countdown}</Text>
+            <Text style={styles.debugLabel}>Text detectat:</Text>
+            <Text style={styles.debugText} numberOfLines={2}>
+              {recognizedText ? `"${recognizedText}"` : "—"}
+            </Text>
           </View>
         )}
       </View>
@@ -357,6 +372,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Theme.colors.primary,
     fontFamily: Theme.fontFamily.semiBold,
+  },
+  debugLabel: {
+    marginTop: 16,
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    fontFamily: Theme.fontFamily.medium,
+  },
+  debugText: {
+    marginTop: 4,
+    fontSize: 16,
+    fontStyle: "italic",
+    color: Theme.colors.textPrimary,
+    fontFamily: Theme.fontFamily.medium,
+    minHeight: 24,
   },
   title: {
     fontSize: 24,

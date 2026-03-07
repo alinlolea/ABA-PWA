@@ -6,7 +6,7 @@
 export const SPEECH_LANG = "ro-RO";
 
 /** Speech style presets for therapy prompts (rate, pitch). */
-export type SpeechStyle = "praise" | "instruction" | "neutral";
+export type SpeechStyle = "praise" | "instruction" | "instructionEmphasis" | "neutral";
 
 export const SPEECH_STYLE_PRESETS: Record<
   SpeechStyle,
@@ -14,6 +14,7 @@ export const SPEECH_STYLE_PRESETS: Record<
 > = {
   praise: { rate: 1.1, pitch: 1.05 },
   instruction: { rate: 1.0, pitch: 0.95 },
+  instructionEmphasis: { rate: 1.0, pitch: 1.05 },
   neutral: { rate: 1.0, pitch: 1.0 },
 };
 
