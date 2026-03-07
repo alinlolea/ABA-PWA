@@ -63,7 +63,9 @@ export default function ColorLabelingTrial({
   const [listeningActive, setListeningActive] = useState(false);
   const [countdown, setCountdown] = useState(LISTEN_COUNTDOWN_SECONDS);
   const [recognizedText, setRecognizedText] = useState("");
+  const [trialResolved, setTrialResolved] = useState(false);
   const sequenceRef = useRef(false);
+  const trialResolvedRef = useRef(false);
   const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -87,7 +89,6 @@ export default function ColorLabelingTrial({
       setPhase("prompt");
       stopSpeech();
       await speakAndWait("Ce", "instructionEmphasis");
-      await new Promise((r) => setTimeout(r, 180));
       await speakAndWait("culoare este?", "instruction");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
@@ -117,17 +118,22 @@ export default function ColorLabelingTrial({
       if (recognition) {
         recognitionRef.current = recognition;
         let resolved = false;
+        trialResolvedRef.current = false;
+        setTrialResolved(false);
         setListeningActive(true);
         setRecognizedText("");
         setCountdown(LISTEN_COUNTDOWN_SECONDS);
         recognition.interimResults = true;
         countdownIntervalRef.current = setInterval(() => {
+          if (trialResolvedRef.current) return;
           setCountdown((c) => (c > 0 ? c - 1 : 0));
         }, 1000);
 
         const resolveOnce = async (result: boolean | "timeout") => {
           if (resolved) return;
           resolved = true;
+          trialResolvedRef.current = true;
+          setTrialResolved(true);
           clearListenState();
           try {
             recognition.stop();
@@ -154,6 +160,7 @@ export default function ColorLabelingTrial({
         };
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
+          if (trialResolvedRef.current) return;
           let fullTranscript = "";
           for (let i = 0; i < event.results.length; i++) {
             fullTranscript += event.results[i][0]?.transcript ?? "";
@@ -167,12 +174,15 @@ export default function ColorLabelingTrial({
           const match = words.some((w) => normalizeSpeechResult(w) === correctLabel);
           resolveOnce(match);
         };
-        recognition.onerror = () => resolveOnce(false);
+        recognition.onerror = () => {
+          if (!trialResolvedRef.current) resolveOnce(false);
+        };
         recognition.onend = () => {
-          if (!resolved) resolveOnce(false);
+          if (!resolved && !trialResolvedRef.current) resolveOnce(false);
         };
         recognition.start();
         listenTimeoutRef.current = setTimeout(() => {
+          if (trialResolvedRef.current) return;
           if (!resolved) {
             resolved = true;
             clearListenState();
