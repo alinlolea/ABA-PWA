@@ -88,7 +88,8 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      await speakAndWait("Ce culoare este?", "instructionSubtle");
+      await speakAndWait("Ce", "instructionCe");
+      await speakAndWait("culoare este?", "instructionRest");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
@@ -191,7 +192,11 @@ export default function ColorLabelingTrial({
           if (!trialResolvedRef.current) resolveOnce(false);
         };
         recognition.onend = () => {
-          if (!resolved && !trialResolvedRef.current) resolveOnce(false);
+          // Do nothing.
+          // Web Speech API fires onend frequently and it must not resolve the trial.
+          // Trial resolution should happen only via:
+          // - recognition.onresult (correct/incorrect speech)
+          // - listen timeout
         };
         recognition.start();
         listenTimeoutRef.current = setTimeout(() => {
