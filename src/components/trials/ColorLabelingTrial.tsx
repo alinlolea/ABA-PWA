@@ -119,7 +119,7 @@ export default function ColorLabelingTrial({
           setCountdown((c) => (c > 0 ? c - 1 : 0));
         }, 1000);
 
-        const resolveOnce = (result: boolean | "timeout") => {
+        const resolveOnce = async (result: boolean | "timeout") => {
           if (resolved) return;
           resolved = true;
           clearListenState();
