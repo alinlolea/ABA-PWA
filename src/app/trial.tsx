@@ -22,6 +22,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { playAudio } from "@/utils/audio";
 import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
@@ -795,13 +796,13 @@ export default function TrialScreen() {
             const optionStimulus = trial.bottomOptions[bestIndex];
             const isCorrect = targetStimulus?.id === optionStimulus?.id;
 
-            animateSnapTo(targetIndex, snapPanX, snapPanY, () => {
+            animateSnapTo(targetIndex, snapPanX, snapPanY, async () => {
               setTotalAttempts((prev) => prev + 1);
               if (isCorrect) {
                 runOptionBorderFeedback(bestIndex, true);
                 if (voiceEnabled) {
                   stopSpeech();
-                  speak("Bravo!", "praise");
+                  await playAudio("bravo");
                 }
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));

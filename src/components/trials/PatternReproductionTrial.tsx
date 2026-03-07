@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
+import { playAudio } from "@/utils/audio";
 import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 
 export type ShapeType =
@@ -565,12 +566,16 @@ function PatternTrialInner({
 
   useEffect(() => {
     if (!allPlaced) return;
-    stopSpeech();
-    speak("Bravo!", "praise");
-    const t = setTimeout(() => {
-      onTrialComplete();
-    }, 1200);
-    return () => clearTimeout(t);
+
+    let t: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      stopSpeech();
+      await playAudio("bravo");
+      t = setTimeout(() => onTrialComplete(), 1200);
+    })();
+    return () => {
+      if (t != null) clearTimeout(t);
+    };
   }, [allPlaced, onTrialComplete]);
 
   const runShakeAndReturn = useCallback(

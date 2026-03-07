@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
+import { playAudio } from "@/utils/audio";
 import { initSpeech, speak, stopSpeech } from "@/utils/speech";
 
 function isWhiteLike(color: string): boolean {
@@ -334,14 +335,15 @@ function TowerTrialInner({
   useEffect(() => {
     if (!allPlaced) return;
 
-    stopSpeech();
-    speak("Bravo!", "praise");
-
-    const t = setTimeout(() => {
-      onTrialComplete();
-    }, 1200);
-
-    return () => clearTimeout(t);
+    let t: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      stopSpeech();
+      await playAudio("bravo");
+      t = setTimeout(() => onTrialComplete(), 1200);
+    })();
+    return () => {
+      if (t != null) clearTimeout(t);
+    };
   }, [allPlaced, onTrialComplete]);
 
   const runSuccessBorder = useCallback(
