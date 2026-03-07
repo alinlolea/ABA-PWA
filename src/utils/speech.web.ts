@@ -44,17 +44,27 @@ export function stopSpeech(): void {
   }
 }
 
+/** Default TTS values enforced so device settings don't override app behavior. */
+const DEFAULT_RATE = 1.1;
+const DEFAULT_PITCH = 1.0;
+const DEFAULT_VOLUME = 1;
+
+/**
+ * Speak text using app TTS configuration. Use this for all speech in the app.
+ * Enforces Romanian voice, rate, pitch, and volume regardless of device defaults.
+ */
 export function speak(
   text: string,
-  options?: { pitch?: number; rate?: number }
+  options?: { pitch?: number; rate?: number; volume?: number }
 ): void {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = SPEECH_LANG;
   if (!cachedRomanianVoice) cachedRomanianVoice = getRomanianVoice();
   if (cachedRomanianVoice) utterance.voice = cachedRomanianVoice;
-  if (options?.rate != null) utterance.rate = options.rate;
-  if (options?.pitch != null) utterance.pitch = options.pitch;
+  utterance.lang = SPEECH_LANG;
+  utterance.rate = options?.rate ?? DEFAULT_RATE;
+  utterance.pitch = options?.pitch ?? DEFAULT_PITCH;
+  utterance.volume = options?.volume ?? DEFAULT_VOLUME;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
