@@ -6,7 +6,7 @@
 export const SPEECH_LANG = "ro-RO";
 
 /** Speech style presets for therapy prompts (rate, pitch). */
-export type SpeechStyle = "praise" | "instruction" | "instructionEmphasis" | "neutral";
+export type SpeechStyle = "praise" | "instruction" | "instructionSubtle" | "neutral";
 
 export const SPEECH_STYLE_PRESETS: Record<
   SpeechStyle,
@@ -14,7 +14,8 @@ export const SPEECH_STYLE_PRESETS: Record<
 > = {
   praise: { rate: 1.1, pitch: 1.05 },
   instruction: { rate: 1.0, pitch: 0.95 },
-  instructionEmphasis: { rate: 1.0, pitch: 1.05 },
+  /** Slight emphasis on start of phrase (e.g. "Ce culoare este?") – single utterance, natural timing. */
+  instructionSubtle: { rate: 0.95, pitch: 1.1 },
   neutral: { rate: 1.0, pitch: 1.0 },
 };
 
