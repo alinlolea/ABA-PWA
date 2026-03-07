@@ -1,3 +1,4 @@
+import AppVersion from "@/components/AppVersion";
 import PWAUpdateBanner from "@/components/PWAUpdateBanner";
 import SpeechRecommendationProvider from "@/components/SpeechRecommendationProvider";
 import { Theme } from "@/design/theme";
@@ -103,6 +104,7 @@ export default function RootLayout() {
       <SpeechRecommendationProvider>
         <Stack screenOptions={{ headerShown: false }} />
         {updateAvailable && <PWAUpdateBanner onReload={reloadApp} />}
+        <AppVersion />
       </SpeechRecommendationProvider>
     </View>
   );
