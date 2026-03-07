@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
-import { NativeModules, Platform } from "react-native";
+import { useEffect, useState } from "react";
 
 /** Package name for "Speech Services by Google" on Play Store. */
 export const GOOGLE_SPEECH_PACKAGE = "com.google.android.tts";
@@ -12,8 +11,8 @@ export type GoogleSpeechCheckResult = {
 };
 
 /**
- * On Android: checks if "Speech Services by Google" is installed.
- * On web/iOS: returns isAvailable true (no check).
+ * On web: not used for recommendation (useSpeechEngineRecommendation uses capability/voices).
+ * On native: package detection was removed (react-native-package-checker); treat as available.
  */
 export function useGoogleSpeechServices(): GoogleSpeechCheckResult {
   const [state, setState] = useState<GoogleSpeechCheckResult>({
@@ -23,36 +22,7 @@ export function useGoogleSpeechServices(): GoogleSpeechCheckResult {
   });
 
   useEffect(() => {
-    if (Platform.OS !== "android") {
-      setState({ isAvailable: true, isLoading: false, error: false });
-      return;
-    }
-
-    let cancelled = false;
-    setState((s) => ({ ...s, isLoading: true }));
-
-    const check = async () => {
-      try {
-        const PackageChecker = NativeModules.PackageChecker;
-        if (!PackageChecker) {
-          if (!cancelled) setState({ isAvailable: true, isLoading: false, error: false });
-          return;
-        }
-        const available = await PackageChecker.isPackageAvailable(GOOGLE_SPEECH_PACKAGE);
-        if (!cancelled) {
-          setState({ isAvailable: !!available, isLoading: false, error: false });
-        }
-      } catch {
-        if (!cancelled) {
-          setState({ isAvailable: true, isLoading: false, error: true });
-        }
-      }
-    };
-
-    check();
-    return () => {
-      cancelled = true;
-    };
+    setState({ isAvailable: true, isLoading: false, error: false });
   }, []);
 
   return state;
