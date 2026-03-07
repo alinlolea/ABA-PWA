@@ -1,3 +1,4 @@
+import ColorLabelingTrial from "@/components/trials/ColorLabelingTrial";
 import PatternContinuationTrial from "@/components/trials/PatternContinuationTrial";
 import PatternReproductionTrial from "@/components/trials/PatternReproductionTrial";
 import TowerConstructionCopyTrial from "@/components/trials/TowerConstructionCopyTrial";
@@ -330,6 +331,8 @@ type TrialParams = {
   sessionId?: string;
   voiceEnabled?: string;
   trialType?: string;
+  objective?: string;
+  module?: string;
   numberOfItems?: string;
   numberOfDistractors?: string;
   patternLength?: string;
@@ -377,6 +380,19 @@ export default function TrialScreen() {
       : Array.isArray(sessionIdRaw)
         ? sessionIdRaw[0]
         : undefined;
+  const objectiveRaw = params.objective;
+  const objective = typeof objectiveRaw === "string" ? objectiveRaw : Array.isArray(objectiveRaw) ? objectiveRaw[0] : undefined;
+  if (objective === "numeste-culori") {
+    if (!sessionId) throw new Error("TrialScreen: sessionId is required for numeste-culori.");
+    const voiceEnabledLabeling = (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <ColorLabelingTrial
+        sessionId={sessionId}
+        childId={typeof params.childId === "string" ? params.childId : Array.isArray(params.childId) ? params.childId[0] : undefined}
+        voiceEnabled={voiceEnabledLabeling}
+      />
+    );
+  }
   if (!sessionId) {
     throw new Error("TrialScreen: sessionId is missing from route params.");
   }

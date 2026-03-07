@@ -3,6 +3,8 @@ import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
+import { auth, db } from "@/config/firebase";
+import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
@@ -14,8 +16,6 @@ import {
   View,
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
 
 const LABELING_OBJECTIVES = [
   {
@@ -42,16 +42,36 @@ export default function LabelingRoute() {
     });
   }, [selectedChildId]);
 
-  const handleCardPress = (objectiveId: string) => {
+  const handleCardPress = async (objectiveId: string) => {
     if (!selectedChildId) return;
-    router.push({
-      pathname: "/trial",
-      params: {
-        objective: objectiveId,
-        module: "labeling",
+    const currentUser = auth.currentUser;
+    if (!currentUser?.uid) return;
+    try {
+      const sessionRef = await addDoc(collection(db, "sessions"), {
+        userId: currentUser.uid,
         childId: selectedChildId,
-      },
-    });
+        startedAt: serverTimestamp(),
+        completedAt: null,
+        totalTrials: 0,
+        correctTrials: 0,
+        masteredItems: 0,
+        objectives: [{ objectiveId, trials: 0, correct: 0, mastered: false }],
+      });
+      const childSnap = await getDoc(doc(db, "children", selectedChildId));
+      const voiceEnabled = childSnap.exists() ? (childSnap.data().voiceEnabled !== false) : true;
+      router.push({
+        pathname: "/trial",
+        params: {
+          sessionId: sessionRef.id,
+          objective: objectiveId,
+          module: "labeling",
+          childId: selectedChildId,
+          voiceEnabled: String(voiceEnabled),
+        },
+      });
+    } catch {
+      // do not block navigation
+    }
   };
 
   return (

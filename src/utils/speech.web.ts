@@ -76,6 +76,27 @@ export function speak(text: string, style?: SpeechStyle): void {
   window.speechSynthesis.speak(utterance);
 }
 
+/** Speak and resolve when TTS ends. Use to sequence TTS then STT without overlap. */
+export function speakAndWait(text: string, style?: SpeechStyle): Promise<void> {
+  if (typeof window === "undefined" || !window.speechSynthesis) return Promise.resolve();
+  const preset = style ? SPEECH_STYLE_PRESETS[style] : null;
+  const rate = preset?.rate ?? DEFAULT_RATE;
+  const pitch = preset?.pitch ?? DEFAULT_PITCH;
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (!cachedRomanianVoice) cachedRomanianVoice = getRomanianVoice();
+  if (cachedRomanianVoice) utterance.voice = cachedRomanianVoice;
+  utterance.lang = SPEECH_LANG;
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+  utterance.volume = DEFAULT_VOLUME;
+  return new Promise((resolve) => {
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 const RecognitionCtor =
   typeof window !== "undefined"
     ? (window.SpeechRecognition ||

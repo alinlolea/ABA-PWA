@@ -20,21 +20,31 @@ function triggerReloadWithNewWorker(registration: ServiceWorkerRegistration): vo
 }
 
 /**
- * Registers the service worker (web only), shows banner when a waiting worker exists on load,
- * and runs a 10-minute periodic check that auto-reloads when a new deployment is detected.
+ * Registers the service worker (web only) and silently reloads when a new version is available.
+ * On load: getRegistration() + update(); if a waiting worker exists, activate it and reload once.
  */
 export function usePWAUpdate(): PWAUpdateState {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const didTriggerReloadRef = useRef(false);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    const checkWaitingForBanner = (registration: ServiceWorkerRegistration) => {
-      if (registration.waiting) setUpdateAvailable(true);
+    const triggerReloadOnce = (registration: ServiceWorkerRegistration) => {
+      if (didTriggerReloadRef.current || !registration.waiting) return;
+      didTriggerReloadRef.current = true;
+      triggerReloadWithNewWorker(registration);
+    };
+
+    const checkAndReloadIfWaiting = (registration: ServiceWorkerRegistration) => {
+      if (registration.waiting) {
+        triggerReloadOnce(registration);
+        return;
+      }
       if (registration.installing) {
         registration.installing.addEventListener("statechange", () => {
-          if (registration.waiting) setUpdateAvailable(true);
+          if (registration.waiting) triggerReloadOnce(registration);
         });
       }
     };
@@ -44,7 +54,13 @@ export function usePWAUpdate(): PWAUpdateState {
         .register("/sw.js", { scope: "/" })
         .then((registration) => {
           registrationRef.current = registration;
-          checkWaitingForBanner(registration);
+          checkAndReloadIfWaiting(registration);
+          return registration.update().then(() => registration);
+        })
+        .then((registration) => {
+          if (registration && !didTriggerReloadRef.current) {
+            checkAndReloadIfWaiting(registration);
+          }
         })
         .catch((err) => console.log("SW registration failed", err));
     };
@@ -56,6 +72,7 @@ export function usePWAUpdate(): PWAUpdateState {
     }
 
     const periodicCheck = () => {
+      if (didTriggerReloadRef.current) return;
       navigator.serviceWorker
         .getRegistration()
         .then((reg) => {
@@ -63,14 +80,14 @@ export function usePWAUpdate(): PWAUpdateState {
           return reg.update().then(() => reg);
         })
         .then((reg) => {
-          if (!reg) return;
+          if (!reg || didTriggerReloadRef.current) return;
           if (reg.waiting) {
-            triggerReloadWithNewWorker(reg);
+            triggerReloadOnce(reg);
             return;
           }
           if (reg.installing) {
             reg.installing.addEventListener("statechange", () => {
-              if (reg.waiting) triggerReloadWithNewWorker(reg);
+              if (reg.waiting) triggerReloadOnce(reg);
             });
           }
         })
