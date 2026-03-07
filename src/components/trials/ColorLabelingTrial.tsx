@@ -27,6 +27,7 @@ const INITIAL_DELAY_MS = 500;
 const DELAY_AFTER_TTS_MS = 500;
 const LISTEN_TIMEOUT_MS = 5000;
 const LISTEN_COUNTDOWN_SECONDS = 5;
+const QUESTION_WORD_PAUSE_MS = 100;
 const MIC_ICON_SIZE = 96;
 
 const COLORS: { id: string; hex: string }[] = [
@@ -88,7 +89,8 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      await speakAndWait("Ce", "instructionCe");
+      speak("Ce", "instructionCe");
+      await new Promise((r) => setTimeout(r, QUESTION_WORD_PAUSE_MS));
       await speakAndWait("culoare este?", "instructionRest");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
