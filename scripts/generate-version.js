@@ -9,6 +9,12 @@ const { execSync } = require("child_process");
 
 const outPath = path.join(__dirname, "..", "src", "version.json");
 
+try {
+  execSync("git fetch --unshallow", { encoding: "utf-8", stdio: "pipe" });
+} catch {
+  // Not a shallow clone, or not a git repo, or fetch failed – continue
+}
+
 let buildNumber;
 try {
   buildNumber = execSync("git rev-list --count HEAD", { encoding: "utf-8" }).trim();

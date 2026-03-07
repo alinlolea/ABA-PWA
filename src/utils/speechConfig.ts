@@ -14,8 +14,8 @@ export const SPEECH_STYLE_PRESETS: Record<
 > = {
   praise: { rate: 1.1, pitch: 1.05 },
   instruction: { rate: 1.0, pitch: 0.95 },
-  /** Slightly higher pitch, slightly slower rate for natural Romanian question contour (e.g. "Ce culoare este?"). */
-  instructionSubtle: { rate: 0.94, pitch: 1.08 },
+  /** More expressive pedagogical tone for children (e.g. "Ce culoare este?") – single utterance. */
+  instructionSubtle: { rate: 0.93, pitch: 1.1 },
   neutral: { rate: 1.0, pitch: 1.0 },
 };
 
