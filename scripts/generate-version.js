@@ -1,12 +1,12 @@
 /**
- * Generates src/version.json from Git commit count. Run before expo export.
+ * Generates version.json at project root from Git commit count. Run before expo export.
  * On success: 1.0.<count>. On failure (e.g. not a repo): 1.0.dev.
  */
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const outPath = path.join(__dirname, "..", "src", "version.json");
+const outPath = path.join(__dirname, "..", "version.json");
 
 try {
   try {
