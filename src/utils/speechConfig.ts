@@ -6,7 +6,13 @@
 export const SPEECH_LANG = "ro-RO";
 
 /** Speech style presets for therapy prompts (rate, pitch). */
-export type SpeechStyle = "praise" | "instruction" | "instructionSubtle" | "neutral";
+export type SpeechStyle =
+  | "praise"
+  | "instruction"
+  | "instructionSubtle"
+  | "instructionCe"
+  | "instructionRest"
+  | "neutral";
 
 export const SPEECH_STYLE_PRESETS: Record<
   SpeechStyle,
@@ -14,8 +20,11 @@ export const SPEECH_STYLE_PRESETS: Record<
 > = {
   praise: { rate: 1.1, pitch: 1.05 },
   instruction: { rate: 1.0, pitch: 0.95 },
-  /** More expressive pedagogical tone for children (e.g. "Ce culoare este?") – single utterance. */
   instructionSubtle: { rate: 0.93, pitch: 1.1 },
+  /** Interrogative "Ce" – higher pitch. */
+  instructionCe: { rate: 1.0, pitch: 1.2 },
+  /** Rest of question " culoare este?" – lower pitch, slightly slower. */
+  instructionRest: { rate: 0.95, pitch: 0.95 },
   neutral: { rate: 1.0, pitch: 1.0 },
 };
 

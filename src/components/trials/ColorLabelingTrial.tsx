@@ -88,7 +88,9 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      await speakAndWait("Ce culoare este?", "instructionSubtle");
+      speak("Ce", "instructionCe");
+      await new Promise((r) => setTimeout(r, 50));
+      await speakAndWait(" culoare este?", "instructionRest");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
