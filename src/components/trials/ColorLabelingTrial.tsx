@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { playAudio } from "@/utils/audio";
 import { initSpeech, speak, speakAndWait, stopSpeech } from "@/utils/speech";
 import { getConfiguredSpeechRecognition, normalizeSpeechResult } from "@/utils/speech";
 import { TouchTarget } from "@/design/touch";
@@ -144,7 +145,7 @@ export default function ColorLabelingTrial({
             if (voiceEnabled) {
               setPhase("feedback");
               stopSpeech();
-              await speakAndWait("Bravo!", "praise");
+              await playAudio("bravo");
             }
           } else if (result === false) {
             setIncorrectCount((i) => i + 1);
