@@ -88,40 +88,7 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      if (Platform.OS === "web" && typeof window !== "undefined" && window.speechSynthesis) {
-        const synth = window.speechSynthesis;
-        const voices = synth.getVoices();
-        const roVoice = voices.find((v) => v.lang === "ro-RO") ?? null;
-        const u1 = new SpeechSynthesisUtterance("Ce ");
-        u1.lang = "ro-RO";
-        u1.rate = 1.0;
-        u1.pitch = 1.2;
-        if (roVoice) u1.voice = roVoice;
-        const u2 = new SpeechSynthesisUtterance("culoare este?");
-        u2.lang = "ro-RO";
-        u2.rate = 0.95;
-        u2.pitch = 0.95;
-        if (roVoice) u2.voice = roVoice;
-        await new Promise<void>((resolve) => {
-          let startedSecond = false;
-          const startSecond = () => {
-            if (!startedSecond) {
-              startedSecond = true;
-              synth.speak(u2);
-            }
-          };
-          u1.onboundary = (event: SpeechSynthesisEvent) => {
-            if (event.charIndex >= 1) startSecond();
-          };
-          u1.onend = () => startSecond();
-          u2.onend = () => resolve();
-          u2.onerror = () => resolve();
-          synth.speak(u1);
-        });
-      } else {
-        await speakAndWait("Ce", "instructionCe");
-        await speakAndWait("culoare este?", "instructionRest");
-      }
+      await speakAndWait("Ce — culoare este??", "instructionSubtle");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
