@@ -167,17 +167,25 @@ export default function ColorLabelingTrial({
           const transcript = fullTranscript.trim();
           setRecognizedText(transcript);
 
-          const normalized = normalizeSpeechResult(transcript).replace(/[^\p{L}\s]/gu, "").replace(/\s+/g, " ").trim();
+          const normalized = normalizeSpeechResult(transcript)
+            .replace(/[^\p{L}\s]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
           const words = normalized.split(/\s+/).filter(Boolean);
-          const match = words.some((w) => normalizeSpeechResult(w) === correctLabel);
-          if (match) {
+
+          if (words.length !== 1) {
+            const last = event.results[event.results.length - 1];
+            if (last?.isFinal) resolveOnce(false);
+            return;
+          }
+          const singleWord = normalizeSpeechResult(words[0]);
+          const correctNormalized = normalizeSpeechResult(correctLabel);
+          if (singleWord === correctNormalized) {
             resolveOnce(true);
             return;
           }
-          const result = event.results[event.results.length - 1];
-          if (result?.isFinal) {
-            resolveOnce(false);
-          }
+          const last = event.results[event.results.length - 1];
+          if (last?.isFinal) resolveOnce(false);
         };
         recognition.onerror = () => {
           if (!trialResolvedRef.current) resolveOnce(false);
@@ -189,14 +197,7 @@ export default function ColorLabelingTrial({
         listenTimeoutRef.current = setTimeout(() => {
           if (trialResolvedRef.current) return;
           if (!resolved) {
-            resolved = true;
-            clearListenState();
-            try {
-              recognition.stop();
-            } catch {}
-            recognitionRef.current = null;
-            setTrialIndex((i) => i + 1);
-            sequenceRef.current = false;
+            resolveOnce(false);
           }
         }, LISTEN_TIMEOUT_MS);
         return;

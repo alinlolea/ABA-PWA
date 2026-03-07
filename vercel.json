@@ -1,5 +1,5 @@
 {
-  "buildCommand": "export APP_BUILD_VERSION=$(git rev-list --count HEAD) && npx expo export --platform web && node scripts/inject-manifest.js",
+  "buildCommand": "export EXPO_PUBLIC_BUILD_VERSION=$(git rev-list --count HEAD) && npx expo export --platform web && node scripts/inject-manifest.js",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
