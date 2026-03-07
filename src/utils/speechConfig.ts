@@ -5,6 +5,18 @@
 
 export const SPEECH_LANG = "ro-RO";
 
+/** Speech style presets for therapy prompts (rate, pitch). */
+export type SpeechStyle = "praise" | "instruction" | "neutral";
+
+export const SPEECH_STYLE_PRESETS: Record<
+  SpeechStyle,
+  { rate: number; pitch: number }
+> = {
+  praise: { rate: 1.1, pitch: 1.05 },
+  instruction: { rate: 1.0, pitch: 0.95 },
+  neutral: { rate: 1.0, pitch: 1.0 },
+};
+
 const ROMANIAN_DIACRITICS: [RegExp, string][] = [
   [/ș/g, "s"], [/ş/g, "s"],
   [/ț/g, "t"], [/ţ/g, "t"],

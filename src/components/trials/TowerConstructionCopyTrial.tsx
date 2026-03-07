@@ -261,7 +261,7 @@ function TowerTrialInner({
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
         stopSpeech();
-        speak("Construiește la fel", { pitch: 1.4, rate: 0.6 });
+        speak("Construiește la fel", "instruction");
       }
     }, 1000);
 
@@ -332,7 +332,7 @@ function TowerTrialInner({
     if (!allPlaced) return;
 
     stopSpeech();
-    speak("Bravo!", { pitch: 1.4, rate: 0.6 });
+    speak("Bravo!", "praise");
 
     const t = setTimeout(() => {
       onTrialComplete();

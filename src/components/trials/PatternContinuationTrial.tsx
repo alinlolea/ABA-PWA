@@ -505,7 +505,7 @@ function PatternContinuationTrialInner({
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
         stopSpeech();
-        speak("Continuă", { pitch: 1.4, rate: 0.6 });
+        speak("Continuă", "instruction");
       }
     }, 1000);
     return () => clearTimeout(timeout);
@@ -570,7 +570,7 @@ function PatternContinuationTrialInner({
   useEffect(() => {
     if (!allPlaced) return;
     stopSpeech();
-    speak("Bravo!", { pitch: 1.4, rate: 0.6 });
+    speak("Bravo!", "praise");
     const t = setTimeout(() => {
       onTrialComplete();
     }, 1200);

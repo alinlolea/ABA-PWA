@@ -11,16 +11,19 @@ export type SpeechEngineRecommendationResult = {
   speechCapabilityDegraded: boolean;
 };
 
-/** Detect Google speech from synthesis voice names (e.g. "Google", "Google US English"). */
-function hasGoogleVoice(voices: SpeechSynthesisVoice[]): boolean {
-  return voices.some((v) => /google/i.test(v.name || ""));
+/** True if any voice is Google and Romanian (ro-RO). */
+function hasGoogleRomanianVoice(voices: SpeechSynthesisVoice[]): boolean {
+  return voices.some(
+    (v) =>
+      (v.name || "").toLowerCase().includes("google") &&
+      (v.lang || "").startsWith("ro")
+  );
 }
 
 /**
  * PWA / Web: capability-based detection.
- * - Checks window.speechSynthesis and window.SpeechRecognition / webkitSpeechRecognition.
- * - Uses speechSynthesis.getVoices() (and voiceschanged) to detect a Google voice.
- * Native: uses package check from useGoogleSpeechServices.
+ * Runs only after voices are loaded (voiceschanged). Re-runs when voices change
+ * so the warning disappears after the user installs Speech Services by Google.
  */
 export function useSpeechEngineRecommendation(): SpeechEngineRecommendationResult {
   const nativeCheck = useGoogleSpeechServices();
@@ -34,11 +37,17 @@ export function useSpeechEngineRecommendation(): SpeechEngineRecommendationResul
     if (Platform.OS !== "web" || typeof window === "undefined") return;
 
     const hasSynth = typeof window.speechSynthesis !== "undefined";
-    const Recognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+    const Recognition =
+      window.SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition })
+        .webkitSpeechRecognition;
     const hasRecognition = typeof Recognition !== "undefined";
     const speechCapabilityDegraded = !hasSynth || !hasRecognition;
 
-    const resolve = (recommended: boolean) => {
+    const checkVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) return;
+      const recommended = hasGoogleRomanianVoice(voices);
       setWebState({
         speechEngineRecommended: recommended,
         isLoading: false,
@@ -46,26 +55,25 @@ export function useSpeechEngineRecommendation(): SpeechEngineRecommendationResul
       });
     };
 
-    let resolved = false;
-    const checkVoices = () => {
-      if (resolved) return;
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        resolved = true;
-        resolve(hasGoogleVoice(voices));
-      }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") checkVoices();
     };
-
-    checkVoices();
     window.speechSynthesis.addEventListener("voiceschanged", checkVoices);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    checkVoices();
     const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        resolve(false);
-      }
-    }, 3000);
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) checkVoices();
+      else
+        setWebState((s) => ({
+          ...s,
+          isLoading: false,
+          speechEngineRecommended: false,
+        }));
+    }, 4000);
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", checkVoices);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       clearTimeout(timeout);
     };
   }, []);

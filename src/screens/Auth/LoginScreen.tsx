@@ -32,7 +32,14 @@ export default function LoginScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        mainContainer: { flex: 1, flexDirection: "row" },
+        rootContainer: { flex: 1 },
+        keyboardAvoid: { flex: 1 },
+        scrollContent: {
+          flexGrow: 1,
+          padding: rs(24),
+          paddingBottom: rs(40),
+        },
+        mainContainer: { flex: 1, flexDirection: "row", minHeight: rs(400) },
         leftPanel: {
           width: "45%",
           backgroundColor: "#E8F1F2",
@@ -86,7 +93,7 @@ export default function LoginScreen() {
           borderColor: "#DCE7EA",
           paddingHorizontal: rs(14),
           marginBottom: rs(16),
-          fontSize: rs(16),
+          fontSize: 16,
           color: "#1E293B",
         },
         passwordWrapper: { position: "relative" as const, marginBottom: rs(16) },
@@ -97,7 +104,7 @@ export default function LoginScreen() {
           borderColor: "#DCE7EA",
           paddingHorizontal: rs(14),
           paddingRight: rs(48),
-          fontSize: rs(16),
+          fontSize: 16,
           color: "#1E293B",
         },
         eyeButton: {
@@ -149,92 +156,98 @@ export default function LoginScreen() {
     }
   };
 
+  const rootContainerStyle = useMemo(
+    () => [
+      styles.rootContainer,
+      Platform.OS === "web" && { minHeight: "100vh" as const },
+    ],
+    []
+  );
+
   return (
     <ScreenContainer>
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            padding: rs(24),
-            paddingBottom: rs(40),
-          }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <View style={rootContainerStyle}>
+        <KeyboardAvoidingView
+          behavior="height"
+          style={styles.keyboardAvoid}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.mainContainer}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.leftPanel}>
-              <Image
-                source={require("../../../assets/images/digital-aba-therapy-logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={styles.appName}>Digital ABA Therapy</Text>
-              <Text style={styles.tagline}>Structured. Measurable. Professional.</Text>
-            </View>
-
-            <View style={styles.rightPanel}>
-              <View style={styles.formCard}>
-                <Text style={styles.title}>Autentificare</Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  editable={!loading}
+            <View style={styles.mainContainer}>
+              <View style={styles.leftPanel}>
+                <Image
+                  source={require("../../../assets/images/digital-aba-therapy-logo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
+                <Text style={styles.appName}>Digital ABA Therapy</Text>
+                <Text style={styles.tagline}>Structured. Measurable. Professional.</Text>
+              </View>
 
-                <View style={styles.passwordWrapper}>
+              <View style={styles.rightPanel}>
+                <View style={styles.formCard}>
+                  <Text style={styles.title}>Autentificare</Text>
+
                   <TextInput
-                    style={styles.inputPassword}
-                    placeholder="Parolă"
+                    style={styles.input}
+                    placeholder="Email"
                     placeholderTextColor="#94A3B8"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!passwordVisible}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
                     editable={!loading}
                   />
-                  <Pressable
-                    style={styles.eyeButton}
-                    onPress={() => setPasswordVisible((v) => !v)}
-                    hitSlop={12}
-                  >
-                    <Ionicons
-                      name={passwordVisible ? "eye-off-outline" : "eye-outline"}
-                      size={rs(22)}
-                      color="#2C6468"
+
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={styles.inputPassword}
+                      placeholder="Parolă"
+                      placeholderTextColor="#94A3B8"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!passwordVisible}
+                      editable={!loading}
                     />
+                    <Pressable
+                      style={styles.eyeButton}
+                      onPress={() => setPasswordVisible((v) => !v)}
+                      hitSlop={12}
+                    >
+                      <Ionicons
+                        name={passwordVisible ? "eye-off-outline" : "eye-outline"}
+                        size={rs(22)}
+                        color="#2C6468"
+                      />
+                    </Pressable>
+                  </View>
+
+                  <Pressable
+                    style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                    onPress={handleLogin}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.loginButtonText}>Autentificare</Text>
+                    )}
                   </Pressable>
+
+                  <Text
+                    style={styles.registerLink}
+                    onPress={() => !loading && router.push("/register")}
+                  >
+                    Nu ai cont? Înregistrează-te
+                  </Text>
                 </View>
-
-                <Pressable
-                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-                  onPress={handleLogin}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.loginButtonText}>Autentificare</Text>
-                  )}
-                </Pressable>
-
-                <Text
-                  style={styles.registerLink}
-                  onPress={() => !loading && router.push("/register")}
-                >
-                  Nu ai cont? Înregistrează-te
-                </Text>
               </View>
             </View>
-          </KeyboardAvoidingView>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </ScreenContainer>
   );

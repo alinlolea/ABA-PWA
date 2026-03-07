@@ -1,20 +1,27 @@
 /**
  * Web: use browser Web Speech API. TTS and STT configured for Romanian (ro-RO).
  */
-import { SPEECH_LANG, normalizeSpeechResult } from "./speechConfig";
+import {
+  SPEECH_LANG,
+  type SpeechStyle,
+  SPEECH_STYLE_PRESETS,
+  normalizeSpeechResult,
+} from "./speechConfig";
 
 export { SPEECH_LANG, normalizeSpeechResult };
+export type { SpeechStyle };
 
 let cachedRomanianVoice: SpeechSynthesisVoice | null = null;
 
+/** Filter Romanian (ro-RO), prefer voices containing "Google". */
 function getRomanianVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
-  const ro = voices.filter((v) => v.lang === "ro-RO" || v.lang.startsWith("ro-"));
+  const ro = voices.filter((v) => v.lang === "ro-RO");
   if (ro.length === 0) return null;
   const googleFirst = [...ro].sort((a, b) => {
-    const aGoogle = /google/i.test(a.name || "");
-    const bGoogle = /google/i.test(b.name || "");
+    const aGoogle = (a.name || "").toLowerCase().includes("google");
+    const bGoogle = (b.name || "").toLowerCase().includes("google");
     if (aGoogle && !bGoogle) return -1;
     if (!aGoogle && bGoogle) return 1;
     return 0;
@@ -44,27 +51,27 @@ export function stopSpeech(): void {
   }
 }
 
-/** Default TTS values enforced so device settings don't override app behavior. */
-const DEFAULT_RATE = 1.1;
-const DEFAULT_PITCH = 1.0;
+/** Default TTS for natural Romanian (consistent across devices). */
+const DEFAULT_RATE = 1.05;
+const DEFAULT_PITCH = 0.95;
 const DEFAULT_VOLUME = 1;
 
 /**
- * Speak text using app TTS configuration. Use this for all speech in the app.
- * Enforces Romanian voice, rate, pitch, and volume regardless of device defaults.
+ * Centralized speak(text, style). Use for all therapy prompts.
+ * Selects Romanian voice (prefer Google), applies style preset, then speechSynthesis.speak().
  */
-export function speak(
-  text: string,
-  options?: { pitch?: number; rate?: number; volume?: number }
-): void {
+export function speak(text: string, style?: SpeechStyle): void {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const preset = style ? SPEECH_STYLE_PRESETS[style] : null;
+  const rate = preset?.rate ?? DEFAULT_RATE;
+  const pitch = preset?.pitch ?? DEFAULT_PITCH;
   const utterance = new SpeechSynthesisUtterance(text);
   if (!cachedRomanianVoice) cachedRomanianVoice = getRomanianVoice();
   if (cachedRomanianVoice) utterance.voice = cachedRomanianVoice;
   utterance.lang = SPEECH_LANG;
-  utterance.rate = options?.rate ?? DEFAULT_RATE;
-  utterance.pitch = options?.pitch ?? DEFAULT_PITCH;
-  utterance.volume = options?.volume ?? DEFAULT_VOLUME;
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+  utterance.volume = DEFAULT_VOLUME;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }

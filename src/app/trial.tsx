@@ -497,7 +497,7 @@ export default function TrialScreen() {
   useEffect(() => {
     if (!session.completed && session.trials.length > 0 && voiceEnabled) {
       stopSpeech();
-      speak("Potrivește!", { pitch: 1.0, rate: 0.5 });
+      speak("Potrivește!", "instruction");
     }
   }, [session.currentTrialIndex, session.trials.length, voiceEnabled]);
 
@@ -785,7 +785,7 @@ export default function TrialScreen() {
                 runOptionBorderFeedback(bestIndex, true);
                 if (voiceEnabled) {
                   stopSpeech();
-                  speak("Bravo!", { pitch: 1.4, rate: 0.6 });
+                  speak("Bravo!", "praise");
                 }
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
@@ -794,7 +794,7 @@ export default function TrialScreen() {
                 runOptionBorderFeedback(bestIndex, false);
                 if (voiceEnabled) {
                   stopSpeech();
-                  speak("Mai încearcă!", { pitch: 0.9, rate: 0.48 });
+                  speak("Mai încearcă!", "neutral");
                 }
                 runShakeThenBack(targetIndex);
               }
