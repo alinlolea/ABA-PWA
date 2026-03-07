@@ -1,27 +1,28 @@
 /**
- * Generates version.json at project root from Git commit count. Run before expo export.
- * On success: 1.0.<count>. On failure (e.g. not a repo): 1.0.dev.
+ * Generates version.json at project root from Vercel build id or fallbacks.
+ * Run before expo export. Each deployment gets a unique version.
  */
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 
-const outPath = path.join(__dirname, "..", "version.json");
+let version = "1.0.dev";
 
 try {
-  try {
-    execSync("git fetch --unshallow", { encoding: "utf-8", stdio: "pipe" });
-  } catch {
-    // Not shallow or fetch failed – continue
-  }
+  const buildId =
+    process.env.VERCEL_BUILD_ID ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    Date.now().toString();
 
-  const commitCount = execSync("git rev-list --count HEAD").toString().trim();
-  const version = `1.0.${commitCount}`;
+  const short = buildId.toString().substring(0, 6);
 
-  fs.writeFileSync(outPath, JSON.stringify({ version }, null, 2) + "\n", "utf-8");
-  console.log("Generated version:", version);
+  version = `1.0.${short}`;
 } catch (err) {
   console.error("Version generation failed:", err);
-  fs.writeFileSync(outPath, JSON.stringify({ version: "1.0.dev" }, null, 2) + "\n", "utf-8");
-  console.log("Wrote fallback version: 1.0.dev");
 }
+
+fs.writeFileSync(
+  path.join(__dirname, "..", "version.json"),
+  JSON.stringify({ version }, null, 2)
+);
+
+console.log("Generated version:", version);
