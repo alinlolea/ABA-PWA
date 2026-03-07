@@ -1,6 +1,8 @@
+import PWAUpdateBanner from "@/components/PWAUpdateBanner";
 import SpeechRecommendationProvider from "@/components/SpeechRecommendationProvider";
 import { Theme } from "@/design/theme";
 import { auth } from "@/config/firebase";
+import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import { useAppResume } from "@/hooks/useAppResume";
 import {
   Inter_400Regular,
@@ -24,6 +26,7 @@ import {
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const { updateAvailable, reloadApp } = usePWAUpdate();
   const [fontsLoaded] = Font.useFonts({
     [Theme.fontFamily.regular]: Inter_400Regular,
     [Theme.fontFamily.medium]: Inter_500Medium,
@@ -38,24 +41,6 @@ export default function RootLayout() {
       ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.LANDSCAPE
       );
-    }
-  }, []);
-
-  // Register service worker for PWA installability (web only)
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      const register = () => {
-        navigator.serviceWorker
-          .register("/sw.js", { scope: "/" })
-          .then(() => navigator.serviceWorker.ready)
-          .catch((err) => console.log("SW registration failed", err));
-      };
-      if (document.readyState === "complete") {
-        register();
-      } else {
-        window.addEventListener("load", register);
-      }
     }
   }, []);
 
@@ -112,6 +97,7 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <SpeechRecommendationProvider>
         <Stack screenOptions={{ headerShown: false }} />
+        {updateAvailable && <PWAUpdateBanner onReload={reloadApp} />}
       </SpeechRecommendationProvider>
     </View>
   );
