@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
 import { playAudio } from "@/utils/audio";
-import { initSpeech, speak, stopSpeech } from "@/utils/speech";
+import { initSpeech, stopSpeech } from "@/utils/speech";
 
 function isWhiteLike(color: string): boolean {
   const c = color.toLowerCase().trim();
@@ -265,7 +265,7 @@ function TowerTrialInner({
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
         stopSpeech();
-        speak("Construiește turn", "instruction");
+        playAudio("construieste-turn");
       }
     }, 1000);
 

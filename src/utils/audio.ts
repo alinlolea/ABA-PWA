@@ -6,6 +6,14 @@ import { Audio } from "expo-av";
 
 const ASSET_MAP: Record<string, number> = {
   bravo: require("../../assets/audio/Bravo.mp3"),
+  "ce-culoare-este": require("../../assets/audio/Ce culoare este.mp3"),
+  continua: require("../../assets/audio/Continua.mp3"),
+  gresit: require("../../assets/audio/Gresit.mp3"),
+  "mai-incearca": require("../../assets/audio/Mai incearca.mp3"),
+  "construieste-la-fel": require("../../assets/audio/Construieste la fel.mp3"),
+  "construieste-turn": require("../../assets/audio/Construieste turn.mp3"),
+  potriveste: require("../../assets/audio/Potrivește.mp3"),
+  "pune-la-fel": require("../../assets/audio/Pune la fel.mp3"),
 };
 
 export async function playAudio(name: string): Promise<void> {

@@ -18,8 +18,12 @@ import {
 import { useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { playAudio } from "@/utils/audio";
-import { initSpeech, speak, speakAndWait, stopSpeech } from "@/utils/speech";
-import { getConfiguredSpeechRecognition, normalizeSpeechResult } from "@/utils/speech";
+import {
+  getConfiguredSpeechRecognition,
+  initSpeech,
+  normalizeSpeechResult,
+  stopSpeech,
+} from "@/utils/speech";
 import { TouchTarget } from "@/design/touch";
 import { Theme } from "@/design/theme";
 
@@ -89,7 +93,7 @@ export default function ColorLabelingTrial({
     if (voiceEnabled) {
       setPhase("prompt");
       stopSpeech();
-      await speakAndWait("Ce culoare este?");
+      await playAudio("ce-culoare-este");
     }
     await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
     if (trialIndex >= TRIAL_COUNT) {
@@ -152,7 +156,7 @@ export default function ColorLabelingTrial({
             if (voiceEnabled) {
               setPhase("feedback");
               stopSpeech();
-              await speakAndWait("Greșit!", "neutral");
+              await playAudio("gresit");
             }
           }
           setTrialIndex((i) => i + 1);

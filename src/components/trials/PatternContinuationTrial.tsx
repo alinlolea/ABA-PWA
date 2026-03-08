@@ -19,7 +19,7 @@ import {
 import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 import { playAudio } from "@/utils/audio";
-import { initSpeech, speak, stopSpeech } from "@/utils/speech";
+import { initSpeech, stopSpeech } from "@/utils/speech";
 
 export type ShapeType =
   | "circle"
@@ -506,7 +506,7 @@ function PatternContinuationTrialInner({
     const timeout = setTimeout(() => {
       if (voiceEnabled) {
         stopSpeech();
-        speak("Continuă", "instruction");
+        playAudio("continua");
       }
     }, 1000);
     return () => clearTimeout(timeout);

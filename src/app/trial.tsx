@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { playAudio } from "@/utils/audio";
-import { initSpeech, speak, stopSpeech } from "@/utils/speech";
+import { initSpeech, stopSpeech } from "@/utils/speech";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
@@ -514,7 +514,7 @@ export default function TrialScreen() {
   useEffect(() => {
     if (!session.completed && session.trials.length > 0 && voiceEnabled) {
       stopSpeech();
-      speak("Potrivește!", "instruction");
+      playAudio("potriveste");
     }
   }, [session.currentTrialIndex, session.trials.length, voiceEnabled]);
 
@@ -811,7 +811,7 @@ export default function TrialScreen() {
                 runOptionBorderFeedback(bestIndex, false);
                 if (voiceEnabled) {
                   stopSpeech();
-                  speak("Mai încearcă!", "neutral");
+                  await playAudio("mai-incearca");
                 }
                 runShakeThenBack(targetIndex);
               }
