@@ -28,9 +28,9 @@ import { TouchTarget } from "@/design/touch";
 import { Theme } from "@/design/theme";
 
 const TRIAL_COUNT = 10;
-const INITIAL_DELAY_MS = 500;
-const DELAY_AFTER_TTS_MS = 500;
+const INITIAL_DELAY_MS = 200;
 const LISTEN_TIMEOUT_MS = 5000;
+const COUNTDOWN_STABILIZATION_MS = 500;
 const LISTEN_COUNTDOWN_SECONDS = 5;
 const MIC_ICON_SIZE = 96;
 
@@ -73,6 +73,7 @@ export default function ColorLabelingTrial({
   const trialResolvedRef = useRef(false);
   const listenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
@@ -90,23 +91,14 @@ export default function ColorLabelingTrial({
       return;
     }
 
-    if (voiceEnabled) {
-      setPhase("prompt");
-      stopSpeech();
-      await playAudio("ce-culoare-este");
-    }
-    await new Promise((r) => setTimeout(r, DELAY_AFTER_TTS_MS));
-    if (trialIndex >= TRIAL_COUNT) {
-      sequenceRef.current = false;
-      return;
-    }
-
-    setPhase("listen");
     const correctLabel = currentColor?.id ?? "";
-
     const clearListenState = () => {
       setListeningActive(false);
       setRecognizedText("");
+      if (countdownStartTimeoutRef.current) {
+        clearTimeout(countdownStartTimeoutRef.current);
+        countdownStartTimeoutRef.current = null;
+      }
       if (listenTimeoutRef.current) {
         clearTimeout(listenTimeoutRef.current);
         listenTimeoutRef.current = null;
@@ -117,6 +109,112 @@ export default function ColorLabelingTrial({
       }
     };
 
+    if (voiceEnabled) {
+      setPhase("prompt");
+      stopSpeech();
+
+      let recognition: SpeechRecognition | null = null;
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        recognition = getConfiguredSpeechRecognition();
+        if (recognition) {
+          recognitionRef.current = recognition;
+          let resolved = false;
+          trialResolvedRef.current = false;
+          setTrialResolved(false);
+          recognition.interimResults = true;
+
+          const resolveOnce = async (result: boolean | "timeout") => {
+            if (resolved) return;
+            resolved = true;
+            trialResolvedRef.current = true;
+            setTrialResolved(true);
+            clearListenState();
+            try {
+              recognition!.stop();
+            } catch {}
+            recognitionRef.current = null;
+
+            if (result === true) {
+              setCorrectCount((c) => c + 1);
+              setPhase("feedback");
+              stopSpeech();
+              await playAudio("bravo");
+            } else if (result === false) {
+              setIncorrectCount((i) => i + 1);
+              setPhase("feedback");
+              stopSpeech();
+              await playAudio("gresit");
+            }
+            setTrialIndex((i) => i + 1);
+            sequenceRef.current = false;
+          };
+
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
+            if (trialResolvedRef.current) return;
+            let fullTranscript = "";
+            for (let i = 0; i < event.results.length; i++) {
+              fullTranscript += event.results[i][0]?.transcript ?? "";
+            }
+            const transcript = fullTranscript.trim();
+            setRecognizedText(transcript);
+
+            const normalized = normalizeSpeechResult(transcript)
+              .replace(/[^\p{L}\s]/gu, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            const words = normalized.split(/\s+/).filter(Boolean);
+
+            if (words.length !== 1) {
+              const last = event.results[event.results.length - 1];
+              if (last?.isFinal) resolveOnce(false);
+              return;
+            }
+            const singleWord = normalizeSpeechResult(words[0]);
+            const correctNormalized = normalizeSpeechResult(correctLabel);
+            if (singleWord === correctNormalized) {
+              resolveOnce(true);
+              return;
+            }
+            const last = event.results[event.results.length - 1];
+            if (last?.isFinal) resolveOnce(false);
+          };
+          recognition.onerror = () => {
+            if (!trialResolvedRef.current) resolveOnce(false);
+          };
+          recognition.onend = () => {
+            // Web Speech API fires onend frequently; do not resolve trial here.
+          };
+          // Do NOT start yet — start immediately after prompt ends.
+        }
+      }
+
+      await playAudio("ce-culoare-este");
+      if (trialIndex >= TRIAL_COUNT) {
+        sequenceRef.current = false;
+        return;
+      }
+
+      if (recognition) {
+        setPhase("listen");
+        recognition.start();
+        setListeningActive(true);
+        setRecognizedText("");
+        countdownStartTimeoutRef.current = setTimeout(() => {
+          setCountdown(LISTEN_COUNTDOWN_SECONDS);
+          countdownIntervalRef.current = setInterval(() => {
+            if (trialResolvedRef.current) return;
+            setCountdown((c) => (c > 0 ? c - 1 : 0));
+          }, 1000);
+        }, COUNTDOWN_STABILIZATION_MS);
+        listenTimeoutRef.current = setTimeout(() => {
+          if (trialResolvedRef.current) return;
+          resolveOnce(false);
+        }, LISTEN_TIMEOUT_MS);
+        return;
+      }
+    }
+
+    setPhase("listen");
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const recognition = getConfiguredSpeechRecognition();
       if (recognition) {
@@ -195,13 +293,7 @@ export default function ColorLabelingTrial({
         recognition.onerror = () => {
           if (!trialResolvedRef.current) resolveOnce(false);
         };
-        recognition.onend = () => {
-          // Do nothing.
-          // Web Speech API fires onend frequently and it must not resolve the trial.
-          // Trial resolution should happen only via:
-          // - recognition.onresult (correct/incorrect speech)
-          // - listen timeout
-        };
+        recognition.onend = () => {};
         recognition.start();
         listenTimeoutRef.current = setTimeout(() => {
           if (trialResolvedRef.current) return;
@@ -242,6 +334,7 @@ export default function ColorLabelingTrial({
   useEffect(() => {
     initSpeech();
     return () => {
+      if (countdownStartTimeoutRef.current) clearTimeout(countdownStartTimeoutRef.current);
       if (listenTimeoutRef.current) clearTimeout(listenTimeoutRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       try {
