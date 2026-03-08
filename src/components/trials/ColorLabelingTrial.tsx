@@ -75,6 +75,8 @@ export default function ColorLabelingTrial({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const resolveOnceRef = useRef<((result: boolean | "timeout") => Promise<void>) | null>(null);
+  const correctLabelRef = useRef<string>("");
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   const currentColor = COLORS[trialIndex] ?? null;
@@ -113,79 +115,39 @@ export default function ColorLabelingTrial({
       setPhase("prompt");
       stopSpeech();
 
-      let recognition: SpeechRecognition | null = null;
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        recognition = getConfiguredSpeechRecognition();
-        if (recognition) {
-          recognitionRef.current = recognition;
-          let resolved = false;
-          trialResolvedRef.current = false;
-          setTrialResolved(false);
-          recognition.interimResults = true;
+      const recognition = recognitionRef.current;
+      if (Platform.OS === "web" && recognition) {
+        let resolved = false;
+        trialResolvedRef.current = false;
+        setTrialResolved(false);
 
-          const resolveOnce = async (result: boolean | "timeout") => {
-            if (resolved) return;
-            resolved = true;
-            trialResolvedRef.current = true;
-            setTrialResolved(true);
-            clearListenState();
-            try {
-              recognition!.stop();
-            } catch {}
-            recognitionRef.current = null;
+        const resolveOnce = async (result: boolean | "timeout") => {
+          if (resolved) return;
+          resolved = true;
+          trialResolvedRef.current = true;
+          setTrialResolved(true);
+          clearListenState();
+          try {
+            recognitionRef.current?.stop();
+          } catch {}
 
-            if (result === true) {
-              setCorrectCount((c) => c + 1);
-              setPhase("feedback");
-              stopSpeech();
-              await playAudio("bravo");
-            } else if (result === false) {
-              setIncorrectCount((i) => i + 1);
-              setPhase("feedback");
-              stopSpeech();
-              await playAudio("gresit");
-            }
-            setTrialIndex((i) => i + 1);
-            sequenceRef.current = false;
-          };
+          if (result === true) {
+            setCorrectCount((c) => c + 1);
+            setPhase("feedback");
+            stopSpeech();
+            await playAudio("bravo");
+          } else if (result === false) {
+            setIncorrectCount((i) => i + 1);
+            setPhase("feedback");
+            stopSpeech();
+            await playAudio("gresit");
+          }
+          setTrialIndex((i) => i + 1);
+          sequenceRef.current = false;
+        };
 
-          recognition.onresult = (event: SpeechRecognitionEvent) => {
-            if (trialResolvedRef.current) return;
-            let fullTranscript = "";
-            for (let i = 0; i < event.results.length; i++) {
-              fullTranscript += event.results[i][0]?.transcript ?? "";
-            }
-            const transcript = fullTranscript.trim();
-            setRecognizedText(transcript);
-
-            const normalized = normalizeSpeechResult(transcript)
-              .replace(/[^\p{L}\s]/gu, "")
-              .replace(/\s+/g, " ")
-              .trim();
-            const words = normalized.split(/\s+/).filter(Boolean);
-
-            if (words.length !== 1) {
-              const last = event.results[event.results.length - 1];
-              if (last?.isFinal) resolveOnce(false);
-              return;
-            }
-            const singleWord = normalizeSpeechResult(words[0]);
-            const correctNormalized = normalizeSpeechResult(correctLabel);
-            if (singleWord === correctNormalized) {
-              resolveOnce(true);
-              return;
-            }
-            const last = event.results[event.results.length - 1];
-            if (last?.isFinal) resolveOnce(false);
-          };
-          recognition.onerror = () => {
-            if (!trialResolvedRef.current) resolveOnce(false);
-          };
-          recognition.onend = () => {
-            // Web Speech API fires onend frequently; do not resolve trial here.
-          };
-          // Do NOT start yet — start immediately after prompt ends.
-        }
+        resolveOnceRef.current = resolveOnce;
+        correctLabelRef.current = correctLabel;
       }
 
       await playAudio("ce-culoare-este");
@@ -197,9 +159,14 @@ export default function ColorLabelingTrial({
       if (recognition) {
         setPhase("listen");
         recognition.start();
+        setCountdown(LISTEN_COUNTDOWN_SECONDS);
         setListeningActive(true);
         setRecognizedText("");
         countdownStartTimeoutRef.current = setTimeout(() => {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
           setCountdown(LISTEN_COUNTDOWN_SECONDS);
           countdownIntervalRef.current = setInterval(() => {
             if (trialResolvedRef.current) return;
@@ -208,101 +175,70 @@ export default function ColorLabelingTrial({
         }, COUNTDOWN_STABILIZATION_MS);
         listenTimeoutRef.current = setTimeout(() => {
           if (trialResolvedRef.current) return;
-          resolveOnce(false);
+          resolveOnceRef.current?.(false);
         }, LISTEN_TIMEOUT_MS);
         return;
       }
     }
 
     setPhase("listen");
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      const recognition = getConfiguredSpeechRecognition();
-      if (recognition) {
-        recognitionRef.current = recognition;
-        let resolved = false;
-        trialResolvedRef.current = false;
-        setTrialResolved(false);
-        setListeningActive(true);
-        setRecognizedText("");
-        setCountdown(LISTEN_COUNTDOWN_SECONDS);
-        recognition.interimResults = true;
-        countdownIntervalRef.current = setInterval(() => {
-          if (trialResolvedRef.current) return;
-          setCountdown((c) => (c > 0 ? c - 1 : 0));
-        }, 1000);
+    const recognitionFallback = recognitionRef.current;
+    if (Platform.OS === "web" && recognitionFallback) {
+      let resolved = false;
+      trialResolvedRef.current = false;
+      setTrialResolved(false);
 
-        const resolveOnce = async (result: boolean | "timeout") => {
-          if (resolved) return;
-          resolved = true;
-          trialResolvedRef.current = true;
-          setTrialResolved(true);
-          clearListenState();
-          try {
-            recognition.stop();
-          } catch {}
-          recognitionRef.current = null;
+      const resolveOnce = async (result: boolean | "timeout") => {
+        if (resolved) return;
+        resolved = true;
+        trialResolvedRef.current = true;
+        setTrialResolved(true);
+        clearListenState();
+        try {
+          recognitionRef.current?.stop();
+        } catch {}
 
-          if (result === true) {
-            setCorrectCount((c) => c + 1);
-            if (voiceEnabled) {
-              setPhase("feedback");
-              stopSpeech();
-              await playAudio("bravo");
-            }
-          } else if (result === false) {
-            setIncorrectCount((i) => i + 1);
-            if (voiceEnabled) {
-              setPhase("feedback");
-              stopSpeech();
-              await playAudio("gresit");
-            }
+        if (result === true) {
+          setCorrectCount((c) => c + 1);
+          if (voiceEnabled) {
+            setPhase("feedback");
+            stopSpeech();
+            await playAudio("bravo");
           }
-          setTrialIndex((i) => i + 1);
-          sequenceRef.current = false;
-        };
+        } else if (result === false) {
+          setIncorrectCount((i) => i + 1);
+          if (voiceEnabled) {
+            setPhase("feedback");
+            stopSpeech();
+            await playAudio("gresit");
+          }
+        }
+        setTrialIndex((i) => i + 1);
+        sequenceRef.current = false;
+      };
 
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          if (trialResolvedRef.current) return;
-          let fullTranscript = "";
-          for (let i = 0; i < event.results.length; i++) {
-            fullTranscript += event.results[i][0]?.transcript ?? "";
-          }
-          const transcript = fullTranscript.trim();
-          setRecognizedText(transcript);
-
-          const normalized = normalizeSpeechResult(transcript)
-            .replace(/[^\p{L}\s]/gu, "")
-            .replace(/\s+/g, " ")
-            .trim();
-          const words = normalized.split(/\s+/).filter(Boolean);
-
-          if (words.length !== 1) {
-            const last = event.results[event.results.length - 1];
-            if (last?.isFinal) resolveOnce(false);
-            return;
-          }
-          const singleWord = normalizeSpeechResult(words[0]);
-          const correctNormalized = normalizeSpeechResult(correctLabel);
-          if (singleWord === correctNormalized) {
-            resolveOnce(true);
-            return;
-          }
-          const last = event.results[event.results.length - 1];
-          if (last?.isFinal) resolveOnce(false);
-        };
-        recognition.onerror = () => {
-          if (!trialResolvedRef.current) resolveOnce(false);
-        };
-        recognition.onend = () => {};
-        recognition.start();
-        listenTimeoutRef.current = setTimeout(() => {
-          if (trialResolvedRef.current) return;
-          if (!resolved) {
-            resolveOnce(false);
-          }
-        }, LISTEN_TIMEOUT_MS);
-        return;
+      resolveOnceRef.current = resolveOnce;
+      correctLabelRef.current = correctLabel;
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
+      setCountdown(LISTEN_COUNTDOWN_SECONDS);
+      setListeningActive(true);
+      setRecognizedText("");
+      countdownIntervalRef.current = setInterval(() => {
+        if (trialResolvedRef.current) return;
+        setCountdown((c) => (c > 0 ? c - 1 : 0));
+      }, 1000);
+
+      recognitionFallback.start();
+      listenTimeoutRef.current = setTimeout(() => {
+        if (trialResolvedRef.current) return;
+        if (!resolved) {
+          resolveOnceRef.current?.(false);
+        }
+      }, LISTEN_TIMEOUT_MS);
+      return;
     }
 
     setTrialIndex((i) => i + 1);
@@ -333,6 +269,51 @@ export default function ColorLabelingTrial({
 
   useEffect(() => {
     initSpeech();
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const recognition = getConfiguredSpeechRecognition();
+      if (recognition) {
+        recognitionRef.current = recognition;
+        recognition.interimResults = true;
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          if (trialResolvedRef.current) return;
+          const resolveOnce = resolveOnceRef.current;
+          const correctLabel = correctLabelRef.current;
+          if (!resolveOnce) return;
+          let fullTranscript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            fullTranscript += event.results[i][0]?.transcript ?? "";
+          }
+          const transcript = fullTranscript.trim();
+          setRecognizedText(transcript);
+
+          const normalized = normalizeSpeechResult(transcript)
+            .replace(/[^\p{L}\s]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          const words = normalized.split(/\s+/).filter(Boolean);
+
+          if (words.length !== 1) {
+            const last = event.results[event.results.length - 1];
+            if (last?.isFinal) resolveOnce(false);
+            return;
+          }
+          const singleWord = normalizeSpeechResult(words[0]);
+          const correctNormalized = normalizeSpeechResult(correctLabel);
+          if (singleWord === correctNormalized) {
+            resolveOnce(true);
+            return;
+          }
+          const last = event.results[event.results.length - 1];
+          if (last?.isFinal) resolveOnce(false);
+        };
+        recognition.onerror = () => {
+          if (!trialResolvedRef.current) resolveOnceRef.current?.(false);
+        };
+        recognition.onend = () => {
+          // Web Speech API fires onend frequently; do not resolve trial here.
+        };
+      }
+    }
     return () => {
       if (countdownStartTimeoutRef.current) clearTimeout(countdownStartTimeoutRef.current);
       if (listenTimeoutRef.current) clearTimeout(listenTimeoutRef.current);
@@ -340,6 +321,7 @@ export default function ColorLabelingTrial({
       try {
         recognitionRef.current?.stop();
       } catch {}
+      recognitionRef.current = null;
     };
   }, []);
 
