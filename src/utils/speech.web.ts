@@ -106,14 +106,15 @@ const RecognitionCtor =
 
 /**
  * Returns a SpeechRecognition instance configured for Romanian (ro-RO).
+ * Language must be set before start() so the engine uses Romanian phonetics.
  * Use for all STT in the app. Returns null if the API is not available.
  */
 export function getConfiguredSpeechRecognition(): SpeechRecognition | null {
   if (!RecognitionCtor) return null;
   const recognition = new RecognitionCtor();
-  recognition.lang = SPEECH_LANG;
-  recognition.interimResults = false;
+  recognition.lang = "ro-RO";
   recognition.continuous = false;
-  recognition.maxAlternatives = 3;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 5;
   return recognition;
 }

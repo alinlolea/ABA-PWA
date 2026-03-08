@@ -275,6 +275,7 @@ export default function ColorLabelingTrial({
         recognitionRef.current = recognition;
         recognition.interimResults = true;
         recognition.onresult = (event: SpeechRecognitionEvent) => {
+          console.log(event.results);
           if (trialResolvedRef.current) return;
           const resolveOnce = resolveOnceRef.current;
           const correctLabel = correctLabelRef.current;
