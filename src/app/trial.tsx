@@ -985,6 +985,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F4F7F8",
     padding: 24,
+    touchAction: "none",
   },
   progressRow: {
     paddingHorizontal: Spacing.xl,
