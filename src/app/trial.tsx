@@ -16,12 +16,19 @@ import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/fi
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
-  PanResponder,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Reanimated, {
+  makeMutable,
+  runOnJS,
+  type SharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
@@ -78,6 +85,59 @@ function isSvgStimulus(
     "type" in image &&
     "icon" in image &&
     (image as { type: string }).type === "svg"
+  );
+}
+
+type DraggableTargetProps = {
+  disabled: boolean;
+  translateX: SharedValue<number>;
+  translateY: SharedValue<number>;
+  onDragStart: () => void;
+  onDragEnd: (dx: number, dy: number) => void;
+  viewRef: (el: View | null) => void;
+  style: object | object[];
+  children: React.ReactNode;
+};
+
+function DraggableTarget({
+  disabled,
+  translateX,
+  translateY,
+  onDragStart,
+  onDragEnd,
+  viewRef,
+  style,
+  children,
+}: DraggableTargetProps) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+  }));
+
+  const panGesture = Gesture.Pan()
+    .enabled(!disabled)
+    .onBegin(() => {
+      runOnJS(onDragStart)();
+    })
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+    })
+    .onEnd((event) => {
+      runOnJS(onDragEnd)(event.translationX, event.translationY);
+    });
+
+  return (
+    <GestureDetector gesture={panGesture}>
+      <Reanimated.View
+        ref={viewRef as unknown as React.Ref<Reanimated.View>}
+        style={[style, animatedStyle]}
+      >
+        {children}
+      </Reanimated.View>
+    </GestureDetector>
   );
 }
 
@@ -543,11 +603,11 @@ export default function TrialScreen() {
   activeDragIdRef.current = activeDragId;
   matchedTargetIdsRef.current = matchedTargetIds;
 
-  const pans = useRef(
-    Array.from({ length: MAX_TOP_TARGETS }, () => new Animated.ValueXY())
+  const dragTranslateX = useRef(
+    Array.from({ length: MAX_TOP_TARGETS }, () => makeMutable(0))
   ).current;
-  const shakes = useRef(
-    Array.from({ length: MAX_TOP_TARGETS }, () => new Animated.Value(0))
+  const dragTranslateY = useRef(
+    Array.from({ length: MAX_TOP_TARGETS }, () => makeMutable(0))
   ).current;
   const targetRefs = useRef<(View | null)[]>([null, null, null]);
   const optionRefs = useRef<(View | null)[]>(
@@ -627,8 +687,12 @@ export default function TrialScreen() {
   );
 
   const advanceToNext = useCallback(() => {
-    pans.forEach((p) => p.setValue({ x: 0, y: 0 }));
-    shakes.forEach((s) => s.setValue(0));
+    dragTranslateX.forEach((v) => {
+      v.value = 0;
+    });
+    dragTranslateY.forEach((v) => {
+      v.value = 0;
+    });
     targetBorderAnims.forEach((a) => a.setValue(0));
     optionBorderAnims.forEach((a) => a.setValue(0));
     optionPulseAnims.forEach((a) => a.setValue(0));
@@ -650,7 +714,7 @@ export default function TrialScreen() {
         score: prev.score + 1,
       };
     });
-  }, [pans, shakes, targetBorderAnims, optionBorderAnims, optionPulseAnims]);
+  }, [dragTranslateX, dragTranslateY, targetBorderAnims, optionBorderAnims, optionPulseAnims]);
 
   useEffect(() => {
     if (!allMatched) return;
@@ -666,81 +730,44 @@ export default function TrialScreen() {
 
   const animateBackToOrigin = useCallback(
     (index: number) => {
-      Animated.parallel([
-        Animated.timing(pans[index].x, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: false,
-        }),
-        Animated.timing(pans[index].y, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: false,
-        }),
-      ]).start();
+      dragTranslateX[index].value = withTiming(0, { duration: 250 });
+      dragTranslateY[index].value = withTiming(0, { duration: 250 });
     },
-    [pans]
+    [dragTranslateX, dragTranslateY]
   );
 
   const runShakeThenBack = useCallback(
     (index: number) => {
-      shakes[index].setValue(0);
-      Animated.sequence([
-        Animated.timing(shakes[index], {
-          toValue: 10,
-          duration: SHAKE_DURATION_MS / 4,
-          useNativeDriver: false,
-        }),
-        Animated.timing(shakes[index], {
-          toValue: -10,
-          duration: SHAKE_DURATION_MS / 4,
-          useNativeDriver: false,
-        }),
-        Animated.timing(shakes[index], {
-          toValue: 8,
-          duration: SHAKE_DURATION_MS / 4,
-          useNativeDriver: false,
-        }),
-        Animated.timing(shakes[index], {
-          toValue: 0,
-          duration: SHAKE_DURATION_MS / 4,
-          useNativeDriver: false,
-        }),
-      ]).start(() => animateBackToOrigin(index));
+      animateBackToOrigin(index);
     },
-    [shakes, pans]
+    [animateBackToOrigin]
   );
 
   const animateSnapTo = useCallback(
     (index: number, toX: number, toY: number, onDone?: () => void) => {
-      Animated.parallel([
-        Animated.timing(pans[index].x, {
-          toValue: toX,
-          duration: SNAP_ANIM_DURATION,
-          useNativeDriver: false,
-        }),
-        Animated.timing(pans[index].y, {
-          toValue: toY,
-          duration: SNAP_ANIM_DURATION,
-          useNativeDriver: false,
-        }),
-      ]).start(onDone);
+      dragTranslateX[index].value = withTiming(toX, { duration: SNAP_ANIM_DURATION });
+      dragTranslateY[index].value = withTiming(
+        toY,
+        { duration: SNAP_ANIM_DURATION },
+        (finished) => {
+          if (finished && onDone) {
+            runOnJS(onDone)();
+          }
+        }
+      );
     },
-    [pans]
+    [dragTranslateX, dragTranslateY]
   );
 
   const createHandleRelease = useCallback(
     (targetIndex: number, targetId: string) =>
-      (_: unknown, gestureState: { dx: number; dy: number }) => {
+      (dx: number, dy: number) => {
         setActiveDragId(null);
         const trial = currentTrialRef.current;
         if (!trial || !trial.topTargets?.length || !trial.bottomOptions?.length) {
           animateBackToOrigin(targetIndex);
           return;
         }
-
-        const dx = gestureState.dx;
-        const dy = gestureState.dy;
         const radius = snapRadiusRef.current;
 
         const targetNode = targetRefs.current[targetIndex] as (View & {
@@ -849,36 +876,14 @@ export default function TrialScreen() {
     ]
   );
 
-  const createHandleMove = useCallback(
-    (index: number) => (_: unknown, gestureState: { dx: number; dy: number }) => {
-      pans[index].x.setValue(gestureState.dx);
-      pans[index].y.setValue(gestureState.dy);
-    },
-    [pans]
-  );
-
-  const createHandleMoveFor = useCallback(
-    (index: number) => (_: unknown, gestureState: { dx: number; dy: number }) => {
-      pans[index].x.setValue(gestureState.dx);
-      pans[index].y.setValue(gestureState.dy);
-    },
-    [pans]
-  );
-
-  const createPanResponder = useCallback(
-    (targetIndex: number, targetId: string) =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => {
-          if (activeDragIdRef.current !== null) return false;
-          if (matchedTargetIdsRef.current.has(targetId)) return false;
-          setActiveDragId(targetId);
-          return true;
-        },
-        onMoveShouldSetPanResponder: () => activeDragIdRef.current === targetId,
-        onPanResponderMove: createHandleMoveFor(targetIndex),
-        onPanResponderRelease: createHandleRelease(targetIndex, targetId),
-      }),
-    [createHandleRelease, createHandleMoveFor]
+  const createHandleStart = useCallback(
+    (targetId: string) =>
+      () => {
+        if (activeDragIdRef.current !== null) return;
+        if (matchedTargetIdsRef.current.has(targetId)) return;
+        setActiveDragId(targetId);
+      },
+    []
   );
 
   if (session.completed) {
@@ -911,28 +916,20 @@ export default function TrialScreen() {
           <View style={[styles.targetsRow, { gap: topGap }]}>
             {topTargets.map((target, index) => {
               const isMatched = matchedTargetIds.has(target.id);
-              const panResponder = createPanResponder(index, target.id);
               return (
-                <Animated.View
+                <DraggableTarget
                   key={target.id}
-                  ref={(el) => {
+                  viewRef={(el) => {
                     targetRefs.current[index] = el;
                   }}
-                  {...(isMatched ? {} : panResponder.panHandlers)}
+                  disabled={isMatched || (activeDragId !== null && activeDragId !== target.id)}
+                  translateX={dragTranslateX[index]}
+                  translateY={dragTranslateY[index]}
+                  onDragStart={createHandleStart(target.id)}
+                  onDragEnd={createHandleRelease(index, target.id)}
                   style={[
                     styles.targetWrap,
                     { width: ITEM_SIZE, height: ITEM_SIZE },
-                    {
-                      transform: [
-                        {
-                          translateX: Animated.add(
-                            pans[index].x,
-                            shakes[index]
-                          ),
-                        },
-                        { translateY: pans[index].y },
-                      ],
-                    },
                   ]}
                 >
                   <StimulusPlaceholder
@@ -941,7 +938,7 @@ export default function TrialScreen() {
                     itemRadius={ITEM_RADIUS}
                     borderColorAnim={targetBorderAnims[index]}
                   />
-                </Animated.View>
+                </DraggableTarget>
               );
             })}
           </View>

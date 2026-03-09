@@ -47,6 +47,35 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+
+    const preventGesture = (event: Event) => {
+      event.preventDefault();
+    };
+
+    let lastTouchEnd = 0;
+    const preventDoubleTapZoom = (event: Event) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    };
+
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+    document.addEventListener("gestureend", preventGesture);
+    document.addEventListener("touchend", preventDoubleTapZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
+      document.removeEventListener("touchend", preventDoubleTapZoom);
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthReady(true);
