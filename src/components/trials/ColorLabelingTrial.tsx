@@ -47,6 +47,19 @@ const COLORS: { id: string; hex: string }[] = [
   { id: "gri", hex: "#95A5A6" },
 ];
 
+const ALLOWED_COLOR_NAMES = [
+  "rosu",
+  "verde",
+  "albastru",
+  "galben",
+  "mov",
+  "negru",
+  "maro",
+  "alb",
+  "roz",
+  "gri",
+];
+
 function levenshteinDistance(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
@@ -299,7 +312,6 @@ export default function ColorLabelingTrial({
         recognitionRef.current = recognition;
         recognition.interimResults = true;
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-          console.log(event.results);
           if (trialResolvedRef.current) return;
           const resolveOnce = resolveOnceRef.current;
           const correctLabel = correctLabelRef.current;
@@ -317,13 +329,28 @@ export default function ColorLabelingTrial({
             .trim();
           const words = normalized.split(/\s+/).filter(Boolean);
 
-          const correctNormalized = normalizeSpeechResult(correctLabel);
-          const containsExpected = normalized.includes(correctNormalized);
-          const fuzzyMatch = words.some(
-            (word) => levenshteinDistance(normalizeSpeechResult(word), correctNormalized) <= 2
-          );
+          let closestMatch: string | null = null;
+          let bestDistance = Infinity;
 
-          if (containsExpected || fuzzyMatch) {
+          for (const word of words) {
+            const wordNorm = normalizeSpeechResult(word);
+            for (const color of ALLOWED_COLOR_NAMES) {
+              const colorNorm = normalizeSpeechResult(color);
+              const d = levenshteinDistance(wordNorm, colorNorm);
+              if (d < bestDistance) {
+                bestDistance = d;
+                closestMatch = color;
+              }
+            }
+          }
+
+          console.log({
+            transcript,
+            closestMatch: closestMatch ?? undefined,
+            distance: bestDistance === Infinity ? undefined : bestDistance,
+          });
+
+          if (closestMatch !== null && bestDistance <= 2 && closestMatch === correctLabel) {
             resolveOnce(true);
             return;
           }
