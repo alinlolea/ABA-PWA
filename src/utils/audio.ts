@@ -10,6 +10,8 @@ const ASSET_MAP: Record<string, number> = {
   continua: require("../../assets/audio/Continua.mp3"),
   gresit: require("../../assets/audio/Gresit.mp3"),
   "mai-incearca": require("../../assets/audio/Mai incearca.mp3"),
+  /** Alias (underscore) for prompts / code consistency */
+  mai_incearca: require("../../assets/audio/Mai incearca.mp3"),
   "construieste-la-fel": require("../../assets/audio/Construieste la fel.mp3"),
   "construieste-turn": require("../../assets/audio/Construieste turn.mp3"),
   potriveste: require("../../assets/audio/Potrivește.mp3"),

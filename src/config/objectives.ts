@@ -7,7 +7,12 @@ export type ObjectiveDefinition = {
     label: string;
   }[];
   /** For objectives with custom trial types (e.g. tower_over_model, tower-copy, pattern-reproduction, pattern-continuation). */
-  trialType?: "tower_over_model" | "tower-copy" | "pattern-reproduction" | "pattern-continuation";
+  trialType?:
+    | "tower_over_model"
+    | "tower-copy"
+    | "pattern-reproduction"
+    | "pattern-continuation"
+    | "logical-image-association";
   /** When true, floating Start button is hidden; user must open config drawer first. */
   requiresConfig?: boolean;
 };
@@ -33,7 +38,23 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
   { id: 4, title: "Construcție cuburi la fel", enabled: true, categories: [], trialType: "tower-copy", requiresConfig: true },
   { id: 5, title: "Reproducere pattern", enabled: true, categories: [], trialType: "pattern-reproduction", requiresConfig: true },
   { id: 6, title: "Continuare pattern", enabled: true, categories: [], trialType: "pattern-continuation", requiresConfig: true },
-  { id: 7, title: "Asociere logică imagini", enabled: true, categories: [] },
+  {
+    id: 7,
+    title: "Asociere logică imagini",
+    enabled: true,
+    requiresConfig: true,
+    trialType: "logical-image-association",
+    categories: [
+      { id: "colors", label: "Culori" },
+      { id: "shapes", label: "Forme" },
+      { id: "fruits", label: "Fructe" },
+      { id: "vegetables", label: "Legume" },
+      { id: "animals", label: "Animale" },
+      { id: "vehicles", label: "Vehicule" },
+      { id: "food", label: "Alimente" },
+      { id: "objects", label: "Obiecte" },
+    ],
+  },
   { id: 2, title: "Sortare itemi non-identici", enabled: true, categories: [] },
   { id: 8, title: "Sortare după funcție", enabled: true, categories: [] },
   { id: 9, title: "Sortare după caracteristică", enabled: true, categories: [] },

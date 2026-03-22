@@ -57,6 +57,7 @@ export default function VisualSkillsRoute() {
   const [patternUseColors, setPatternUseColors] = useState(true);
   const [patternUseShapes, setPatternUseShapes] = useState(false);
   const [patternStructure, setPatternStructure] = useState<"free" | "alternating">("free");
+  const [logicalNumberOfPairs, setLogicalNumberOfPairs] = useState(3);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
@@ -106,6 +107,7 @@ export default function VisualSkillsRoute() {
   const isTowerCopyObjective = selectedObjective?.trialType === "tower-copy";
   const isPatternReproductionObjective = selectedObjective?.trialType === "pattern-reproduction";
   const isPatternContinuationObjective = selectedObjective?.trialType === "pattern-continuation";
+  const isLogicalImageObjective = selectedObjective?.trialType === "logical-image-association";
   const patternValid = patternLength * patternRepetitions <= 14;
   const patternStimuliValid = patternUseColors || patternUseShapes;
   const totalItems = patternLength && patternRepetitions
@@ -124,7 +126,8 @@ export default function VisualSkillsRoute() {
     isTowerCopyObjective ||
     (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
     (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
-    selectedTargets.length > 0;
+    (isLogicalImageObjective ? selectedTargets.length >= logicalNumberOfPairs : false) ||
+    (!isLogicalImageObjective && selectedTargets.length > 0);
 
   useEffect(() => {
     if (isSetupOpen) {
@@ -273,6 +276,18 @@ export default function VisualSkillsRoute() {
             patternStructure: patternStructure,
           },
         });
+      } else if (isLogicalImageObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "logical-image-association",
+            category: categoryId,
+            targets: JSON.stringify(selectedTargets.map((t) => t.id)),
+            numberOfPairs: String(logicalNumberOfPairs),
+            distractorCount: String(distractorCount),
+          },
+        });
       } else {
         router.push({
           pathname: "/trial",
@@ -321,7 +336,13 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled;
-                const configurable = obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction" || obj.trialType === "pattern-continuation";
+                const configurable =
+                  obj.categories.length > 0 ||
+                  obj.trialType === "tower_over_model" ||
+                  obj.trialType === "tower-copy" ||
+                  obj.trialType === "pattern-reproduction" ||
+                  obj.trialType === "pattern-continuation" ||
+                  obj.trialType === "logical-image-association";
                 const processCategory =
                   obj.categories.length > 0
                     ? obj.categories.map((c) => c.label).join(", ")
@@ -338,7 +359,15 @@ export default function VisualSkillsRoute() {
                     onPress={() => {
                       if (isDisabled) return;
                       setSelectedId(obj.id);
-                      if (obj.categories.length > 0 || obj.trialType === "tower_over_model" || obj.trialType === "tower-copy" || obj.trialType === "pattern-reproduction" || obj.trialType === "pattern-continuation") setIsSetupOpen(true);
+                      if (
+                        obj.categories.length > 0 ||
+                        obj.trialType === "tower_over_model" ||
+                        obj.trialType === "tower-copy" ||
+                        obj.trialType === "pattern-reproduction" ||
+                        obj.trialType === "pattern-continuation" ||
+                        obj.trialType === "logical-image-association"
+                      )
+                        setIsSetupOpen(true);
                     }}
                     disabled={isDisabled}
                     activeOpacity={0.8}
@@ -785,6 +814,28 @@ export default function VisualSkillsRoute() {
                     ]}
                     showsVerticalScrollIndicator={false}
                   >
+                    {isLogicalImageObjective && (
+                      <View
+                        style={[
+                          styles.drawerCard,
+                          { borderRadius: rs(12), padding: rs(16), marginBottom: rs(16) },
+                        ]}
+                      >
+                        <Text style={[styles.towerConfigLabel, { fontSize: rs(14), marginBottom: rs(6) }]}>
+                          Număr perechi (1–5)
+                        </Text>
+                        <Stepper
+                          value={logicalNumberOfPairs}
+                          min={1}
+                          max={5}
+                          onChange={setLogicalNumberOfPairs}
+                        />
+                        <Text style={{ marginTop: rs(8), fontSize: rs(12), color: "#64748B" }}>
+                          Selectați cel puțin {logicalNumberOfPairs}{" "}
+                          {logicalNumberOfPairs === 1 ? "țintă" : "ținte"} din categorie (Configurează).
+                        </Text>
+                      </View>
+                    )}
                     {categories.map((cat) => {
                       const isSelected = categoryId === cat.id;
                       const isConfigured = isSelected && selectedTargets.length > 0;

@@ -1,10 +1,12 @@
 import ColorLabelingTrial from "@/components/trials/ColorLabelingTrial";
 import PatternContinuationTrial from "@/components/trials/PatternContinuationTrial";
+import LogicalMatchingTrial from "@/components/trials/LogicalMatchingTrial";
 import PatternReproductionTrial from "@/components/trials/PatternReproductionTrial";
 import TowerConstructionCopyTrial from "@/components/trials/TowerConstructionCopyTrial";
 import TowerConstructionTrial from "@/components/trials/TowerConstructionTrial";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
+import { Theme } from "@/design/theme";
 import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
@@ -37,7 +39,8 @@ const TRIAL_COUNT = 10;
 const CORRECT_FEEDBACK_MS = 600;
 const SHAKE_DURATION_MS = 300;
 const SNAP_ANIM_DURATION = 200;
-const MAX_TOP_TARGETS = 3;
+/** Max items in top row for B1 matching (logical association supports up to 5 pairs). */
+const MAX_TOP_TARGETS = 5;
 const MAX_BOTTOM_OPTIONS = 6;
 const DEFAULT_DISTRACTOR_COUNT = 0;
 const MIN_ITEM_SIZE = 70;
@@ -401,6 +404,8 @@ type TrialParams = {
   useColors?: string;
   useShapes?: string;
   patternStructure?: string;
+  /** Number of pairs (top targets) for logical-image-association / B1 trials; 1–5. */
+  numberOfPairs?: string;
 };
 
 function buildB1Config(params: TrialParams): B1Config {
@@ -419,13 +424,25 @@ function buildB1Config(params: TrialParams): B1Config {
   const selectedTargets = targetIds
     .map((id) => pool.find((s) => s.id === id))
     .filter((s): s is Stimulus => s != null);
+  const numberOfPairsRaw =
+    typeof params.numberOfPairs === "string"
+      ? params.numberOfPairs
+      : Array.isArray(params.numberOfPairs)
+        ? params.numberOfPairs[0]
+        : undefined;
+  const hasNumberOfPairs = numberOfPairsRaw != null && String(numberOfPairsRaw).length > 0;
+  const parsedPairs = parseInt(String(numberOfPairsRaw ?? "3"), 10);
+  const numberOfPairs = clamp(Number.isNaN(parsedPairs) ? 3 : parsedPairs, 1, 5);
+  const targetsForTrials = hasNumberOfPairs
+    ? selectedTargets.slice(0, numberOfPairs)
+    : selectedTargets;
   const distractorCount = Number(params.distractorCount ?? DEFAULT_DISTRACTOR_COUNT);
   const resolvedDistractorCount = Number.isNaN(distractorCount) || distractorCount < 0
     ? DEFAULT_DISTRACTOR_COUNT
     : distractorCount;
   return {
     category,
-    targets: selectedTargets,
+    targets: targetsForTrials.length > 0 ? targetsForTrials : selectedTargets,
     distractorCount: resolvedDistractorCount,
     pool,
   };
@@ -540,6 +557,21 @@ export default function TrialScreen() {
       />
     );
   }
+  if (trialType === "logical-image-association") {
+    const numberOfPairsRaw =
+      typeof params.numberOfPairs === "string"
+        ? params.numberOfPairs
+        : Array.isArray(params.numberOfPairs)
+          ? params.numberOfPairs[0]
+          : undefined;
+    const parsedLogicalPairs = parseInt(String(numberOfPairsRaw ?? "3"), 10);
+    const logicalPairCount = clamp(Number.isNaN(parsedLogicalPairs) ? 3 : parsedLogicalPairs, 1, 5);
+    return (
+      <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+        <LogicalMatchingTrial pairCount={logicalPairCount} />
+      </View>
+    );
+  }
   const voiceEnabledRaw = params.voiceEnabled;
   const voiceEnabled = (Array.isArray(voiceEnabledRaw) ? voiceEnabledRaw[0] : voiceEnabledRaw) !== "false";
   const configRef = useRef<B1Config | null>(null);
@@ -609,7 +641,9 @@ export default function TrialScreen() {
   const dragTranslateY = useRef(
     Array.from({ length: MAX_TOP_TARGETS }, () => makeMutable(0))
   ).current;
-  const targetRefs = useRef<(View | null)[]>([null, null, null]);
+  const targetRefs = useRef<(View | null)[]>(
+    Array.from({ length: MAX_TOP_TARGETS }, () => null)
+  );
   const optionRefs = useRef<(View | null)[]>(
     Array.from({ length: MAX_BOTTOM_OPTIONS }, () => null)
   );
