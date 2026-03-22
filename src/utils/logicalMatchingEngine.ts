@@ -103,6 +103,46 @@ export const LOGICAL_IMAGE_PAIRS: LogicalImagePairDef[] = [
     a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/sine.png"),
     b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/tren.png"),
   },
+  {
+    id: "acvariu-peste",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/acvariu.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/peste.png"),
+  },
+  {
+    id: "bicicleta-casca",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/bicicleta.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/casca.png"),
+  },
+  {
+    id: "bol-pisica",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/bol.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/pisica.png"),
+  },
+  {
+    id: "caine-os",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/caine.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/os.png"),
+  },
+  {
+    id: "cuib-vrabie",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/cuib.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/vrabie.png"),
+  },
+  {
+    id: "ou-tigaie",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/ou.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/tigaie.png"),
+  },
+  {
+    id: "telecomanda-tv",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/telecomanda.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/tv.png"),
+  },
+  {
+    id: "telefon-ureche",
+    a: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/telefon.png"),
+    b: require("../../assets/programe/discriminare-vizuala/asociere-logica-imagini/imagini/ureche.png"),
+  },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
