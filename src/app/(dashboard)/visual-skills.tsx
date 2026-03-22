@@ -3,6 +3,7 @@ import Stepper from "@/components/ui/Stepper";
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { OBJECTIVES } from "@/config/objectives";
+import { objectiveGridCardDisabledStyle } from "@/design/objectiveCard";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
@@ -12,6 +13,7 @@ import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useResponsive } from "@/hooks/useResponsive";
+import { isVisualSkillsObjectiveImplemented } from "@/utils/objectiveTrialAvailability";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -122,13 +124,16 @@ export default function VisualSkillsRoute() {
     }
   }, [patternRepetitions]);
 
+  const selectedObjectiveImplemented =
+    selectedObjective != null && isVisualSkillsObjectiveImplemented(selectedObjective);
   const canStart =
-    isTowerObjective ||
-    isTowerCopyObjective ||
-    (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
-    (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
-    isLogicalImageObjective ||
-    (!isLogicalImageObjective && selectedTargets.length > 0);
+    selectedObjectiveImplemented &&
+    (isTowerObjective ||
+      isTowerCopyObjective ||
+      (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
+      (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
+      isLogicalImageObjective ||
+      (!isLogicalImageObjective && selectedTargets.length > 0));
 
   useEffect(() => {
     if (isSetupOpen) {
@@ -201,7 +206,7 @@ export default function VisualSkillsRoute() {
   };
 
   const handleStartSesiune = async () => {
-    if (!canStart) return;
+    if (!canStart || !selectedObjectiveImplemented) return;
     const currentUser = auth.currentUser;
     if (!currentUser?.uid || !selectedChildId) return;
     const selectedObjectives = [selectedId];
@@ -333,7 +338,7 @@ export default function VisualSkillsRoute() {
               <View style={[styles.objectiveGrid, { gap: rs(12) }]}>
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
-                const isDisabled = !obj.enabled;
+                const isDisabled = !obj.enabled || !isVisualSkillsObjectiveImplemented(obj);
                 const configurable =
                   obj.categories.length > 0 ||
                   obj.trialType === "tower_over_model" ||
@@ -354,7 +359,7 @@ export default function VisualSkillsRoute() {
                       styles.objectiveGridCard,
                       { padding: rs(14), borderRadius: rs(12) },
                       isSelected && styles.objectiveGridCardSelected,
-                      isDisabled && styles.objectiveGridCardDisabled,
+                      isDisabled && objectiveGridCardDisabledStyle,
                     ]}
                     onPress={() => {
                       if (isDisabled) return;
@@ -422,7 +427,7 @@ export default function VisualSkillsRoute() {
                     </Text>
                     <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
                       <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                        {configurable ? "⚙ Configurabil" : "Standard"}
+                        {isDisabled ? "În curând" : configurable ? "⚙ Configurabil" : "Standard"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -1372,9 +1377,6 @@ const styles = StyleSheet.create({
     width: 2,
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
-  },
-  objectiveGridCardDisabled: {
-    opacity: 0.6,
   },
   objectiveGridCardTitle: {
     fontSize: 15,

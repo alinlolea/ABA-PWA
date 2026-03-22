@@ -1,5 +1,6 @@
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
+import { objectiveGridCardDisabledStyle } from "@/design/objectiveCard";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { TouchTarget } from "@/design/touch";
@@ -12,6 +13,7 @@ import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useResponsive } from "@/utils/responsive";
+import { isReceptiveDashboardObjectiveImplemented } from "@/utils/objectiveTrialAvailability";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useState } from "react";
@@ -66,9 +68,11 @@ export default function ReceptiveLanguageRoute() {
 
   const isShowCommonObjects = selectedId === SHOW_COMMON_OBJECTS_ID;
 
-  const canStart = isShowCommonObjects
-    ? selectedCategory === "animale_domestice" && itemCount >= 1 && itemCount <= 5
-    : Boolean(selectedId);
+  const canStart =
+    isShowCommonObjects &&
+    selectedCategory === "animale_domestice" &&
+    itemCount >= 1 &&
+    itemCount <= 5;
 
   const touchMin = Math.max(48, TouchTarget.minSize);
 
@@ -145,30 +149,7 @@ export default function ReceptiveLanguageRoute() {
       return;
     }
 
-    try {
-      const sessionRef = await addDoc(collection(db, "sessions"), {
-        userId: currentUser.uid,
-        childId: selectedChildId,
-        startedAt: serverTimestamp(),
-        completedAt: null,
-        totalTrials: 0,
-        correctTrials: 0,
-        masteredItems: 0,
-        objectives: [{ objectiveId: selectedId, trials: 0, correct: 0, mastered: false }],
-      });
-      const childSnap = await getDoc(doc(db, "children", selectedChildId));
-      const voiceEnabled = childSnap.exists() ? (childSnap.data().voiceEnabled !== false) : true;
-      router.push({
-        pathname: "/trial",
-        params: {
-          sessionId: sessionRef.id,
-          childId: selectedChildId,
-          voiceEnabled: String(voiceEnabled),
-        },
-      });
-    } catch {
-      // do not block navigation
-    }
+    // Other receptive objectives: no trial route in `trial.tsx` yet (see objectiveTrialAvailability).
   };
 
   return (
@@ -198,6 +179,8 @@ export default function ReceptiveLanguageRoute() {
                   {RECEPTIVE_OBJECTIVES.map((obj) => {
                     const isSelected = obj.id === selectedId;
                     const configurable = obj.configurable;
+                    const isTrialImplemented = isReceptiveDashboardObjectiveImplemented(obj.id);
+                    const isDisabled = !isTrialImplemented;
                     return (
                       <TouchableOpacity
                         key={obj.id}
@@ -205,8 +188,12 @@ export default function ReceptiveLanguageRoute() {
                           styles.objectiveGridCard,
                           { padding: rs(14), borderRadius: rs(12) },
                           isSelected && styles.objectiveGridCardSelected,
+                          isDisabled && objectiveGridCardDisabledStyle,
                         ]}
+                        disabled={isDisabled}
+                        accessibilityState={{ disabled: isDisabled }}
                         onPress={() => {
+                          if (isDisabled) return;
                           setSelectedId(obj.id);
                           if (configurable) setIsSetupOpen(true);
                           else setIsSetupOpen(false);
@@ -255,7 +242,7 @@ export default function ReceptiveLanguageRoute() {
                         </Text>
                         <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
                           <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                            {configurable ? "⚙ Configurabil" : "Standard"}
+                            {isDisabled ? "În curând" : configurable ? "⚙ Configurabil" : "Standard"}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -532,8 +519,11 @@ const styles = StyleSheet.create({
   categoryDropdownOuter: {
     position: "relative",
   },
+  /** Stacks above sibling helper text so absolutely positioned panel is not covered (RN paints later siblings on top). */
   categoryDropdownRelative: {
     position: "relative",
+    zIndex: 2,
+    elevation: 8,
   },
   categoryDropdownPanel: {
     position: "absolute",
@@ -543,8 +533,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: "#fff",
     borderRadius: 12,
-    zIndex: 999,
-    elevation: 10,
+    zIndex: 10,
+    elevation: 12,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -605,6 +595,9 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
   },
   categoryHelperText: {
+    position: "relative",
+    zIndex: 0,
+    elevation: 0,
     color: Colors.textSecondary,
     lineHeight: 18,
   },

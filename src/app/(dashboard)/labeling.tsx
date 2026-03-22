@@ -1,11 +1,13 @@
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
+import { objectiveGridCardDisabledStyle } from "@/design/objectiveCard";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
+import { isLabelingObjectiveImplemented } from "@/utils/objectiveTrialAvailability";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -43,6 +45,7 @@ export default function LabelingRoute() {
   }, [selectedChildId]);
 
   const handleCardPress = async (objectiveId: string) => {
+    if (!isLabelingObjectiveImplemented(objectiveId)) return;
     if (!selectedChildId) return;
     const currentUser = auth.currentUser;
     if (!currentUser?.uid) return;
@@ -109,16 +112,23 @@ export default function LabelingRoute() {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={[styles.objectiveGrid, { gap: rs(12) }]}>
-                  {LABELING_OBJECTIVES.map((obj) => (
+                  {LABELING_OBJECTIVES.map((obj) => {
+                    const trialOk = isLabelingObjectiveImplemented(obj.id);
+                    const isDisabled = !selectedChildId || !trialOk;
+                    return (
                     <TouchableOpacity
                       key={obj.id}
                       style={[
                         styles.objectiveGridCard,
                         { padding: rs(14), borderRadius: rs(12) },
-                        !selectedChildId && styles.objectiveGridCardDisabled,
+                        isDisabled && objectiveGridCardDisabledStyle,
                       ]}
-                      onPress={() => handleCardPress(obj.id)}
-                      disabled={!selectedChildId}
+                      onPress={() => {
+                        if (isDisabled) return;
+                        handleCardPress(obj.id);
+                      }}
+                      disabled={isDisabled}
+                      accessibilityState={{ disabled: isDisabled }}
                       activeOpacity={0.8}
                     >
                       <View style={styles.cardAccentWrapper}>
@@ -149,11 +159,12 @@ export default function LabelingRoute() {
                       </Text>
                       <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
                         <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                          Țintă: {obj.target}
+                          {!trialOk ? "În curând" : `Țintă: ${obj.target}`}
                         </Text>
                       </View>
                     </TouchableOpacity>
-                  ))}
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>
@@ -251,9 +262,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
-  },
-  objectiveGridCardDisabled: {
-    opacity: 0.6,
   },
   objectiveGridCardTitle: {
     fontSize: 15,

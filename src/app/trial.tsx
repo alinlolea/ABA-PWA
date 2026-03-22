@@ -450,6 +450,7 @@ function buildB1Config(params: TrialParams): B1Config {
 }
 
 export default function TrialScreen() {
+  // When adding new top-level branches (objective= / trialType=), update `@/utils/objectiveTrialAvailability`.
   const { width: screenWidth } = useWindowDimensions();
   const params = useLocalSearchParams<TrialParams>();
   const sessionIdRaw = params.sessionId;

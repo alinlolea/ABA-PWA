@@ -1,4 +1,6 @@
 import { db } from "@/config/firebase";
+import { Colors } from "@/design/colors";
+import { Typography } from "@/design/typography";
 import type { ReceptiveCategory } from "@/features/receptive-language/categories";
 import {
   getReceptiveItemPool,
@@ -313,11 +315,13 @@ export default function ReceptiveShowCommonObjectsTrial({
     return <View style={[styles.screen, { width, height }]} />;
   }
 
+  const progressLabel = `${currentTrialIndex + 1} / ${TRIAL_TOTAL}`;
+
   return (
     <View style={[styles.screen, { width, height }]}>
-      <Text style={styles.progressText}>
-        {currentTrialIndex + 1}/{TRIAL_TOTAL}
-      </Text>
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressText}>{progressLabel}</Text>
+      </View>
       {placedItems.map((item) => {
         const fb = feedbackById[item.id] ?? "neutral";
         const borderColor =
@@ -357,14 +361,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F5F7",
     position: "relative",
   },
-  progressText: {
+  /** Same as PatternReproductionTrial / PatternContinuationTrial / TowerConstructionTrial `progressContainer`. */
+  progressContainer: {
     position: "absolute",
     top: 20,
-    left: 20,
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    zIndex: 1000,
+    left: 24,
+    zIndex: 10,
+  },
+  /** Same as `trial.tsx` (B1) `styles.progressText`: Typography.small + Colors.textSecondary. */
+  progressText: {
+    fontSize: Typography.small,
+    color: Colors.textSecondary,
   },
   tile: {
     position: "absolute",

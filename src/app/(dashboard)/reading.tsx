@@ -1,6 +1,7 @@
 import ItemSelector from "@/components/ItemSelector";
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
+import { objectiveGridCardDisabledStyle } from "@/design/objectiveCard";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
@@ -9,6 +10,7 @@ import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useResponsive } from "@/utils/responsive";
+import { isReadingObjectiveImplemented } from "@/utils/objectiveTrialAvailability";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -53,7 +55,10 @@ export default function ReadingRoute() {
 
   const selectedObjective = READING_OBJECTIVES.find((o) => o.id === selectedId);
   const categories = selectedObjective?.configurable ? READING_DRAWER_CATEGORIES : [];
-  const canStart = selectedObjective?.configurable ? selectedTargets.length > 0 : !!selectedId;
+  const canStart = Boolean(selectedObjective) &&
+    (selectedObjective!.configurable
+      ? selectedTargets.length > 0
+      : isReadingObjectiveImplemented(selectedId ?? ""));
 
   useEffect(() => {
     if (!selectedChildId) {
@@ -112,6 +117,7 @@ export default function ReadingRoute() {
 
   const handleStartSesiune = async () => {
     if (!selectedId) return;
+    if (!isReadingObjectiveImplemented(selectedId)) return;
     if (selectedObjective?.configurable && !selectedTargets.length) return;
     const currentUser = auth.currentUser;
     if (!currentUser?.uid || !selectedChildId) return;
@@ -171,6 +177,8 @@ export default function ReadingRoute() {
                 {READING_OBJECTIVES.map((obj) => {
                   const isSelected = obj.id === selectedId;
                   const configurable = obj.configurable;
+                  const isTrialImplemented = isReadingObjectiveImplemented(obj.id);
+                  const isDisabled = !isTrialImplemented;
                   return (
                     <TouchableOpacity
                       key={obj.id}
@@ -178,8 +186,12 @@ export default function ReadingRoute() {
                         styles.objectiveGridCard,
                         { padding: rs(14), borderRadius: rs(12) },
                         isSelected && styles.objectiveGridCardSelected,
+                        isDisabled && objectiveGridCardDisabledStyle,
                       ]}
+                      disabled={isDisabled}
+                      accessibilityState={{ disabled: isDisabled }}
                       onPress={() => {
+                        if (isDisabled) return;
                         setSelectedId(obj.id);
                         if (configurable) setIsSetupOpen(true);
                       }}
@@ -227,7 +239,7 @@ export default function ReadingRoute() {
                       </Text>
                       <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
                         <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                          {configurable ? "⚙ Configurabil" : "Standard"}
+                          {isDisabled ? "În curând" : configurable ? "⚙ Configurabil" : "Standard"}
                         </Text>
                       </View>
                     </TouchableOpacity>
