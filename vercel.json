@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/generate-version.js && npx expo export --platform web && node scripts/inject-manifest.js",
+  "buildCommand": "node scripts/generate-version.js && node scripts/trim-images.js && npx expo export --platform web && node scripts/inject-manifest.js",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
