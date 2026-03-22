@@ -9,6 +9,7 @@ import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
+import ReceptiveShowCommonObjectsTrial from "@/features/receptive-language/ReceptiveShowCommonObjectsTrial";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/config/firebase";
@@ -468,6 +469,41 @@ export default function TrialScreen() {
         sessionId={sessionId}
         childId={typeof params.childId === "string" ? params.childId : Array.isArray(params.childId) ? params.childId[0] : undefined}
         voiceEnabled={voiceEnabledLabeling}
+      />
+    );
+  }
+  if (objective === "receptive_show_common_objects") {
+    if (!sessionId) {
+      throw new Error("TrialScreen: sessionId is required for receptive_show_common_objects.");
+    }
+    const categoryRaw = params.category;
+    const category =
+      typeof categoryRaw === "string"
+        ? categoryRaw
+        : Array.isArray(categoryRaw)
+          ? categoryRaw[0] ?? ""
+          : "";
+    const itemCountRaw = Array.isArray(params.itemCount) ? params.itemCount[0] : params.itemCount;
+    const distractorCountRaw = Array.isArray(params.distractorCount)
+      ? params.distractorCount[0]
+      : params.distractorCount;
+    const itemCount = Math.min(
+      5,
+      Math.max(1, parseInt(String(itemCountRaw ?? "1"), 10) || 1)
+    );
+    const distractorCount = Math.min(
+      3,
+      Math.max(0, parseInt(String(distractorCountRaw ?? "0"), 10) || 0)
+    );
+    const voiceEnabledReceptive =
+      (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <ReceptiveShowCommonObjectsTrial
+        sessionId={sessionId}
+        category={category}
+        itemCount={itemCount}
+        distractorCount={distractorCount}
+        voiceEnabled={voiceEnabledReceptive}
       />
     );
   }

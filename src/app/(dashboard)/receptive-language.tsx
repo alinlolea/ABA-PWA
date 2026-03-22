@@ -1,22 +1,21 @@
-import ItemSelector from "@/components/ItemSelector";
 import ScreenContainer from "@/components/layout/ScreenContainer";
 import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
+import { TouchTarget } from "@/design/touch";
 import { Typography } from "@/design/typography";
-import type { Stimulus } from "@/features/b1-2d-matching/types";
+import {
+  RECEPTIVE_CATEGORIES,
+  type ReceptiveCategory,
+} from "@/features/receptive-language/categories";
 import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useResponsive } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  Animated,
-  Easing,
-  Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,8 +23,10 @@ import {
   View,
 } from "react-native";
 
+const SHOW_COMMON_OBJECTS_ID = "show_common_objects";
+
 const RECEPTIVE_OBJECTIVES = [
-  { id: "show_common_objects", name: "Arată obiecte comune", processCategory: "Identificare simplă", configurable: true },
+  { id: SHOW_COMMON_OBJECTS_ID, name: "Arată obiecte comune", processCategory: "Identificare simplă", configurable: true },
   { id: "touch_object_parts", name: "Atinge părți ale obiectelor", processCategory: "Identificare simplă", configurable: false },
   { id: "show_adjectives", name: "Arată adjective", processCategory: "Identificare simplă", configurable: false },
   { id: "show_actions", name: "Arată acțiuni", processCategory: "Identificare simplă", configurable: false },
@@ -48,28 +49,25 @@ const RECEPTIVE_OBJECTIVES = [
   { id: "identify_social_images", name: "Identifică imagini sociale", processCategory: "Social-receptiv", configurable: false },
 ];
 
-const RECEPTIVE_DRAWER_CATEGORIES = [{ id: "common", label: "Obiecte comune" }];
-
 export default function ReceptiveLanguageRoute() {
   const router = useRouter();
   const { selectedChildId } = useContext(SelectedChildContext);
-  const [selectedId, setSelectedId] = useState<string | null>("show_common_objects");
-  const [categoryId, setCategoryId] = useState<string>("common");
-  const [selectedTargets, setSelectedTargets] = useState<Stimulus[]>([]);
-  const [distractorCount, setDistractorCount] = useState(0);
-  const [selectorVisible, setSelectorVisible] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(SHOW_COMMON_OBJECTS_ID);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
-  const { width, rs } = useResponsive();
-  const panelWidth = useMemo(() => {
-    return Math.min(Math.max(width * 0.42, 520), 700);
-  }, [width]);
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const { rs } = useResponsive();
 
-  const selectedObjective = RECEPTIVE_OBJECTIVES.find((o) => o.id === selectedId);
-  const categories = selectedObjective?.configurable ? RECEPTIVE_DRAWER_CATEGORIES : [];
-  const canStart = selectedObjective?.configurable ? selectedTargets.length > 0 : !!selectedId;
+  const [selectedCategory, setSelectedCategory] = useState<ReceptiveCategory | null>(null);
+  const [itemCount, setItemCount] = useState<number>(1);
+  const [distractorCount, setDistractorCount] = useState<number>(0);
+
+  const isShowCommonObjects = selectedId === SHOW_COMMON_OBJECTS_ID;
+
+  const canStart = isShowCommonObjects
+    ? selectedCategory != null && itemCount >= 1 && itemCount <= 5
+    : Boolean(selectedId);
+
+  const touchMin = Math.max(48, TouchTarget.minSize);
 
   useEffect(() => {
     if (!selectedChildId) {
@@ -82,55 +80,63 @@ export default function ReceptiveLanguageRoute() {
   }, [selectedChildId]);
 
   useEffect(() => {
-    if (selectorVisible) {
-      slideAnim.setValue(panelWidth);
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [selectorVisible, panelWidth, slideAnim]);
-
-  const closePanel = () => {
-    Animated.timing(slideAnim, {
-      toValue: panelWidth,
-      duration: 250,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start(() => setSelectorVisible(false));
-  };
-
-  useEffect(() => {
-    if (categories.length > 0 && !categories.some((c) => c.id === categoryId)) {
-      setCategoryId(categories[0].id);
-      setSelectedTargets([]);
+    if (!isShowCommonObjects) {
+      setSelectedCategory(null);
+      setItemCount(1);
       setDistractorCount(0);
     }
-  }, [selectedId, categories, categoryId]);
+  }, [isShowCommonObjects]);
 
-  const handleCategoryChange = (nextId: string) => {
-    setCategoryId(nextId);
-    setSelectedTargets([]);
-    setDistractorCount(0);
+  const bumpItemCount = (delta: number) => {
+    setItemCount((c) => Math.min(5, Math.max(1, c + delta)));
   };
 
-  const openSelector = (cat: { id: string; label: string }) => {
-    setActiveCategory(cat);
-    if (cat.id !== categoryId) {
-      setCategoryId(cat.id);
-      setSelectedTargets([]);
-      setDistractorCount(0);
-    }
-    setSelectorVisible(true);
+  const bumpDistractorCount = (delta: number) => {
+    setDistractorCount((c) => Math.min(3, Math.max(0, c + delta)));
   };
 
   const handleStartSesiune = async () => {
     if (!selectedId) return;
-    if (selectedObjective?.configurable && !selectedTargets.length) return;
     const currentUser = auth.currentUser;
     if (!currentUser?.uid || !selectedChildId) return;
+
+    if (selectedId === SHOW_COMMON_OBJECTS_ID) {
+      if (selectedCategory == null || itemCount < 1) return;
+      try {
+        const sessionRef = await addDoc(collection(db, "sessions"), {
+          userId: currentUser.uid,
+          childId: selectedChildId,
+          startedAt: serverTimestamp(),
+          completedAt: null,
+          totalTrials: 0,
+          correctTrials: 0,
+          masteredItems: 0,
+          objectives: [{ objectiveId: selectedId, trials: 0, correct: 0, mastered: false }],
+          category: selectedCategory,
+          itemCount,
+          distractorCount,
+          objectiveType: "receptive_show_common_objects",
+        });
+        const childSnap = await getDoc(doc(db, "children", selectedChildId));
+        const voiceEnabled = childSnap.exists() ? (childSnap.data().voiceEnabled !== false) : true;
+        router.push({
+          pathname: "/trial",
+          params: {
+            sessionId: sessionRef.id,
+            objective: "receptive_show_common_objects",
+            category: selectedCategory,
+            itemCount: String(itemCount),
+            distractorCount: String(distractorCount),
+            childId: selectedChildId,
+            voiceEnabled: String(voiceEnabled),
+          },
+        });
+      } catch {
+        // do not block navigation
+      }
+      return;
+    }
+
     try {
       const sessionRef = await addDoc(collection(db, "sessions"), {
         userId: currentUser.uid,
@@ -149,9 +155,6 @@ export default function ReceptiveLanguageRoute() {
         params: {
           sessionId: sessionRef.id,
           childId: selectedChildId,
-          category: categoryId,
-          targets: JSON.stringify((selectedTargets || []).map((t) => t.id)),
-          distractorCount: String(distractorCount),
           voiceEnabled: String(voiceEnabled),
         },
       });
@@ -184,203 +187,261 @@ export default function ReceptiveLanguageRoute() {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={[styles.objectiveGrid, { gap: rs(12) }]}>
-                {RECEPTIVE_OBJECTIVES.map((obj) => {
-                  const isSelected = obj.id === selectedId;
-                  const configurable = obj.configurable;
-                  return (
-                    <TouchableOpacity
-                      key={obj.id}
-                      style={[
-                        styles.objectiveGridCard,
-                        { padding: rs(14), borderRadius: rs(12) },
-                        isSelected && styles.objectiveGridCardSelected,
-                      ]}
-                      onPress={() => {
-                        setSelectedId(obj.id);
-                        if (configurable) setIsSetupOpen(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.cardAccentWrapper}>
-                        <LinearGradient
-                          colors={[
-                            "rgba(44,100,104,0)",
-                            "rgba(44,100,104,0.9)",
-                            "rgba(44,100,104,0.9)",
-                            "rgba(44,100,104,0)",
-                          ]}
-                          locations={[0, 0.2, 0.8, 1]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.cardAccentLine}
-                        />
-                      </View>
-                      {isSelected && (
-                        <LinearGradient
-                          colors={[
-                            "rgba(44,100,104,0)",
-                            "rgba(44,100,104,0.9)",
-                            "rgba(44,100,104,0.9)",
-                            "rgba(44,100,104,0)",
-                          ]}
-                          locations={[0, 0.2, 0.8, 1]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 0, y: 1 }}
-                          style={styles.cardLeftAccent}
-                        />
-                      )}
-                      <Text
-                        style={[styles.objectiveGridCardTitle, { fontSize: rs(15), marginBottom: rs(4) }]}
-                        numberOfLines={2}
+                  {RECEPTIVE_OBJECTIVES.map((obj) => {
+                    const isSelected = obj.id === selectedId;
+                    const configurable = obj.configurable;
+                    return (
+                      <TouchableOpacity
+                        key={obj.id}
+                        style={[
+                          styles.objectiveGridCard,
+                          { padding: rs(14), borderRadius: rs(12) },
+                          isSelected && styles.objectiveGridCardSelected,
+                        ]}
+                        onPress={() => {
+                          setSelectedId(obj.id);
+                          if (configurable) setIsSetupOpen(true);
+                          else setIsSetupOpen(false);
+                        }}
+                        activeOpacity={0.8}
                       >
-                        {obj.name}
-                      </Text>
-                      <Text
-                        style={[styles.objectiveGridCardCategory, { fontSize: rs(13), marginBottom: rs(8) }]}
-                        numberOfLines={1}
-                      >
-                        {obj.processCategory}
-                      </Text>
-                      <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
-                        <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                          {configurable ? "⚙ Configurabil" : "Standard"}
+                        <View style={styles.cardAccentWrapper}>
+                          <LinearGradient
+                            colors={[
+                              "rgba(44,100,104,0)",
+                              "rgba(44,100,104,0.9)",
+                              "rgba(44,100,104,0.9)",
+                              "rgba(44,100,104,0)",
+                            ]}
+                            locations={[0, 0.2, 0.8, 1]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.cardAccentLine}
+                          />
+                        </View>
+                        {isSelected && (
+                          <LinearGradient
+                            colors={[
+                              "rgba(44,100,104,0)",
+                              "rgba(44,100,104,0.9)",
+                              "rgba(44,100,104,0.9)",
+                              "rgba(44,100,104,0)",
+                            ]}
+                            locations={[0, 0.2, 0.8, 1]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                            style={styles.cardLeftAccent}
+                          />
+                        )}
+                        <Text
+                          style={[styles.objectiveGridCardTitle, { fontSize: rs(15), marginBottom: rs(4) }]}
+                          numberOfLines={2}
+                        >
+                          {obj.name}
                         </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
+                        <Text
+                          style={[styles.objectiveGridCardCategory, { fontSize: rs(13), marginBottom: rs(8) }]}
+                          numberOfLines={1}
+                        >
+                          {obj.processCategory}
+                        </Text>
+                        <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
+                          <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
+                            {configurable ? "⚙ Configurabil" : "Standard"}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
           </View>
         </View>
 
-        {isSetupOpen && (
+        {isSetupOpen && selectedId === SHOW_COMMON_OBJECTS_ID && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <View style={styles.drawerBackdrop} />
-            {categories.length > 0 && (
-              <View style={[styles.setupDrawer, { width: width * 0.4, paddingTop: rs(16), paddingHorizontal: rs(16) }]}>
-                <View style={[styles.drawerHeader, { marginBottom: rs(16), paddingBottom: rs(12) }]}>
-                  <Text style={[styles.sessionCardTitle, { fontSize: rs(18), marginBottom: rs(18) }]}>Categorii</Text>
+            <View style={[styles.setupDrawer, { width: "42%", minWidth: rs(360), maxWidth: rs(520), paddingTop: rs(16), paddingHorizontal: rs(16) }]}>
+              <View style={[styles.drawerHeader, { marginBottom: rs(12), paddingBottom: rs(12) }]}>
+                <View style={{ flex: 1, paddingRight: rs(8) }}>
+                  <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Arată obiecte comune</Text>
+                  <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(4) }]}>
+                    Alege categoria și parametrii sesiunii
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setIsSetupOpen(false)}
+                  hitSlop={{ top: rs(12), bottom: rs(12), left: rs(12), right: rs(12) }}
+                  style={{ minWidth: rs(touchMin), minHeight: rs(touchMin), justifyContent: "center", alignItems: "center" }}
+                  accessibilityLabel="Închide configurarea"
+                >
+                  <Ionicons name="close" size={rs(24)} color="#1E293B" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.configScroll}
+                contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>Categorie</Text>
+                <View style={[styles.categoryGrid, { gap: rs(Spacing.sm), marginBottom: rs(Spacing.lg) }]}>
+                  {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
+                    const selected = selectedCategory === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        style={[
+                          styles.categoryCard,
+                          {
+                            minHeight: rs(touchMin),
+                            paddingVertical: rs(Spacing.md),
+                            paddingHorizontal: rs(Spacing.md),
+                            borderRadius: rs(12),
+                          },
+                          selected && styles.categoryCardSelected,
+                        ]}
+                        onPress={() => setSelectedCategory(key)}
+                        activeOpacity={0.85}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryCardText,
+                            { fontSize: rs(15) },
+                            selected && styles.categoryCardTextSelected,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                  Număr itemi (țintă) — 1–5
+                </Text>
+                <View style={[styles.rowStepper, { marginBottom: rs(Spacing.lg), gap: rs(Spacing.sm) }]}>
                   <TouchableOpacity
-                    onPress={() => setIsSetupOpen(false)}
-                    hitSlop={{ top: rs(12), bottom: rs(12), left: rs(12), right: rs(12) }}
+                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
+                    onPress={() => bumpItemCount(-1)}
+                    disabled={itemCount <= 1}
+                    accessibilityLabel="Scade numărul de itemi"
                   >
-                    <Ionicons name="close" size={rs(24)} color="#1E293B" />
+                    <Ionicons name="remove" size={rs(22)} color={itemCount <= 1 ? "#94A3B8" : "#1E293B"} />
+                  </TouchableOpacity>
+                  <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
+                    <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{itemCount}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
+                    onPress={() => bumpItemCount(1)}
+                    disabled={itemCount >= 5}
+                    accessibilityLabel="Crește numărul de itemi"
+                  >
+                    <Ionicons name="add" size={rs(22)} color={itemCount >= 5 ? "#94A3B8" : "#1E293B"} />
                   </TouchableOpacity>
                 </View>
-                <View style={[styles.drawerCard, { borderRadius: rs(12), padding: rs(16) }]}>
-                  <ScrollView
-                    style={styles.columnScroll}
-                    contentContainerStyle={[
-                      styles.columnScrollContent,
-                      { paddingHorizontal: rs(12), paddingVertical: rs(8) },
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    nestedScrollEnabled={true}
-                  >
-                    {categories.map((cat) => {
-                      const isSelected = categoryId === cat.id;
-                      const isConfigured = isSelected && selectedTargets.length > 0;
-                      return (
-                        <Pressable
-                          key={cat.id}
-                          style={({ pressed }) => [
-                            styles.rowItem,
-                            { paddingVertical: rs(12), paddingHorizontal: rs(16), borderRadius: rs(12), marginBottom: rs(6), gap: rs(20) },
-                            pressed && styles.rowItemPressed,
-                            isSelected && styles.rowItemSelected,
-                          ]}
-                          onPress={() => handleCategoryChange(cat.id)}
-                        >
-                          <View style={styles.categoryRowContent}>
-                            <Text
-                              style={[
-                                styles.categoryRowText,
-                                isSelected && styles.categoryRowTextSelected,
-                                { fontSize: rs(15) },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {cat.label}
-                            </Text>
-                          </View>
-                          <TouchableOpacity onPress={() => openSelector(cat)}>
-                            {isConfigured ? (
-                              <Text style={[styles.configuredText, { fontSize: rs(13) }]}>Configurat</Text>
-                            ) : (
-                              <Text style={[styles.setupText, { fontSize: rs(13) }]}>Configurează</Text>
-                            )}
-                          </TouchableOpacity>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
+                <View style={[styles.quickRow, { gap: rs(Spacing.sm), marginBottom: rs(Spacing.lg) }]}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[
+                        styles.quickChip,
+                        {
+                          minWidth: rs(touchMin),
+                          minHeight: rs(Math.max(48, touchMin * 0.75)),
+                          borderRadius: rs(12),
+                        },
+                        itemCount === n && styles.quickChipSelected,
+                      ]}
+                      onPress={() => setItemCount(n)}
+                      accessibilityLabel={`${n} itemi`}
+                      accessibilityState={{ selected: itemCount === n }}
+                    >
+                      <Text style={[styles.quickChipText, { fontSize: rs(16) }, itemCount === n && styles.quickChipTextSelected]}>{n}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
-            )}
+
+                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                  Distractori — 0–3
+                </Text>
+                <View style={[styles.rowStepper, { marginBottom: rs(Spacing.md), gap: rs(Spacing.sm) }]}>
+                  <TouchableOpacity
+                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
+                    onPress={() => bumpDistractorCount(-1)}
+                    disabled={distractorCount <= 0}
+                    accessibilityLabel="Scade distractorii"
+                  >
+                    <Ionicons name="remove" size={rs(22)} color={distractorCount <= 0 ? "#94A3B8" : "#1E293B"} />
+                  </TouchableOpacity>
+                  <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
+                    <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{distractorCount}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
+                    onPress={() => bumpDistractorCount(1)}
+                    disabled={distractorCount >= 3}
+                    accessibilityLabel="Crește distractorii"
+                  >
+                    <Ionicons name="add" size={rs(22)} color={distractorCount >= 3 ? "#94A3B8" : "#1E293B"} />
+                  </TouchableOpacity>
+                </View>
+                <View style={[styles.quickRow, { gap: rs(Spacing.sm) }]}>
+                  {[0, 1, 2, 3].map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[
+                        styles.quickChip,
+                        {
+                          minWidth: rs(touchMin),
+                          minHeight: rs(Math.max(48, touchMin * 0.75)),
+                          borderRadius: rs(12),
+                        },
+                        distractorCount === n && styles.quickChipSelected,
+                      ]}
+                      onPress={() => setDistractorCount(n)}
+                      accessibilityLabel={`${n} distractori`}
+                      accessibilityState={{ selected: distractorCount === n }}
+                    >
+                      <Text
+                        style={[
+                          styles.quickChipText,
+                          { fontSize: rs(16) },
+                          distractorCount === n && styles.quickChipTextSelected,
+                        ]}
+                      >
+                        {n}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
           </View>
         )}
       </View>
 
-        <View style={[styles.floatingButtonContainer, { bottom: rs(32) }]} pointerEvents="box-none">
-          <TouchableOpacity
-            style={[
-              styles.floatingButton,
-              { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
-              !canStart && styles.floatingButtonDisabled,
-            ]}
-            onPress={handleStartSesiune}
-            disabled={!canStart}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.floatingButtonContainer, { bottom: rs(32) }]} pointerEvents="box-none">
+        <TouchableOpacity
+          style={[
+            styles.floatingButton,
+            { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14), minHeight: rs(touchMin) },
+            !canStart && styles.floatingButtonDisabled,
+          ]}
+          onPress={handleStartSesiune}
+          disabled={!canStart}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
+        </TouchableOpacity>
       </View>
-
-      <Modal
-        visible={selectorVisible}
-        animationType="none"
-        transparent
-        onRequestClose={closePanel}
-      >
-        <View style={{ flex: 1 }} pointerEvents="box-none">
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={closePanel}
-          />
-          {selectorVisible && activeCategory && (
-            <Animated.View
-              pointerEvents="box-none"
-              style={[
-                styles.sidePanelContainer,
-                {
-                  position: "absolute",
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: panelWidth,
-                  transform: [{ translateX: slideAnim }],
-                  padding: rs(28),
-                  borderTopLeftRadius: rs(20),
-                  borderBottomLeftRadius: rs(20),
-                },
-              ]}
-            >
-              <View style={{ flex: 1 }}>
-                <ItemSelector
-                  category={activeCategory}
-                  selectedTargets={selectedTargets}
-                  setSelectedTargets={setSelectedTargets}
-                  distractorCount={distractorCount}
-                  setDistractorCount={setDistractorCount}
-                  onClose={closePanel}
-                />
-              </View>
-            </Animated.View>
-          )}
-        </View>
-      </Modal>
     </ScreenContainer>
   );
 }
@@ -412,17 +473,97 @@ const styles = StyleSheet.create({
   drawerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
+    alignItems: "flex-start",
     borderBottomWidth: 1,
     borderBottomColor: "#E5EEF0",
   },
-  drawerCard: {
+  drawerTitle: {
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  drawerSubtitle: {
+    color: Colors.textSecondary,
+  },
+  configScroll: {
     flex: 1,
+  },
+  sectionLabel: {
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  categoryCard: {
+    width: "47%",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+  },
+  categoryCardSelected: {
+    borderColor: "#2C6468",
+    backgroundColor: "rgba(44,100,104,0.12)",
+  },
+  categoryCardText: {
+    fontWeight: "500",
+    color: "#334155",
+    textAlign: "center",
+  },
+  categoryCardTextSelected: {
+    color: "#2C6468",
+    fontWeight: "700",
+  },
+  rowStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  stepperBtn: {
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  valuePill: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 72,
+  },
+  valuePillText: {
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  quickRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  quickChip: {
+    flexGrow: 1,
+    flexBasis: "15%",
+    maxWidth: 88,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+  },
+  quickChipSelected: {
+    borderColor: "#2C6468",
+    backgroundColor: "rgba(44,100,104,0.14)",
+  },
+  quickChipText: {
+    fontWeight: "600",
+    color: "#475569",
+  },
+  quickChipTextSelected: {
+    color: "#2C6468",
   },
   sessionRow: {
     flex: 1,
@@ -440,13 +581,6 @@ const styles = StyleSheet.create({
   },
   objectiveGridScrollContent: {
     paddingBottom: 24,
-  },
-  sessionCardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 18,
-    color: "#1E293B",
   },
   areaHeader: {
     marginBottom: 20,
@@ -549,51 +683,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#2C6468",
   },
-  columnScroll: {
-    flex: 1,
-  },
-  columnScrollContent: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  rowItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 6,
-    gap: 20,
-  },
-  rowItemPressed: {
-    backgroundColor: "rgba(44,100,104,0.08)",
-  },
-  rowItemSelected: {
-    backgroundColor: "rgba(44,100,104,0.14)",
-  },
-  categoryRowContent: {
-    flexShrink: 0,
-  },
-  setupText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#2C6468",
-  },
-  configuredText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#16A34A",
-  },
-  categoryRowText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#334155",
-  },
-  categoryRowTextSelected: {
-    color: "#2C6468",
-    fontWeight: "600",
-  },
   floatingButtonContainer: {
     position: "absolute",
     bottom: 32,
@@ -621,18 +710,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
-  },
-  sidePanelContainer: {
-    minWidth: 520,
-    maxWidth: 700,
-    height: "100%",
-    backgroundColor: "#FFFFFF",
-    padding: 28,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 8,
   },
 });
