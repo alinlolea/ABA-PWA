@@ -28,6 +28,9 @@ type PlacedItem = ReceptiveItemAsset & {
   top: number;
 };
 
+/** Placed row used as the active target queue (same shape as on-screen targets). */
+type ItemType = PlacedItem;
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -131,18 +134,28 @@ export default function ReceptiveShowCommonObjectsTrial({
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
   const [feedbackById, setFeedbackById] = useState<Record<string, FeedbackState>>({});
-  const [instructionBlocking, setInstructionBlocking] = useState(true);
+  const [remainingTargets, setRemainingTargets] = useState<ItemType[]>([]);
+  const [currentTarget, setCurrentTarget] = useState<ItemType | null>(null);
 
   const wrongAlternateRef = useRef(false);
   const audioChainRef = useRef(Promise.resolve());
   const mountedRef = useRef(true);
-  const selectedCorrectRef = useRef<string[]>([]);
-  const instructionBlockingRef = useRef(true);
   const sessionFinishedRef = useRef(false);
+  const remainingTargetsRef = useRef<ItemType[]>([]);
+  const currentTargetRef = useRef<ItemType | null>(null);
+  const currentTrialIndexRef = useRef(0);
 
   useEffect(() => {
-    instructionBlockingRef.current = instructionBlocking;
-  }, [instructionBlocking]);
+    currentTrialIndexRef.current = currentTrialIndex;
+  }, [currentTrialIndex]);
+
+  useEffect(() => {
+    remainingTargetsRef.current = remainingTargets;
+  }, [remainingTargets]);
+
+  useEffect(() => {
+    currentTargetRef.current = currentTarget;
+  }, [currentTarget]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -159,6 +172,10 @@ export default function ReceptiveShowCommonObjectsTrial({
     const poolNow = receptiveCategory ? getReceptiveItemPool(receptiveCategory) : [];
     if (!receptiveCategory || poolNow.length === 0) {
       setPlacedItems([]);
+      setRemainingTargets([]);
+      setCurrentTarget(null);
+      remainingTargetsRef.current = [];
+      currentTargetRef.current = null;
       return;
     }
     const round = buildRound(
@@ -171,38 +188,29 @@ export default function ReceptiveShowCommonObjectsTrial({
     );
     if (!round) {
       setPlacedItems([]);
+      setRemainingTargets([]);
+      setCurrentTarget(null);
+      remainingTargetsRef.current = [];
+      currentTargetRef.current = null;
       return;
     }
 
-    selectedCorrectRef.current = [];
     setPlacedItems(round);
     setFeedbackById({});
-    setInstructionBlocking(true);
-    instructionBlockingRef.current = true;
 
-    if (!voiceEnabled) {
-      setInstructionBlocking(false);
-      instructionBlockingRef.current = false;
-      return;
+    const shuffledTargets = shuffle(round.filter((p) => p.isTarget));
+    remainingTargetsRef.current = shuffledTargets;
+    setRemainingTargets(shuffledTargets);
+    const first = shuffledTargets[0] ?? null;
+    currentTargetRef.current = first;
+    setCurrentTarget(first);
+
+    if (voiceEnabled && first) {
+      enqueueAudio(async () => {
+        if (!mountedRef.current || sessionFinishedRef.current) return;
+        await playAudioModule(first.audio);
+      });
     }
-
-    const targets = shuffle(round.filter((p) => p.isTarget));
-    let cancelled = false;
-
-    (async () => {
-      for (const t of targets) {
-        if (cancelled || !mountedRef.current) return;
-        await playAudioModule(t.audio);
-      }
-      if (!cancelled && mountedRef.current) {
-        setInstructionBlocking(false);
-        instructionBlockingRef.current = false;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [
     currentTrialIndex,
     width,
@@ -212,6 +220,7 @@ export default function ReceptiveShowCommonObjectsTrial({
     receptiveCategory,
     voiceEnabled,
     imageOuter,
+    enqueueAudio,
   ]);
 
   const completeSession = useCallback(async () => {
@@ -228,49 +237,75 @@ export default function ReceptiveShowCommonObjectsTrial({
   const handlePress = useCallback(
     (item: PlacedItem) => {
       if (sessionFinishedRef.current) return;
-      if (instructionBlockingRef.current) return;
 
       enqueueAudio(async () => {
         if (sessionFinishedRef.current) return;
-        if (instructionBlockingRef.current) return;
 
-        if (!item.isTarget) {
+        const ct = currentTargetRef.current;
+        if (!ct) return;
+
+        const stillToFind = remainingTargetsRef.current.some((r) => r.id === item.id);
+        if (item.isTarget && !stillToFind && item.id !== ct.id) {
+          return;
+        }
+
+        if (item.id !== ct.id) {
           wrongAlternateRef.current = !wrongAlternateRef.current;
+          if (mountedRef.current) {
+            setFeedbackById((prev) => ({ ...prev, [item.id]: "incorrect" }));
+          }
           if (voiceEnabled) {
             if (wrongAlternateRef.current) {
               await playAudio("gresit");
             } else {
               await playAudio("mai-incearca");
             }
-          }
-          if (mountedRef.current) {
-            setFeedbackById((prev) => ({ ...prev, [item.id]: "incorrect" }));
+            const replay = currentTargetRef.current;
+            if (replay && mountedRef.current && !sessionFinishedRef.current) {
+              await playAudioModule(replay.audio);
+            }
           }
           return;
-        }
-
-        if (selectedCorrectRef.current.includes(item.id)) return;
-
-        const nextCorrect = [...selectedCorrectRef.current, item.id];
-        selectedCorrectRef.current = nextCorrect;
-        if (mountedRef.current) {
-          setFeedbackById((prev) => ({ ...prev, [item.id]: "correct" }));
         }
 
         if (voiceEnabled) {
           await playAudio("bravo");
         }
 
-        if (nextCorrect.length >= itemCount) {
-          if (currentTrialIndex >= TRIAL_TOTAL - 1) {
+        const updated = remainingTargetsRef.current.filter((i) => i.id !== ct.id);
+        remainingTargetsRef.current = updated;
+        if (mountedRef.current) {
+          setRemainingTargets(updated);
+          setFeedbackById((prev) => {
+            const next: Record<string, FeedbackState> = {};
+            for (const [k, v] of Object.entries(prev)) {
+              if (v === "correct") next[k] = "correct";
+            }
+            next[item.id] = "correct";
+            return next;
+          });
+        }
+
+        if (updated.length === 0) {
+          const ti = currentTrialIndexRef.current;
+          if (ti >= TRIAL_TOTAL - 1) {
             await completeSession();
           } else if (mountedRef.current) {
             setCurrentTrialIndex((i) => i + 1);
           }
+        } else {
+          const nextTarget = updated[0]!;
+          currentTargetRef.current = nextTarget;
+          if (mountedRef.current) {
+            setCurrentTarget(nextTarget);
+          }
+          if (voiceEnabled && mountedRef.current && !sessionFinishedRef.current) {
+            await playAudioModule(nextTarget.audio);
+          }
         }
       });
     },
-    [enqueueAudio, itemCount, currentTrialIndex, completeSession, voiceEnabled]
+    [enqueueAudio, completeSession, voiceEnabled]
   );
 
   if (!receptiveCategory || pool.length === 0 || placedItems.length === 0) {

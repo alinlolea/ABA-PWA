@@ -15,6 +15,7 @@ import { useResponsive } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useState } from "react";
+import { Menu, Provider as PaperProvider } from "react-native-paper";
 import {
   ScrollView,
   StyleSheet,
@@ -60,11 +61,12 @@ export default function ReceptiveLanguageRoute() {
   const [selectedCategory, setSelectedCategory] = useState<ReceptiveCategory | null>(null);
   const [itemCount, setItemCount] = useState<number>(1);
   const [distractorCount, setDistractorCount] = useState<number>(0);
+  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
 
   const isShowCommonObjects = selectedId === SHOW_COMMON_OBJECTS_ID;
 
   const canStart = isShowCommonObjects
-    ? selectedCategory != null && itemCount >= 1 && itemCount <= 5
+    ? selectedCategory === "animale_domestice" && itemCount >= 1 && itemCount <= 5
     : Boolean(selectedId);
 
   const touchMin = Math.max(48, TouchTarget.minSize);
@@ -102,6 +104,7 @@ export default function ReceptiveLanguageRoute() {
 
     if (selectedId === SHOW_COMMON_OBJECTS_ID) {
       if (selectedCategory == null || itemCount < 1) return;
+      if (selectedCategory !== "animale_domestice") return;
       try {
         const sessionRef = await addDoc(collection(db, "sessions"), {
           userId: currentUser.uid,
@@ -280,149 +283,143 @@ export default function ReceptiveLanguageRoute() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView
-                style={styles.configScroll}
-                contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>Categorie</Text>
-                <View style={[styles.categoryGrid, { gap: rs(Spacing.sm), marginBottom: rs(Spacing.lg) }]}>
-                  {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
-                    const selected = selectedCategory === key;
-                    return (
-                      <TouchableOpacity
-                        key={key}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        style={[
-                          styles.categoryCard,
-                          {
-                            minHeight: rs(touchMin),
-                            paddingVertical: rs(Spacing.md),
-                            paddingHorizontal: rs(Spacing.md),
-                            borderRadius: rs(12),
-                          },
-                          selected && styles.categoryCardSelected,
-                        ]}
-                        onPress={() => setSelectedCategory(key)}
-                        activeOpacity={0.85}
-                      >
-                        <Text
+              <PaperProvider>
+                <ScrollView
+                  style={styles.configScroll}
+                  contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>Categorie</Text>
+                  <View style={{ marginBottom: rs(Spacing.lg) }}>
+                    <Menu
+                      visible={categoryMenuVisible}
+                      onDismiss={() => setCategoryMenuVisible(false)}
+                      anchor={
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel="Selectează categoria"
+                          activeOpacity={0.85}
+                          onPress={() => setCategoryMenuVisible(true)}
                           style={[
-                            styles.categoryCardText,
-                            { fontSize: rs(15) },
-                            selected && styles.categoryCardTextSelected,
+                            styles.categoryDropdownTrigger,
+                            {
+                              minHeight: rs(touchMin),
+                              paddingVertical: rs(Spacing.md),
+                              paddingHorizontal: rs(Spacing.md),
+                              borderRadius: rs(12),
+                            },
                           ]}
-                          numberOfLines={2}
                         >
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
-                  Număr itemi (țintă) — 1–5
-                </Text>
-                <View style={[styles.rowStepper, { marginBottom: rs(Spacing.lg), gap: rs(Spacing.sm) }]}>
-                  <TouchableOpacity
-                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
-                    onPress={() => bumpItemCount(-1)}
-                    disabled={itemCount <= 1}
-                    accessibilityLabel="Scade numărul de itemi"
-                  >
-                    <Ionicons name="remove" size={rs(22)} color={itemCount <= 1 ? "#94A3B8" : "#1E293B"} />
-                  </TouchableOpacity>
-                  <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
-                    <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{itemCount}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
-                    onPress={() => bumpItemCount(1)}
-                    disabled={itemCount >= 5}
-                    accessibilityLabel="Crește numărul de itemi"
-                  >
-                    <Ionicons name="add" size={rs(22)} color={itemCount >= 5 ? "#94A3B8" : "#1E293B"} />
-                  </TouchableOpacity>
-                </View>
-                <View style={[styles.quickRow, { gap: rs(Spacing.sm), marginBottom: rs(Spacing.lg) }]}>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <TouchableOpacity
-                      key={n}
-                      style={[
-                        styles.quickChip,
-                        {
-                          minWidth: rs(touchMin),
-                          minHeight: rs(Math.max(48, touchMin * 0.75)),
-                          borderRadius: rs(12),
-                        },
-                        itemCount === n && styles.quickChipSelected,
-                      ]}
-                      onPress={() => setItemCount(n)}
-                      accessibilityLabel={`${n} itemi`}
-                      accessibilityState={{ selected: itemCount === n }}
+                          <Text
+                            style={[
+                              styles.categoryDropdownText,
+                              { fontSize: rs(16) },
+                              selectedCategory == null && styles.categoryDropdownPlaceholder,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {selectedCategory == null
+                              ? "Selectează categoria"
+                              : (RECEPTIVE_CATEGORIES.find((c) => c.key === selectedCategory)?.label ?? "")}
+                          </Text>
+                          <Ionicons name="chevron-down" size={rs(22)} color="#475569" />
+                        </TouchableOpacity>
+                      }
+                      contentStyle={{ marginTop: rs(4) }}
                     >
-                      <Text style={[styles.quickChipText, { fontSize: rs(16) }, itemCount === n && styles.quickChipTextSelected]}>{n}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
-                  Distractori — 0–3
-                </Text>
-                <View style={[styles.rowStepper, { marginBottom: rs(Spacing.md), gap: rs(Spacing.sm) }]}>
-                  <TouchableOpacity
-                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
-                    onPress={() => bumpDistractorCount(-1)}
-                    disabled={distractorCount <= 0}
-                    accessibilityLabel="Scade distractorii"
-                  >
-                    <Ionicons name="remove" size={rs(22)} color={distractorCount <= 0 ? "#94A3B8" : "#1E293B"} />
-                  </TouchableOpacity>
-                  <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
-                    <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{distractorCount}</Text>
+                      {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
+                        const disabled = key !== "animale_domestice";
+                        return (
+                          <Menu.Item
+                            key={key}
+                            disabled={disabled}
+                            onPress={() => {
+                              if (disabled) return;
+                              setSelectedCategory(key);
+                              setCategoryMenuVisible(false);
+                            }}
+                            title={label}
+                            titleStyle={[
+                              { fontSize: rs(16) },
+                              disabled && styles.menuItemDisabled,
+                            ]}
+                          />
+                        );
+                      })}
+                    </Menu>
+                    <Text style={[styles.categoryHelperText, { fontSize: rs(13), marginTop: rs(Spacing.sm) }]}>
+                      Momentan disponibil doar: Animale domestice
+                    </Text>
                   </View>
-                  <TouchableOpacity
-                    style={[styles.stepperBtn, { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) }]}
-                    onPress={() => bumpDistractorCount(1)}
-                    disabled={distractorCount >= 3}
-                    accessibilityLabel="Crește distractorii"
-                  >
-                    <Ionicons name="add" size={rs(22)} color={distractorCount >= 3 ? "#94A3B8" : "#1E293B"} />
-                  </TouchableOpacity>
-                </View>
-                <View style={[styles.quickRow, { gap: rs(Spacing.sm) }]}>
-                  {[0, 1, 2, 3].map((n) => (
+
+                  <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                    Număr itemi (țintă) — 1–5
+                  </Text>
+                  <View style={[styles.rowStepper, { marginBottom: rs(Spacing.lg), gap: rs(Spacing.sm) }]}>
                     <TouchableOpacity
-                      key={n}
                       style={[
-                        styles.quickChip,
-                        {
-                          minWidth: rs(touchMin),
-                          minHeight: rs(Math.max(48, touchMin * 0.75)),
-                          borderRadius: rs(12),
-                        },
-                        distractorCount === n && styles.quickChipSelected,
+                        styles.stepperBtn,
+                        { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                        itemCount <= 1 && styles.stepperBtnDisabled,
                       ]}
-                      onPress={() => setDistractorCount(n)}
-                      accessibilityLabel={`${n} distractori`}
-                      accessibilityState={{ selected: distractorCount === n }}
+                      onPress={() => bumpItemCount(-1)}
+                      disabled={itemCount <= 1}
+                      accessibilityLabel="Scade numărul de itemi"
                     >
-                      <Text
-                        style={[
-                          styles.quickChipText,
-                          { fontSize: rs(16) },
-                          distractorCount === n && styles.quickChipTextSelected,
-                        ]}
-                      >
-                        {n}
-                      </Text>
+                      <Ionicons name="remove" size={rs(22)} color={itemCount <= 1 ? "#94A3B8" : "#1E293B"} />
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+                    <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
+                      <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{itemCount}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepperBtn,
+                        { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                        itemCount >= 5 && styles.stepperBtnDisabled,
+                      ]}
+                      onPress={() => bumpItemCount(1)}
+                      disabled={itemCount >= 5}
+                      accessibilityLabel="Crește numărul de itemi"
+                    >
+                      <Ionicons name="add" size={rs(22)} color={itemCount >= 5 ? "#94A3B8" : "#1E293B"} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                    Distractori — 0–3
+                  </Text>
+                  <View style={[styles.rowStepper, { marginBottom: rs(Spacing.md), gap: rs(Spacing.sm) }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepperBtn,
+                        { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                        distractorCount <= 0 && styles.stepperBtnDisabled,
+                      ]}
+                      onPress={() => bumpDistractorCount(-1)}
+                      disabled={distractorCount <= 0}
+                      accessibilityLabel="Scade distractorii"
+                    >
+                      <Ionicons name="remove" size={rs(22)} color={distractorCount <= 0 ? "#94A3B8" : "#1E293B"} />
+                    </TouchableOpacity>
+                    <View style={[styles.valuePill, { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) }]}>
+                      <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{distractorCount}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepperBtn,
+                        { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                        distractorCount >= 3 && styles.stepperBtnDisabled,
+                      ]}
+                      onPress={() => bumpDistractorCount(1)}
+                      disabled={distractorCount >= 3}
+                      accessibilityLabel="Crește distractorii"
+                    >
+                      <Ionicons name="add" size={rs(22)} color={distractorCount >= 3 ? "#94A3B8" : "#1E293B"} />
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </PaperProvider>
             </View>
           </View>
         )}
@@ -491,29 +488,31 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1E293B",
   },
-  categoryGrid: {
+  categoryDropdownTrigger: {
     flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  categoryCard: {
-    width: "47%",
-    justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#F8FAFC",
     borderWidth: 2,
     borderColor: "#E2E8F0",
+    gap: 12,
   },
-  categoryCardSelected: {
-    borderColor: "#2C6468",
-    backgroundColor: "rgba(44,100,104,0.12)",
+  categoryDropdownText: {
+    flex: 1,
+    fontWeight: "600",
+    color: "#1E293B",
   },
-  categoryCardText: {
+  categoryDropdownPlaceholder: {
     fontWeight: "500",
-    color: "#334155",
-    textAlign: "center",
+    color: "#94A3B8",
   },
-  categoryCardTextSelected: {
-    color: "#2C6468",
-    fontWeight: "700",
+  menuItemDisabled: {
+    opacity: 0.5,
+    color: "#94A3B8",
+  },
+  categoryHelperText: {
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   rowStepper: {
     flexDirection: "row",
@@ -527,6 +526,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  stepperBtnDisabled: {
+    opacity: 0.55,
+  },
   valuePill: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -538,32 +540,6 @@ const styles = StyleSheet.create({
   valuePillText: {
     fontWeight: "700",
     color: "#1E293B",
-  },
-  quickRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  quickChip: {
-    flexGrow: 1,
-    flexBasis: "15%",
-    maxWidth: 88,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderWidth: 2,
-    borderColor: "#E2E8F0",
-  },
-  quickChipSelected: {
-    borderColor: "#2C6468",
-    backgroundColor: "rgba(44,100,104,0.14)",
-  },
-  quickChipText: {
-    fontWeight: "600",
-    color: "#475569",
-  },
-  quickChipTextSelected: {
-    color: "#2C6468",
   },
   sessionRow: {
     flex: 1,
