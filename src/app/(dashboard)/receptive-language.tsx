@@ -15,12 +15,13 @@ import { useResponsive } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext, useEffect, useState } from "react";
-import { Menu, Provider as PaperProvider } from "react-native-paper";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
@@ -88,6 +89,10 @@ export default function ReceptiveLanguageRoute() {
       setDistractorCount(0);
     }
   }, [isShowCommonObjects]);
+
+  useEffect(() => {
+    if (!isSetupOpen) setCategoryMenuVisible(false);
+  }, [isSetupOpen]);
 
   const bumpItemCount = (delta: number) => {
     setItemCount((c) => Math.min(5, Math.max(1, c + delta)));
@@ -264,8 +269,27 @@ export default function ReceptiveLanguageRoute() {
 
         {isSetupOpen && selectedId === SHOW_COMMON_OBJECTS_ID && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            <View style={styles.drawerBackdrop} />
-            <View style={[styles.setupDrawer, { width: "42%", minWidth: rs(360), maxWidth: rs(520), paddingTop: rs(16), paddingHorizontal: rs(16) }]}>
+            <TouchableWithoutFeedback
+              onPress={() => {
+                setCategoryMenuVisible(false);
+                setIsSetupOpen(false);
+              }}
+              accessible={false}
+            >
+              <View style={styles.configBackdrop}>
+                <TouchableWithoutFeedback onPress={() => {}} accessible={false}>
+                  <View
+                    style={[
+                      styles.setupDrawer,
+                      {
+                        width: "42%",
+                        minWidth: rs(360),
+                        maxWidth: rs(520),
+                        paddingTop: rs(16),
+                        paddingHorizontal: rs(16),
+                      },
+                    ]}
+                  >
               <View style={[styles.drawerHeader, { marginBottom: rs(12), paddingBottom: rs(12) }]}>
                 <View style={{ flex: 1, paddingRight: rs(8) }}>
                   <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Arată obiecte comune</Text>
@@ -283,76 +307,95 @@ export default function ReceptiveLanguageRoute() {
                 </TouchableOpacity>
               </View>
 
-              <PaperProvider>
-                <ScrollView
-                  style={styles.configScroll}
-                  contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                >
+              <View style={styles.drawerConfigColumn}>
+                <View style={[styles.categoryBlock, { zIndex: 1000 }]}>
                   <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>Categorie</Text>
-                  <View style={{ marginBottom: rs(Spacing.lg) }}>
-                    <Menu
-                      visible={categoryMenuVisible}
-                      onDismiss={() => setCategoryMenuVisible(false)}
-                      anchor={
-                        <TouchableOpacity
-                          accessibilityRole="button"
-                          accessibilityLabel="Selectează categoria"
-                          activeOpacity={0.85}
-                          onPress={() => setCategoryMenuVisible(true)}
+                  <View style={[styles.categoryDropdownOuter, { marginBottom: rs(Spacing.lg) }]}>
+                    <View style={styles.categoryDropdownRelative}>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Selectează categoria"
+                        accessibilityState={{ expanded: categoryMenuVisible }}
+                        activeOpacity={0.85}
+                        onPress={() => setCategoryMenuVisible((v) => !v)}
+                        style={[
+                          styles.categoryDropdownTrigger,
+                          {
+                            minHeight: rs(touchMin),
+                            paddingVertical: rs(Spacing.md),
+                            paddingHorizontal: rs(Spacing.md),
+                            borderRadius: rs(12),
+                          },
+                        ]}
+                      >
+                        <Text
                           style={[
-                            styles.categoryDropdownTrigger,
-                            {
-                              minHeight: rs(touchMin),
-                              paddingVertical: rs(Spacing.md),
-                              paddingHorizontal: rs(Spacing.md),
-                              borderRadius: rs(12),
-                            },
+                            styles.categoryDropdownText,
+                            { fontSize: rs(16) },
+                            selectedCategory == null && styles.categoryDropdownPlaceholder,
                           ]}
+                          numberOfLines={1}
                         >
-                          <Text
-                            style={[
-                              styles.categoryDropdownText,
-                              { fontSize: rs(16) },
-                              selectedCategory == null && styles.categoryDropdownPlaceholder,
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {selectedCategory == null
-                              ? "Selectează categoria"
-                              : (RECEPTIVE_CATEGORIES.find((c) => c.key === selectedCategory)?.label ?? "")}
-                          </Text>
-                          <Ionicons name="chevron-down" size={rs(22)} color="#475569" />
-                        </TouchableOpacity>
-                      }
-                      contentStyle={{ marginTop: rs(4) }}
-                    >
-                      {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
-                        const disabled = key !== "animale_domestice";
-                        return (
-                          <Menu.Item
-                            key={key}
-                            disabled={disabled}
-                            onPress={() => {
-                              if (disabled) return;
-                              setSelectedCategory(key);
-                              setCategoryMenuVisible(false);
-                            }}
-                            title={label}
-                            titleStyle={[
-                              { fontSize: rs(16) },
-                              disabled && styles.menuItemDisabled,
-                            ]}
-                          />
-                        );
-                      })}
-                    </Menu>
+                          {selectedCategory == null
+                            ? "Selectează categoria"
+                            : (RECEPTIVE_CATEGORIES.find((c) => c.key === selectedCategory)?.label ?? "")}
+                        </Text>
+                        <Ionicons name="chevron-down" size={rs(22)} color="#475569" />
+                      </TouchableOpacity>
+
+                      {categoryMenuVisible ? (
+                        <View style={styles.categoryDropdownPanel}>
+                          {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
+                            const disabled = key !== "animale_domestice";
+                            return (
+                              <TouchableOpacity
+                                key={key}
+                                activeOpacity={disabled ? 1 : 0.7}
+                                disabled={disabled}
+                                onPress={() => {
+                                  if (disabled) return;
+                                  setSelectedCategory(key);
+                                  setCategoryMenuVisible(false);
+                                }}
+                                style={[
+                                  styles.categoryDropdownOption,
+                                  { paddingVertical: rs(Spacing.md), paddingHorizontal: rs(Spacing.md) },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    { fontSize: rs(16), fontWeight: "500", color: "#1E293B" },
+                                    disabled && styles.menuItemDisabled,
+                                  ]}
+                                >
+                                  {label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      ) : null}
+                    </View>
                     <Text style={[styles.categoryHelperText, { fontSize: rs(13), marginTop: rs(Spacing.sm) }]}>
                       Momentan disponibil doar: Animale domestice
                     </Text>
                   </View>
+                </View>
 
+                {categoryMenuVisible ? (
+                  <Pressable
+                    style={[styles.categoryDropdownBackdrop, { zIndex: 998 }]}
+                    onPress={() => setCategoryMenuVisible(false)}
+                    accessibilityLabel="Închide lista de categorii"
+                  />
+                ) : null}
+
+                <ScrollView
+                  style={[styles.configScroll, { zIndex: 1 }]}
+                  contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
                   <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
                     Număr itemi (țintă) — 1–5
                   </Text>
@@ -419,8 +462,11 @@ export default function ReceptiveLanguageRoute() {
                     </TouchableOpacity>
                   </View>
                 </ScrollView>
-              </PaperProvider>
-            </View>
+              </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         )}
       </View>
@@ -449,15 +495,21 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: "#F2F5F7",
   },
-  drawerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
+  configBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    zIndex: 999,
   },
   setupDrawer: {
     position: "absolute",
     right: 0,
     top: 0,
     bottom: 0,
+    height: "100%",
     backgroundColor: "#FFFFFF",
     paddingTop: 16,
     paddingHorizontal: 16,
@@ -466,6 +518,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 8,
+    flexDirection: "column",
+    zIndex: 1000,
+  },
+  drawerConfigColumn: {
+    flex: 1,
+    minHeight: 0,
+    position: "relative",
+  },
+  categoryBlock: {
+    position: "relative",
+  },
+  categoryDropdownOuter: {
+    position: "relative",
+  },
+  categoryDropdownRelative: {
+    position: "relative",
+  },
+  categoryDropdownPanel: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    zIndex: 999,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  categoryDropdownOption: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0",
+  },
+  categoryDropdownBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
   },
   drawerHeader: {
     flexDirection: "row",

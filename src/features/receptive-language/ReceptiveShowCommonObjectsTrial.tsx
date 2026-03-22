@@ -14,6 +14,7 @@ import {
   Image,
   Pressable,
   StyleSheet,
+  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -268,10 +269,6 @@ export default function ReceptiveShowCommonObjectsTrial({
           return;
         }
 
-        if (voiceEnabled) {
-          await playAudio("bravo");
-        }
-
         const updated = remainingTargetsRef.current.filter((i) => i.id !== ct.id);
         remainingTargetsRef.current = updated;
         if (mountedRef.current) {
@@ -284,6 +281,10 @@ export default function ReceptiveShowCommonObjectsTrial({
             next[item.id] = "correct";
             return next;
           });
+        }
+
+        if (voiceEnabled) {
+          await playAudio("bravo");
         }
 
         if (updated.length === 0) {
@@ -314,6 +315,9 @@ export default function ReceptiveShowCommonObjectsTrial({
 
   return (
     <View style={[styles.screen, { width, height }]}>
+      <Text style={styles.progressText}>
+        {currentTrialIndex + 1}/{TRIAL_TOTAL}
+      </Text>
       {placedItems.map((item) => {
         const fb = feedbackById[item.id] ?? "neutral";
         const borderColor =
@@ -352,6 +356,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F2F5F7",
     position: "relative",
+  },
+  progressText: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    zIndex: 1000,
   },
   tile: {
     position: "absolute",
