@@ -566,9 +566,15 @@ export default function TrialScreen() {
           : undefined;
     const parsedLogicalPairs = parseInt(String(numberOfPairsRaw ?? "3"), 10);
     const logicalPairCount = clamp(Number.isNaN(parsedLogicalPairs) ? 3 : parsedLogicalPairs, 1, 5);
+    const voiceEnabledLogical =
+      (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
     return (
       <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-        <LogicalMatchingTrial pairCount={logicalPairCount} />
+        <LogicalMatchingTrial
+          pairCount={logicalPairCount}
+          sessionId={sessionId}
+          voiceEnabled={voiceEnabledLogical}
+        />
       </View>
     );
   }

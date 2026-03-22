@@ -15,6 +15,7 @@ const ASSET_MAP: Record<string, number> = {
   "construieste-la-fel": require("../../assets/audio/Construieste la fel.mp3"),
   "construieste-turn": require("../../assets/audio/Construieste turn.mp3"),
   potriveste: require("../../assets/audio/Potrivește.mp3"),
+  potriveste_perechea: require("../../assets/audio/Potriveste perechea.mp3"),
   "pune-la-fel": require("../../assets/audio/Pune la fel.mp3"),
 };
 

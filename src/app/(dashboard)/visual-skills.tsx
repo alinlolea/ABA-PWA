@@ -5,6 +5,7 @@ import { SelectedChildContext } from "@/contexts/SelectedChildContext";
 import { OBJECTIVES } from "@/config/objectives";
 import { Colors } from "@/design/colors";
 import { Spacing } from "@/design/spacing";
+import { Theme } from "@/design/theme";
 import { Typography } from "@/design/typography";
 import type { Stimulus } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/config/firebase";
@@ -126,7 +127,7 @@ export default function VisualSkillsRoute() {
     isTowerCopyObjective ||
     (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
     (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
-    (isLogicalImageObjective ? selectedTargets.length >= logicalNumberOfPairs : false) ||
+    isLogicalImageObjective ||
     (!isLogicalImageObjective && selectedTargets.length > 0);
 
   useEffect(() => {
@@ -282,10 +283,7 @@ export default function VisualSkillsRoute() {
           params: {
             ...baseParams,
             trialType: "logical-image-association",
-            category: categoryId,
-            targets: JSON.stringify(selectedTargets.map((t) => t.id)),
             numberOfPairs: String(logicalNumberOfPairs),
-            distractorCount: String(distractorCount),
           },
         });
       } else {
@@ -344,9 +342,11 @@ export default function VisualSkillsRoute() {
                   obj.trialType === "pattern-continuation" ||
                   obj.trialType === "logical-image-association";
                 const processCategory =
-                  obj.categories.length > 0
-                    ? obj.categories.map((c) => c.label).join(", ")
-                    : "—";
+                  obj.trialType === "logical-image-association"
+                    ? "Perechi din imagini fixe"
+                    : obj.categories.length > 0
+                      ? obj.categories.map((c) => c.label).join(", ")
+                      : "—";
                 return (
                   <TouchableOpacity
                     key={obj.id}
@@ -774,6 +774,151 @@ export default function VisualSkillsRoute() {
                   </View>
                 </View>
               </Animated.View>
+            ) : isLogicalImageObjective ? (
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.setupDrawer,
+                  { width: width * 0.4 },
+                  {
+                    transform: [
+                      {
+                        translateX: drawerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [width * 0.4, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.drawerContainer}>
+                  <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
+                    <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
+                      <Text
+                        style={[
+                          styles.drawerTitle,
+                          { fontSize: rs(20), fontFamily: Theme.fontFamily.semiBold, color: Theme.colors.textPrimary },
+                        ]}
+                      >
+                        Asociere logică imagini
+                      </Text>
+                      <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(6), color: Theme.colors.textSecondary }]}>
+                        Alege câte perechi apar într-o probă
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.drawerCloseButton, { right: rs(16), top: rs(16) }]}
+                      onPress={() => setIsSetupOpen(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Ionicons name="close" size={rs(24)} color={Theme.colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ScrollView
+                      style={styles.drawerScroll}
+                      contentContainerStyle={{ padding: rs(24), paddingBottom: rs(40) }}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      <View
+                        style={[
+                          styles.drawerCard,
+                          {
+                            borderRadius: rs(12),
+                            padding: rs(20),
+                            backgroundColor: Theme.colors.card,
+                            borderWidth: 1,
+                            borderColor: Theme.colors.borderButton,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.towerConfigLabel,
+                            {
+                              fontSize: rs(15),
+                              marginBottom: rs(14),
+                              color: Theme.colors.textPrimary,
+                              fontFamily: Theme.fontFamily.medium,
+                            },
+                          ]}
+                        >
+                          Număr perechi
+                        </Text>
+                        <View style={{ flexDirection: "row", gap: rs(10) }}>
+                          {([1, 2, 3, 4, 5] as const).map((v) => {
+                            const selected = logicalNumberOfPairs === v;
+                            return (
+                              <TouchableOpacity
+                                key={v}
+                                onPress={() => setLogicalNumberOfPairs(v)}
+                                activeOpacity={0.85}
+                                style={{
+                                  flex: 1,
+                                  minHeight: rs(56),
+                                  borderRadius: rs(14),
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  backgroundColor: selected ? Theme.colors.primary : Theme.colors.buttonGrey,
+                                  borderWidth: selected ? 0 : 1,
+                                  borderColor: Theme.colors.borderButton,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: rs(22),
+                                    fontFamily: Theme.fontFamily.semiBold,
+                                    color: selected ? "#FFFFFF" : Theme.colors.textPrimary,
+                                  }}
+                                >
+                                  {v}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                        <Text
+                          style={{
+                            marginTop: rs(16),
+                            fontSize: rs(13),
+                            lineHeight: rs(20),
+                            color: Theme.colors.textSecondary,
+                            fontFamily: Theme.fontFamily.regular,
+                          }}
+                        >
+                          Fiecare probă folosește {logicalNumberOfPairs}{" "}
+                          {logicalNumberOfPairs === 1 ? "pereche" : "perechi"} din setul fix de imagini.
+                        </Text>
+                      </View>
+                    </ScrollView>
+                    <LinearGradient
+                      colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
+                      style={styles.drawerFadeTopScroll}
+                      pointerEvents="none"
+                    />
+                    <LinearGradient
+                      colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
+                      style={styles.drawerFadeBottomScroll}
+                      pointerEvents="none"
+                    />
+                  </View>
+                  <View style={[styles.drawerFooter, { paddingHorizontal: rs(20), paddingTop: rs(24), paddingBottom: rs(16) }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.floatingButton,
+                        { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
+                        !canStart && styles.floatingButtonDisabled,
+                      ]}
+                      onPress={handleStartSesiune}
+                      disabled={!canStart}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Animated.View>
             ) : categories.length > 0 ? (
               <Animated.View
                 {...panResponder.panHandlers}
@@ -814,28 +959,6 @@ export default function VisualSkillsRoute() {
                     ]}
                     showsVerticalScrollIndicator={false}
                   >
-                    {isLogicalImageObjective && (
-                      <View
-                        style={[
-                          styles.drawerCard,
-                          { borderRadius: rs(12), padding: rs(16), marginBottom: rs(16) },
-                        ]}
-                      >
-                        <Text style={[styles.towerConfigLabel, { fontSize: rs(14), marginBottom: rs(6) }]}>
-                          Număr perechi (1–5)
-                        </Text>
-                        <Stepper
-                          value={logicalNumberOfPairs}
-                          min={1}
-                          max={5}
-                          onChange={setLogicalNumberOfPairs}
-                        />
-                        <Text style={{ marginTop: rs(8), fontSize: rs(12), color: "#64748B" }}>
-                          Selectați cel puțin {logicalNumberOfPairs}{" "}
-                          {logicalNumberOfPairs === 1 ? "țintă" : "ținte"} din categorie (Configurează).
-                        </Text>
-                      </View>
-                    )}
                     {categories.map((cat) => {
                       const isSelected = categoryId === cat.id;
                       const isConfigured = isSelected && selectedTargets.length > 0;

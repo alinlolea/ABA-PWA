@@ -1,7 +1,7 @@
 /**
  * Logical Image Matching – "Asociere logică imagini"
  * UI + drag-and-drop; pair data and selection come from logicalMatchingEngine.
- * Layout mirrors PatternReproductionTrial: top pool, gradient divider, bottom targets + drop zones.
+ * Layout: top pool, gradient divider; bottom = drop row then static target row (aligned columns).
  */
 
 import { Spacing } from "@/design/spacing";
@@ -13,7 +13,9 @@ import {
   type LogicalTrialGenerationResult,
   type LogicalTrialImage,
 } from "@/utils/logicalMatchingEngine";
+import { db } from "@/config/firebase";
 import { LinearGradient } from "expo-linear-gradient";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -24,6 +26,7 @@ import {
   View,
 } from "react-native";
 import { playAudio } from "@/utils/audio";
+import { stopSpeech } from "@/utils/speech";
 import { useResponsive } from "@/utils/responsive";
 
 const ITEM_RADIUS = 16;
@@ -31,6 +34,11 @@ const SNAP_DURATION = 200;
 const RETURN_DURATION = 200;
 const DROP_DISTANCE_MULT = 1.25;
 const MAX_PAIRS = 5;
+const TOTAL_TRIALS = 10;
+/** After last correct placement, delay before advancing (PatternReproductionTrial-style). */
+const TRIAL_ADVANCE_DELAY_MS = 1200;
+/** Image fills ~96% of square; keeps aspect ratio via contain (Pattern-style proportions). */
+const IMAGE_FILL_RATIO = 0.96;
 /** Match PatternReproductionTrial feedback timing */
 const SHAKE_DURATION = 300;
 const BORDER_SUCCESS = "#2ecc71";
@@ -39,20 +47,21 @@ const FEEDBACK_LOCK_CORRECT_MS = 450;
 
 function LogicalImageView({
   image,
-  size,
+  containerSize,
   borderRadius,
 }: {
   image: LogicalTrialImage["image"];
-  size: number;
+  containerSize: number;
   borderRadius: number;
 }) {
+  const dim = Math.max(1, containerSize * IMAGE_FILL_RATIO);
   return (
     <Image
       source={image}
       resizeMode="contain"
       style={{
-        width: size,
-        height: size,
+        width: dim,
+        height: dim,
         borderRadius,
       }}
       accessibilityIgnoresInvertColors
@@ -61,10 +70,7 @@ function LogicalImageView({
 }
 
 function ImageCard({ item, size }: { item: LogicalTrialImage; size: number }) {
-  const innerPad = Math.max(4, size * 0.06);
-  const innerSize = size - innerPad * 2;
-  const innerRadius = Math.max(8, ITEM_RADIUS - 4);
-
+  const innerRadius = Math.max(6, ITEM_RADIUS - 4);
   return (
     <View
       style={[
@@ -74,22 +80,13 @@ function ImageCard({ item, size }: { item: LogicalTrialImage; size: number }) {
           height: size,
           borderRadius: ITEM_RADIUS,
           backgroundColor: Theme.colors.card,
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
         },
       ]}
     >
-      <View
-        style={[
-          styles.cardInnerClip,
-          {
-            width: innerSize,
-            height: innerSize,
-            borderRadius: innerRadius,
-            margin: innerPad,
-          },
-        ]}
-      >
-        <LogicalImageView image={item.image} size={innerSize} borderRadius={innerRadius} />
-      </View>
+      <LogicalImageView image={item.image} containerSize={size} borderRadius={innerRadius} />
     </View>
   );
 }
@@ -158,19 +155,18 @@ function AnimatedDropSlot({
 export type LogicalMatchingTrialProps = {
   /** Number of pairs (1–5). */
   pairCount: number;
-  /** Optional progress text (e.g. "1 / 10"). */
-  progressLabel?: string;
-  /**
-   * Increment when a trial round ends to append `selectedPairIds` to the session “used” pool
-   * and draw the next trial (no UI change — parent/session drives this).
-   */
-  completionSignal?: number;
+  /** Optional: Firestore session doc id (same pattern as PatternReproductionTrial). */
+  sessionId?: string;
+  onComplete?: () => void;
+  /** Play trial-start prompt (same pattern as PatternReproductionTrial). */
+  voiceEnabled?: boolean;
 };
 
 export default function LogicalMatchingTrial({
   pairCount,
-  progressLabel,
-  completionSignal = 0,
+  sessionId,
+  onComplete,
+  voiceEnabled = true,
 }: LogicalMatchingTrialProps) {
   const { width: screenWidth, height: screenHeight, rs } = useResponsive();
   const topZoneHeight = screenHeight * 0.6;
@@ -178,6 +174,11 @@ export default function LogicalMatchingTrial({
   const n = Math.min(MAX_PAIRS, Math.max(1, Math.floor(pairCount)));
 
   const [completedPairIds, setCompletedPairIds] = useState<string[]>([]);
+  const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
+  const [trialsCompletedScore, setTrialsCompletedScore] = useState(0);
+  const [correctDropCount, setCorrectDropCount] = useState(0);
+  const [incorrectAttemptCount, setIncorrectAttemptCount] = useState(0);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
 
   const effectiveCompleted = useMemo(
     () => effectiveCompletedPairSet(completedPairIds, n),
@@ -186,8 +187,11 @@ export default function LogicalMatchingTrial({
 
   const trial = useMemo(
     () => generateLogicalMatchingTrial(n, effectiveCompleted),
-    [n, effectiveCompleted]
+    [n, effectiveCompleted, currentTrialIndex]
   );
+
+  const trialRef = useRef(trial);
+  trialRef.current = trial;
 
   useEffect(() => {
     if (shouldClearPersistedCompletedPairIds(completedPairIds, n)) {
@@ -195,24 +199,56 @@ export default function LogicalMatchingTrial({
     }
   }, [completedPairIds, n]);
 
-  const lastTrialSelectedRef = useRef<string[]>(trial.selectedPairIds);
-  lastTrialSelectedRef.current = trial.selectedPairIds;
-  const prevCompletionRef = useRef(completionSignal);
+  const handleTrialFullyComplete = useCallback(() => {
+    const ids = trialRef.current.selectedPairIds;
+    setCompletedPairIds((prev) => [...new Set([...prev, ...ids])]);
+    setTrialsCompletedScore((s) => s + 1);
+    setCurrentTrialIndex((prev) => {
+      if (prev >= TOTAL_TRIALS - 1) {
+        setSessionCompleted(true);
+        return prev;
+      }
+      return prev + 1;
+    });
+  }, []);
 
+  const firestoreSessionSyncedRef = useRef(false);
   useEffect(() => {
-    if (completionSignal > prevCompletionRef.current) {
-      setCompletedPairIds((c) => [...new Set([...c, ...lastTrialSelectedRef.current])]);
-    }
-    prevCompletionRef.current = completionSignal;
-  }, [completionSignal]);
+    if (!sessionCompleted || !sessionId || firestoreSessionSyncedRef.current) return;
+    firestoreSessionSyncedRef.current = true;
+    updateDoc(doc(db, "sessions", sessionId), {
+      completedAt: serverTimestamp(),
+      correctTrials: trialsCompletedScore,
+      totalTrials: TOTAL_TRIALS,
+    });
+    onComplete?.();
+  }, [sessionCompleted, sessionId, trialsCompletedScore, onComplete]);
 
   const totalItems = Math.max(1, trial.topImages.length || 1);
   const availableWidth = screenWidth * 0.9;
-  const sizeFromWidth = availableWidth / Math.max(totalItems, 3);
-  const maxItemSize = rs(100);
-  const itemSize = Math.min(maxItemSize, sizeFromWidth, topZoneHeight * 0.28);
+  const sizeFromWidth = availableWidth / totalItems;
+  const maxItemSize = rs(90);
+  const itemSize = Math.min(maxItemSize, sizeFromWidth, topZoneHeight * 0.32);
 
-  const innerKey = `${completedPairIds.join(",")}|${trial.selectedPairIds.slice().sort().join(",")}`;
+  const progressLabel = `${currentTrialIndex + 1} / ${TOTAL_TRIALS}`;
+  /** Remount inner when trial index or drawn pair set changes (avoid tying to completedPairIds to prevent clearing advance timeout). */
+  const innerKey = `${currentTrialIndex}-${trial.selectedPairIds.slice().sort().join("|")}`;
+
+  if (sessionCompleted) {
+    return (
+      <View style={styles.root}>
+        <View style={styles.completedRoot}>
+          <Text style={styles.completedTitle}>Sesiune finalizată</Text>
+          <Text style={styles.completedScore}>
+            Probe reușite: {trialsCompletedScore} / {TOTAL_TRIALS}
+          </Text>
+          <Text style={styles.completedSubScore}>
+            Plasări corecte: {correctDropCount} · Încercări greșite: {incorrectAttemptCount}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LogicalMatchingTrialInner
@@ -222,6 +258,10 @@ export default function LogicalMatchingTrial({
       topZoneHeight={topZoneHeight}
       itemSize={itemSize}
       progressLabel={progressLabel}
+      voiceEnabled={voiceEnabled}
+      onTrialFullyComplete={handleTrialFullyComplete}
+      onCorrectPlacement={() => setCorrectDropCount((c) => c + 1)}
+      onIncorrectAttempt={() => setIncorrectAttemptCount((c) => c + 1)}
     />
   );
 }
@@ -232,6 +272,10 @@ type InnerProps = {
   topZoneHeight: number;
   itemSize: number;
   progressLabel?: string;
+  voiceEnabled?: boolean;
+  onTrialFullyComplete: () => void;
+  onCorrectPlacement: () => void;
+  onIncorrectAttempt: () => void;
 };
 
 function LogicalMatchingTrialInner({
@@ -240,6 +284,10 @@ function LogicalMatchingTrialInner({
   topZoneHeight,
   itemSize,
   progressLabel,
+  voiceEnabled = true,
+  onTrialFullyComplete,
+  onCorrectPlacement,
+  onIncorrectAttempt,
 }: InnerProps) {
   const { rs } = useResponsive();
   const topImages = trial.topImages;
@@ -255,6 +303,8 @@ function LogicalMatchingTrialInner({
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [cubePositions, setCubePositions] = useState<{ x: number; y: number }[]>([]);
   const [interactionLocked, setInteractionLocked] = useState(false);
+  /** False until trial-start audio finishes (or skipped when voice off) — blocks drag like other trials. */
+  const [trialPromptReady, setTrialPromptReady] = useState(!voiceEnabled);
 
   const topZoneWidth = screenWidth;
 
@@ -274,6 +324,25 @@ function LogicalMatchingTrialInner({
     []
   );
 
+  /** Once per inner mount (= per trial): delay → stop TTS → prompt audio → enable drag. */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!voiceEnabled) {
+        setTrialPromptReady(true);
+        return;
+      }
+      await new Promise<void>((r) => setTimeout(r, 200));
+      if (cancelled) return;
+      stopSpeech();
+      await playAudio("potriveste_perechea");
+      if (!cancelled) setTrialPromptReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [voiceEnabled]);
+
   const slotBorderAnims = useRef(
     Array.from({ length: MAX_PAIRS }, () => new Animated.Value(0))
   );
@@ -282,6 +351,17 @@ function LogicalMatchingTrialInner({
   );
 
   const pans = useRef(topImages.map(() => new Animated.ValueXY())).current;
+
+  const onTrialFullyCompleteRef = useRef(onTrialFullyComplete);
+  onTrialFullyCompleteRef.current = onTrialFullyComplete;
+
+  useEffect(() => {
+    if (placedPoolIndices.length !== n || n === 0) return;
+    const t = setTimeout(() => {
+      onTrialFullyCompleteRef.current();
+    }, TRIAL_ADVANCE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [placedPoolIndices.length, n]);
 
   const initPositions = useCallback(() => {
     const count = topImages.length;
@@ -340,6 +420,7 @@ function LogicalMatchingTrialInner({
 
   const runIncorrectFeedback = useCallback(
     (poolIndex: number, slotIndex: number) => {
+      onIncorrectAttempt();
       const border = slotBorderAnims.current[slotIndex];
       const shake = slotShakeX.current[slotIndex];
       border.setValue(2);
@@ -385,7 +466,7 @@ function LogicalMatchingTrialInner({
         feedbackBusyRef.current = false;
       });
     },
-    [pans]
+    [pans, onIncorrectAttempt]
   );
 
   const handleRelease = useCallback(
@@ -466,6 +547,7 @@ function LogicalMatchingTrialInner({
             useNativeDriver: false,
           }),
         ]).start(() => {
+          onCorrectPlacement();
           setSlotContents((prev) => {
             const next = [...prev];
             next[slotIndex] = item;
@@ -495,6 +577,7 @@ function LogicalMatchingTrialInner({
       bottomTargets,
       interactionLocked,
       runIncorrectFeedback,
+      onCorrectPlacement,
     ]
   );
 
@@ -502,7 +585,8 @@ function LogicalMatchingTrialInner({
     () =>
       topImages.map((item, i) => {
         const used = placedPoolIndices.includes(i);
-        const canDrag = !used && activeDragIndex === null && !interactionLocked;
+        const canDrag =
+          trialPromptReady && !used && activeDragIndex === null && !interactionLocked;
         return PanResponder.create({
           onStartShouldSetPanResponder: () => canDrag,
           onMoveShouldSetPanResponder: () => activeDragIndex === i,
@@ -513,7 +597,7 @@ function LogicalMatchingTrialInner({
           onPanResponderRelease: handleRelease(i, item),
         });
       }),
-    [topImages, placedPoolIndices, activeDragIndex, interactionLocked, handleRelease, pans]
+    [topImages, placedPoolIndices, activeDragIndex, interactionLocked, trialPromptReady, handleRelease, pans]
   );
 
   const gap = Math.max(8, rs(12));
@@ -585,14 +669,16 @@ function LogicalMatchingTrialInner({
                       height: itemSize,
                       borderRadius: ITEM_RADIUS,
                       backgroundColor: Theme.colors.card,
-                      padding: Math.max(4, itemSize * 0.06),
+                      padding: 2,
+                      alignItems: "center",
+                      justifyContent: "center",
                     },
                   ]}
                 >
                   <LogicalImageView
                     image={item.image}
-                    size={itemSize - Math.max(8, itemSize * 0.12) * 2}
-                    borderRadius={Math.max(8, ITEM_RADIUS - 4)}
+                    containerSize={itemSize - 4}
+                    borderRadius={Math.max(6, ITEM_RADIUS - 4)}
                   />
                 </View>
               </View>
@@ -614,15 +700,7 @@ function LogicalMatchingTrialInner({
 
       <View style={styles.bottomZone}>
         <View style={[styles.bottomInner, { maxWidth: screenWidth * 0.95 }]}>
-          <View style={[styles.targetsRow, { width: bottomRowWidth, gap }]}>
-            {bottomTargets.map((item) => (
-              <View key={item.id} style={styles.targetCell}>
-                <ImageCard item={item} size={itemSize} />
-              </View>
-            ))}
-          </View>
-
-          <View style={[styles.dropRow, { width: bottomRowWidth, gap, marginTop: gap }]}>
+          <View style={[styles.dropRow, { width: bottomRowWidth, gap }]}>
             {bottomTargets.map((item, slotIndex) => (
               <AnimatedDropSlot
                 key={`drop-${item.id}`}
@@ -655,12 +733,20 @@ function LogicalMatchingTrialInner({
                   <View style={styles.dropFilled}>
                     <LogicalImageView
                       image={slotContents[slotIndex]!.image}
-                      size={itemSize - Math.max(8, itemSize * 0.12) * 2}
-                      borderRadius={Math.max(8, ITEM_RADIUS - 4)}
+                      containerSize={itemSize}
+                      borderRadius={Math.max(6, ITEM_RADIUS - 4)}
                     />
                   </View>
                 ) : null}
               </AnimatedDropSlot>
+            ))}
+          </View>
+
+          <View style={[styles.targetsRow, { width: bottomRowWidth, gap, marginTop: gap }]}>
+            {bottomTargets.map((item) => (
+              <View key={item.id} style={styles.targetCell}>
+                <ImageCard item={item} size={itemSize} />
+              </View>
             ))}
           </View>
         </View>
@@ -724,7 +810,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
-    padding: 4,
+  },
+  completedRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  completedTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: Theme.colors.textPrimary,
+    marginBottom: 12,
+    fontFamily: Theme.fontFamily.semiBold,
+  },
+  completedScore: {
+    fontSize: 16,
+    color: Theme.colors.textSecondary,
+    fontFamily: Theme.fontFamily.medium,
+    marginBottom: 8,
+  },
+  completedSubScore: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    fontFamily: Theme.fontFamily.regular,
+    textAlign: "center",
   },
   horizontalDivider: {
     height: 2,
