@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web && node scripts/inject-manifest.js",
     "lint": "expo lint",
-    "trim:images": "node scripts/trim-images.js"
+    "trim:images": "node scripts/trim-images.js",
+    "icons:pwa": "node scripts/generate-pwa-icons.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

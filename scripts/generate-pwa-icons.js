@@ -1,35 +1,58 @@
 /**
- * Generates public/icon-192.png (192x192) and public/icon-512.png (512x512)
- * with background #2563eb and centered white text "ABA".
+ * Generates public/icon-192.png and public/icon-512.png from the app logo
+ * (same asset as the sidebar / login screen), centered on a white square.
+ *
+ * Run: node scripts/generate-pwa-icons.js
+ * (requires devDependency `sharp`)
  */
 const fs = require("fs");
 const path = require("path");
 
 const publicDir = path.join(__dirname, "..", "public");
-
-function createSvg(size) {
-  const fontSize = Math.round(size * 0.35);
-  const y = size * 0.6;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" fill="#2563eb"/>
-  <text x="${size / 2}" y="${y}" text-anchor="middle" fill="white" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif">ABA</text>
-</svg>`;
-}
+const logoPath = path.join(
+  __dirname,
+  "..",
+  "assets",
+  "images",
+  "digital-aba-therapy-logo.png"
+);
 
 async function main() {
   let sharp;
   try {
     sharp = require("sharp");
   } catch {
-    console.error("Run: npm install --save-dev sharp");
+    console.error("Run: npm install (devDependency sharp)");
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(logoPath)) {
+    console.error("Logo not found:", logoPath);
     process.exit(1);
   }
 
   for (const size of [192, 512]) {
-    const svg = createSvg(size);
+    const inner = Math.max(32, Math.floor(size * 0.82));
+    const logoBuf = await sharp(logoPath)
+      .resize({
+        width: inner,
+        height: inner,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .png()
+      .toBuffer();
+
     const outPath = path.join(publicDir, `icon-${size}.png`);
-    await sharp(Buffer.from(svg))
-      .resize(size, size)
+    await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      },
+    })
+      .composite([{ input: logoBuf, gravity: "center" }])
       .png()
       .toFile(outPath);
     console.log(`Created ${outPath} (${size}x${size})`);

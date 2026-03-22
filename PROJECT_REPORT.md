@@ -2,6 +2,15 @@
 
 This document describes the **ABA Visual Performance** codebase as observed in the repository. Where behavior is inferred but not fully traced, it is marked explicitly.
 
+### Recent updates (2025-03-08)
+
+- **Indicator progres trial — limbaj receptiv:** În `src/features/receptive-language/ReceptiveShowCommonObjectsTrial.tsx`, textul de progres (`1 / N`) folosește același model ca în `trial.tsx` (B1) și ca în trial-urile pattern/tower: `Typography.small` + `Colors.textSecondary`, container absolut `top: 20`, `left: 24`, `zIndex: 10`, format cu spații în jurul `/`.
+- **Obiective fără trial implementat:** Cardurile din grilele de obiective sunt **dezactivate vizual** (`opacity: 0.5` prin `src/design/objectiveCard.ts`) și **neclicabile** dacă nu există rută funcțională în `src/app/trial.tsx`. Logica centralizată: `src/utils/objectiveTrialAvailability.ts` (funcții per zonă: vizual, receptiv, etichetare, citire). Badge discret **„În curând”** pe cardurile dezactivate (unde e cazul). În `trial.tsx` există un comentariu care cere actualizarea acestui util la adăugare de ramuri noi.
+  - **Discriminare vizuală:** Implementate = B1 cu categorii (`OBJECTIVES` id 1) sau `trialType` pentru turn/pattern/logical; restul (ex. id 2, 8–14 fără categorii) = dezactivate.
+  - **Limbaj receptiv:** Implementat pentru fluxul **Arată obiecte comune** (`show_common_objects` → `objective=receptive_show_common_objects`). Eliminat startul care ducea la `/trial` doar cu `sessionId` (trial B1 implicit incorect). **`canStart`** depinde doar de configurarea validă pentru acest obiect.
+  - **Citire:** Cardurile implementate în helper: **`receptive_letters`** (configurare B1 în `reading.tsx`); celelalte obiective din listă sunt dezactivate până la implementare.
+  - **Etichetare:** Folosește `isLabelingObjectiveImplemented` (în prezent **`numeste-culori`**); păstrează dezactivarea când nu e selectat copilul.
+
 ---
 
 ## 1. Project Overview
@@ -79,11 +88,12 @@ A top-level **`app/`** folder exists (e.g. placeholder “Dashboard”). **Expo 
 - **`MainDashboard`** (`src/screens/Dashboard/MainDashboard.tsx`): CRUD-style management of **`children`** collection documents (`userId`, name, birth date validation, notes, `voiceEnabled`), real-time or fetched lists, session aggregation for export/delete flows, sign-out, account navigation. **Large single file** mixing UI and Firestore logic.
 
 ### Visual skills — objective selection & session start
-- **`src/app/(dashboard)/visual-skills.tsx`**: Lists **`OBJECTIVES`** from `src/config/objectives.ts`. User picks objective, configures via drawer (categories, targets via **`ItemSelector`**, tower/pattern/logical parameters). **Start** creates a Firestore **`sessions`** document (`userId`, `childId`, `startedAt`, counters, `objectives` array) and navigates to **`/trial`** with query params (`sessionId`, `trialType` or B1 params, `voiceEnabled`, etc.).
+- **`src/app/(dashboard)/visual-skills.tsx`**: Lists **`OBJECTIVES`** from `src/config/objectives.ts`. User picks objective, configures via drawer (categories, targets via **`ItemSelector`**, tower/pattern/logical parameters). **Start** creates a Firestore **`sessions`** document (`userId`, `childId`, `startedAt`, counters, `objectives` array) and navigates to **`/trial`** with query params (`sessionId`, `trialType` or B1 params, `voiceEnabled`, etc.). Obiectivele fără trial implementat sunt **afiliate gri și neclicabile** (`isVisualSkillsObjectiveImplemented` din `@/utils/objectiveTrialAvailability`); **`canStart`** cere obiectiv selectat implementat.
 
 ### Trial router (`src/app/trial.tsx`)
-Central dispatcher by **route params**:
+Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/objectiveTrialAvailability.ts`**):
 - **`objective=numeste-culori`** → **`ColorLabelingTrial`** (requires `sessionId`).
+- **`objective=receptive_show_common_objects`** → **`ReceptiveShowCommonObjectsTrial`** (`sessionId`, `category`, `itemCount`, `distractorCount`, etc.).
 - **`trialType=tower_over_model`** → **`TowerConstructionTrial`**.
 - **`trialType=tower-copy`** → **`TowerConstructionCopyTrial`**.
 - **`trialType=pattern-reproduction`** → **`PatternReproductionTrial`**.
@@ -101,10 +111,10 @@ Central dispatcher by **route params**:
 - **`LogicalMatchingTrial`** + **`src/utils/logicalMatchingEngine.ts`**: Fixed image pairs; matching UI; **`updateDoc`** on `sessions/{sessionId}` when done.
 
 ### Receptive language & reading — session UI
-- **`receptive-language.tsx`**, **`reading.tsx`**: Objective lists local to each file; configurable objectives use **`ItemSelector`**; **Start** creates **`sessions`** doc and pushes **`/trial`** with `category`, `targets` JSON, `distractorCount`. **Non-configurable** objectives can still start (no target requirement).
+- **`receptive-language.tsx`**, **`reading.tsx`**: Objective lists local to each file; configurable objectives use **`ItemSelector`** / setup drawer. **Start** creează sesiune și navighează la **`/trial`** doar pentru obiective marcate ca implementate în **`objectiveTrialAvailability.ts`**. Cardurile fără trial sunt dezactivate (**„În curând”**). Receptiv: doar **Arată obiecte comune** pornește trial dedicat (`ReceptiveShowCommonObjectsTrial`). Citire: **`receptive_letters`** folosește calea B1 cu parametri din ecran; celelalte obiective din listă sunt dezactivate până la implementare.
 
 ### Labeling (expressive)
-- **`labeling.tsx`**: Objective list includes **“Numeste culori”**; creates session and routes to **`/trial`** with **`objective=numeste-culori`** (and `sessionId`, etc.).
+- **`labeling.tsx`**: Objective list includes **“Numeste culori”**; creates session and routes to **`/trial`** with **`objective=numeste-culori`** (and `sessionId`, etc.). Cardurile respectă **`isLabelingObjectiveImplemented`** și stilul partajat de dezactivare (în plus față de lipsa copilului selectat).
 
 ### STT feature
 - **`src/app/(dashboard)/stt-session.tsx`** → **`STTTrialScreen`** (`src/features/stt/STTTrialScreen.tsx`) with **`useTrialSession`** (`src/features/stt/useTrialSession.ts`).
@@ -132,7 +142,10 @@ Central dispatcher by **route params**:
 | `src/app/_layout.tsx` | Fonts, auth redirect, landscape lock (native), web zoom/gesture prevention, PWA resume hook |
 | `src/app/(dashboard)/_layout.tsx` | Sidebar navigation, selected child context wiring, logout, PWA install affordance |
 | `src/app/trial.tsx` | Trial type routing + B1 matching implementation (Reanimated gestures, SVG/shapes, session completion write) |
-| `src/config/objectives.ts` | **`OBJECTIVES`** (ids 1–14) and **`RECEPTIVE_LANGUAGE_OBJECTIVES`** (ids 100–120); **sorting / missing-item objectives are listed but not given `trialType` wiring** in `visual-skills.tsx` the same way as tower/pattern/logical |
+| `src/config/objectives.ts` | **`OBJECTIVES`** (ids 1–14) and **`RECEPTIVE_LANGUAGE_OBJECTIVES`** (ids 100–120); obiectivele fără categorii/`trialType` rămân în listă dar sunt **dezactivate în UI** prin `objectiveTrialAvailability` |
+| `src/utils/objectiveTrialAvailability.ts` | Sursă unică: care obiective au trial în `trial.tsx` / dashboard (vizual, receptiv, etichetare, citire) |
+| `src/design/objectiveCard.ts` | **`objectiveGridCardDisabledStyle`** — opacitate 0.5 pentru carduri dezactivate |
+| `src/features/receptive-language/ReceptiveShowCommonObjectsTrial.tsx` | Trial receptiv „obiecte comune”; progres trial aliniat vizual cu B1 / pattern / tower |
 | `src/features/b1-2d-matching/logic/generateTrials.ts` | Trial generation for B1 matching |
 | `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`** limited to colors, shapes, fruits, vegetables, animals, vehicles, food, objects |
 | `src/utils/audio.ts` | **`playAudio(name)`** maps string keys to bundled MP3 assets |
@@ -201,10 +214,10 @@ No third-party REST APIs were identified in the sampled paths except Firebase SD
 
 ## 10. Current Limitations / Missing Pieces
 
-1. **`OBJECTIVES` entries without `trialType` and with `categories: []`** (e.g. sort / sequence objectives ids 2, 8–14): In **`visual-skills.tsx`**, **`canStart`** for those requires **`selectedTargets.length > 0`**, but there are **no categories** to open **`ItemSelector`** — **starting a session for those objectives is effectively blocked** in the UI unless code paths differ from the audited logic.
+1. **`OBJECTIVES` entries without `trialType` and with `categories: []`** (e.g. sort / sequence ids 2, 8–14): **În UI sunt dezactivate** (nu se pot selecta / porni); implementarea trial lipsește încă.
 2. **`RECEPTIVE_LANGUAGE_OBJECTIVES` / `OBJECTIVES` in `objectives.ts`** for id 100+ are **not wired** to `receptive-language.tsx`, which uses its **own** `RECEPTIVE_OBJECTIVES` array.
-3. **Receptive / reading `category` ids** (`"common"`, `"letters"`) are **not** in **`CategoryKey` / `VALID_CATEGORIES`** in `trial.tsx` → **`buildB1Config` falls back to `"colors"`**, so **started sessions may not use the intended stimulus sets** for those flows.
-4. **Non-configurable** receptive/reading objectives still navigate to **the same B1 trial screen** — **no distinct trial implementation** was found for each objective id in `trial.tsx`.
+3. **Receptive / reading `category` ids** (`"common"`, `"letters"`) are **not** in **`CategoryKey` / `VALID_CATEGORIES`** in `trial.tsx` → **`buildB1Config` falls back to `"colors"`**, so **started sessions may not use the intended stimulus sets** for those flows (risc rămas pentru fluxurile B1 care trec prin `trial.tsx`).
+4. **Receptive / reading:** Obiectivele fără ecran dedicat **nu mai pornesc** trial din dashboard; pentru **citire**, doar **`receptive_letters`** este marcat implementat în helper — restul așteaptă implementare.
 5. **`sessions` collection schema collision:** Visual sessions use **`userId` / `childId` / startedAt…**; STT uses **`studentId` / `therapistId` / status…**. Same collection name may **complicate queries and security rules** unless partitioned by field conventions or subcollections.
 6. **Root `app/`** folder may confuse contributors; likely **dead** relative to `src/app`.
 7. **Firebase secrets in repo** — high risk; should be treated as **known limitation** until moved to env/secrets.
@@ -221,7 +234,7 @@ No third-party REST APIs were identified in the sampled paths except Firebase SD
 ### Improvements (non-exhaustive)
 1. **Move Firebase config** to environment variables / EAS secrets; add **`.env.example`** without real keys.
 2. **Align category keys** across `ItemSelector`, `stimuliByCategory`, and `trial.tsx` (`common`, `letters`, etc.) or **pass explicit `trialType`** for receptive/reading.
-3. **Either implement or disable** placeholder objectives in the grid (sort, etc.) to avoid **false expectations**.
+3. **Implement** trial-urile rămase pentru obiectivele încă „În curând” și extinde **`objectiveTrialAvailability.ts`** + ramuri în **`trial.tsx`** în același pas.
 4. **Namespace or split** Firestore **`sessions`** for STT vs therapy app, or use a **`type` field** and consistent queries in `MainDashboard` export/delete.
 5. **Remove or document** root **`app/`** to avoid Expo Router ambiguity.
 6. Add **automated tests** for `generateTrials`, `buildB1Config`, and critical Firestore write shapes.

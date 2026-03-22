@@ -1,6 +1,6 @@
 {
-  "name": "ABA Visual Performance",
-  "short_name": "ABA Therapy",
+  "name": "Digital ABA Therapy",
+  "short_name": "Digital ABA",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
