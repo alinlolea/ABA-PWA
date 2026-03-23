@@ -76,20 +76,68 @@ const VEGETABLES_AS_STIMULI: Stimulus[] = placeholderStimuli([
   { id: "pumpkin", label: "Dovleac" },
 ]);
 
-const ANIMALS_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "dog", label: "Câine" },
-  { id: "cat", label: "Pisică" },
-  { id: "horse", label: "Cal" },
-  { id: "cow", label: "Vacă" },
-  { id: "sheep", label: "Oaie" },
-  { id: "pig", label: "Porc" },
-  { id: "chicken", label: "Găină" },
-  { id: "duck", label: "Rață" },
-  { id: "lion", label: "Leu" },
-  { id: "elephant", label: "Elefant" },
-  { id: "bear", label: "Urs" },
-  { id: "rabbit", label: "Iepure" },
-]);
+const ANIMALS_AS_STIMULI: Stimulus[] = [
+  {
+    id: "caine",
+    label: "Câine",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/caine.png"),
+  },
+  {
+    id: "pisica",
+    label: "Pisică",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/pisica.png"),
+  },
+  {
+    id: "cal",
+    label: "Cal",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cal.png"),
+  },
+  {
+    id: "vaca",
+    label: "Vacă",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vaca.png"),
+  },
+  {
+    id: "oaie",
+    label: "Oaie",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/oaie.png"),
+  },
+  {
+    id: "porc",
+    label: "Porc",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/porc.png"),
+  },
+  {
+    id: "gaina",
+    label: "Găină",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/gaina.png"),
+  },
+  {
+    id: "rata",
+    label: "Rață",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/rata.png"),
+  },
+  {
+    id: "curcan",
+    label: "Curcan",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/curcan.png"),
+  },
+  {
+    id: "iepure",
+    label: "Iepure",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/iepure.png"),
+  },
+  {
+    id: "magar",
+    label: "Măgar",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/magar.png"),
+  },
+  {
+    id: "capra",
+    label: "Capră",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/capra.png"),
+  },
+];
 
 const VEHICLES_AS_STIMULI: Stimulus[] = placeholderStimuli([
   { id: "car", label: "Mașină" },

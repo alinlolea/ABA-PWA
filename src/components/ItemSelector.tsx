@@ -6,6 +6,7 @@ import type { Stimulus } from "@/features/b1-2d-matching/types";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -48,7 +49,7 @@ function isSvgStimulus(
   );
 }
 
-const PLACEHOLDER_CATEGORY_IDS = ["fruits", "vegetables", "animals", "vehicles", "food", "objects"];
+const PLACEHOLDER_CATEGORY_IDS = ["fruits", "vegetables", "vehicles", "food", "objects"];
 function isPlaceholderCategory(categoryId: string): boolean {
   return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
 }
@@ -218,6 +219,7 @@ export default function ItemSelector({
   const itemWidth = cardWidth > 0 && numColumns > 0 ? cardWidth / numColumns - 16 : undefined;
   const isColorsCategory = categoryId === "colors";
   const isShapesCategory = categoryId === "shapes";
+  const isAnimalsCategory = categoryId === "animals";
   const columnCount = isShapesCategory
     ? 4
     : filteredStimuli.length <= 6
@@ -242,14 +244,14 @@ export default function ItemSelector({
     columnCount > 0
       ? colorCellWidth * columnCount + COLOR_GRID_GAP * (columnCount - 1)
       : 0;
-  const gridGap = isColorsCategory || isShapesCategory ? COLOR_GRID_GAP : Spacing.sm;
+  const gridGap = isColorsCategory || isShapesCategory || isAnimalsCategory ? COLOR_GRID_GAP : Spacing.sm;
   const gridInnerWidth = Math.max(0, configColumnWidth - gridPadding * 2 - gridGap * (GRID_COLUMNS - 1));
   const gridItemSize = Math.min(
     Math.max(56, Math.floor(gridInnerWidth / GRID_COLUMNS - gridGap)),
     96
   );
   const targetGridWidth =
-    isColorsCategory || isShapesCategory || isPlaceholderCategory(categoryId)
+    isColorsCategory || isShapesCategory || isAnimalsCategory || isPlaceholderCategory(categoryId)
       ? colorGridWidth
       : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
   const shapeThumbSize = colorCircleDiameter;
@@ -396,6 +398,51 @@ export default function ItemSelector({
                         fill={visual.fill}
                         borderWidth={0}
                         borderColor="transparent"
+                      />
+                    </View>
+                    <Text style={styles.colorLabel} numberOfLines={1}>
+                      {stimulus.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : isAnimalsCategory ? (
+          <View style={styles.targetGridWrap}>
+            <View
+              style={[
+                styles.gridContainer,
+                { gap: 16 },
+              ]}
+            >
+              {filteredStimuli.map((stimulus) => {
+                const isSelected = localTargets.some((s) => s.id === stimulus.id);
+                return (
+                  <Pressable
+                    key={stimulus.id}
+                    style={[styles.colorCell, { width: colorCellWidth }]}
+                    onPress={() => handleTargetPress(stimulus)}
+                  >
+                    <View
+                      style={[
+                        styles.shapeCellInner,
+                        {
+                          width: shapeThumbSize + 8,
+                          height: shapeThumbSize + 8,
+                        },
+                        isSelected && {
+                          borderWidth: 2,
+                          borderColor: Colors.accent,
+                          borderRadius: 8,
+                        },
+                      ]}
+                    >
+                      <Image
+                        source={stimulus.image}
+                        resizeMode="contain"
+                        style={{ width: shapeThumbSize, height: shapeThumbSize }}
+                        accessibilityIgnoresInvertColors
                       />
                     </View>
                     <Text style={styles.colorLabel} numberOfLines={1}>

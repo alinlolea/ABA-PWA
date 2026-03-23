@@ -19,6 +19,8 @@ import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/fi
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Image,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -155,6 +157,11 @@ function isPlaceholderStimulus(image: unknown): image is { type: "placeholder" }
   );
 }
 
+/** Metro `require("*.png")` — used for e.g. animals category image stimuli. */
+function isBundledRasterImage(image: unknown): image is number {
+  return typeof image === "number";
+}
+
 function TrialShapeSvg({
   form,
   size,
@@ -284,6 +291,29 @@ function StimulusPlaceholder({
       </Animated.View>
     );
   }
+  if (isBundledRasterImage(stimulus.image)) {
+    return (
+      <Animated.View style={itemBoxStyle}>
+        <View
+          style={{
+            width: size,
+            height: size,
+            borderRadius: itemRadius,
+            overflow: "hidden",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          <Image
+            source={stimulus.image}
+            style={{ width: size, height: size }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            {...(Platform.OS === "web" ? { draggable: false } : {})}
+          />
+        </View>
+      </Animated.View>
+    );
+  }
   const color = typeof stimulus.image === "string" ? stimulus.image : "#E0E0E0";
   return (
       <Animated.View style={itemBoxStyle}>
@@ -370,6 +400,35 @@ function OptionSlot({
         <Animated.View style={borderContainerStyle}>
           <View style={[styles.placeholderBox, { width: itemSize, height: itemSize, borderRadius: itemRadius, overflow: "hidden" }]}>
             <Text style={[styles.placeholderLetter, { fontSize: Math.max(14, itemSize * 0.35) }]}>{firstLetter}</Text>
+          </View>
+        </Animated.View>
+      </View>
+    );
+  }
+  if (isBundledRasterImage(stimulus.image)) {
+    return (
+      <View
+        ref={optionRef}
+        collapsable={false}
+        style={[styles.optionSlot, { width: itemSize, height: itemSize }]}
+      >
+        <Animated.View style={borderContainerStyle}>
+          <View
+            style={{
+              width: itemSize,
+              height: itemSize,
+              borderRadius: itemRadius,
+              overflow: "hidden",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            <Image
+              source={stimulus.image}
+              style={{ width: itemSize, height: itemSize }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              {...(Platform.OS === "web" ? { draggable: false } : {})}
+            />
           </View>
         </Animated.View>
       </View>
