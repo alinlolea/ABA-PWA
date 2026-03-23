@@ -9,11 +9,13 @@ import {
 } from "@/features/receptive-language/receptiveItemAssets";
 import { playAudioModule } from "@/features/receptive-language/playReceptiveAsset";
 import { playAudio } from "@/utils/audio";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -312,13 +314,15 @@ export default function ReceptiveShowCommonObjectsTrial({
   );
 
   if (!receptiveCategory || pool.length === 0 || placedItems.length === 0) {
-    return <View style={[styles.screen, { width, height }]} />;
+    return (
+      <View style={[styles.screen, { width, height }, trialUiRootShellStyle]} />
+    );
   }
 
   const progressLabel = `${currentTrialIndex + 1} / ${TRIAL_TOTAL}`;
 
   return (
-    <View style={[styles.screen, { width, height }]}>
+    <View style={[styles.screen, { width, height }, trialUiRootShellStyle]}>
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>{progressLabel}</Text>
       </View>
@@ -347,6 +351,7 @@ export default function ReceptiveShowCommonObjectsTrial({
               style={styles.image}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
+              {...(Platform.OS === "web" ? { draggable: false } : {})}
             />
           </Pressable>
         );

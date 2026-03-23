@@ -34,6 +34,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
 const TRIAL_COUNT = 10;
@@ -606,7 +607,12 @@ export default function TrialScreen() {
     const voiceEnabledLogical =
       (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
     return (
-      <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+      <View
+        style={[
+          { flex: 1, backgroundColor: Theme.colors.background },
+          trialUiRootShellStyle,
+        ]}
+      >
         <LogicalMatchingTrial
           pairCount={logicalPairCount}
           sessionId={sessionId}
@@ -965,7 +971,7 @@ export default function TrialScreen() {
 
   if (session.completed) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={[{ flex: 1 }, trialUiRootShellStyle]}>
         <View style={styles.completedRoot}>
           <Text style={styles.completedTitle}>Sesiune finalizată</Text>
           <Text style={styles.completedScore}>
@@ -983,8 +989,8 @@ export default function TrialScreen() {
   const progressText = `${session.currentTrialIndex + 1} / ${TRIAL_COUNT}`;
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.trialContainer}>
+    <View style={[{ flex: 1 }, trialUiRootShellStyle]}>
+      <View style={[styles.trialContainer, trialUiRootShellStyle]}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>{progressText}</Text>
         </View>

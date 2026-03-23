@@ -49,6 +49,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
 
+    const disableContextMenu = (e: Event) => {
+      e.preventDefault();
+    };
+    document.addEventListener("contextmenu", disableContextMenu);
+
     const preventGesture = (event: Event) => {
       event.preventDefault();
     };
@@ -75,6 +80,7 @@ export default function RootLayout() {
     document.addEventListener("touchend", preventDoubleTapZoom, { passive: false });
 
     return () => {
+      document.removeEventListener("contextmenu", disableContextMenu);
       document.removeEventListener("gesturestart", preventGesture);
       document.removeEventListener("gesturechange", preventGesture);
       document.removeEventListener("gestureend", preventGesture);

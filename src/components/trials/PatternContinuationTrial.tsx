@@ -20,6 +20,7 @@ import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 export type ShapeType =
   | "circle"
@@ -420,7 +421,7 @@ export default function PatternContinuationTrial({
 
   if (!currentTrial) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={[{ flex: 1 }, trialUiRootShellStyle]}>
         <View style={styles.completedRoot}>
           <Text style={styles.completedTitle}>Sesiune finalizată</Text>
           <Text style={styles.completedScore}>
@@ -762,7 +763,7 @@ function PatternContinuationTrialInner({
   })();
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, trialUiRootShellStyle]}>
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>{progressText}</Text>
       </View>

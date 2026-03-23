@@ -26,6 +26,7 @@ import {
 } from "@/utils/speech";
 import { TouchTarget } from "@/design/touch";
 import { Theme } from "@/design/theme";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 const TRIAL_COUNT = 10;
 const INITIAL_DELAY_MS = 200;
@@ -401,7 +402,7 @@ export default function ColorLabelingTrial({
     const total = correctCount + incorrectCount;
     const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
     return (
-      <View style={[styles.screen, styles.centered]}>
+      <View style={[styles.screen, styles.centered, trialUiRootShellStyle]}>
         <Text style={styles.title}>Sesiune încheiată</Text>
         <Text style={styles.subtitle}>Numeste culori</Text>
         <View style={styles.statsRow}>
@@ -431,7 +432,7 @@ export default function ColorLabelingTrial({
   });
 
   return (
-    <View style={[styles.screen, styles.centered]}>
+    <View style={[styles.screen, styles.centered, trialUiRootShellStyle]}>
       <View style={styles.trialColumn}>
         <View
           style={[

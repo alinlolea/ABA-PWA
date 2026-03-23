@@ -16,6 +16,7 @@ import {
 import { useTrialSession } from "./useTrialSession";
 import type { TrialResultType } from "./types";
 import { Colors } from "@/design/colors";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 const RESULT_BUTTONS: { key: TrialResultType; label: string; color: string }[] = [
   { key: "correct", label: "Corect", color: Colors.correct },
@@ -83,7 +84,7 @@ export default function STTTrialScreen() {
 
   if (!session) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, trialUiRootShellStyle]}>
         <Text style={[styles.title, { fontSize: rs(22) }]}>Se încarcă sesiunea...</Text>
       </View>
     );
@@ -92,7 +93,7 @@ export default function STTTrialScreen() {
   if (isComplete) {
     const correct = trialResults.filter((r) => r.result === "correct").length;
     return (
-      <View style={[styles.root, { padding: rs(24) }]}>
+      <View style={[styles.root, { padding: rs(24) }, trialUiRootShellStyle]}>
         <Text style={[styles.title, { fontSize: rs(24), marginBottom: rs(16) }]}>Sesiune încheiată</Text>
         <Text style={[styles.body, { fontSize: rs(18), marginBottom: rs(8) }]}>
           {session.objectiveName ?? "Obiectiv"}
@@ -111,7 +112,7 @@ export default function STTTrialScreen() {
   }
 
   return (
-    <View style={[styles.root, { padding: rs(24) }]}>
+    <View style={[styles.root, { padding: rs(24) }, trialUiRootShellStyle]}>
       <View style={styles.header}>
         <Text style={[styles.progress, { fontSize: rs(18) }]}>
           Încercare {trialIndex + 1} / {trialCount}

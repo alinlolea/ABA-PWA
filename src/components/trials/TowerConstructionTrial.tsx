@@ -18,6 +18,7 @@ import {
 import { useResponsive } from "@/utils/responsive";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 function isWhiteLike(color: string): boolean {
   const c = color.toLowerCase().trim();
@@ -178,7 +179,7 @@ export default function TowerConstructionTrial({ sessionId, config, onComplete, 
 
   if (!currentTrial) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={[{ flex: 1 }, trialUiRootShellStyle]}>
         <View style={styles.completedRoot}>
           <Text style={[styles.completedTitle, { fontSize: rs(20), marginBottom: rs(12) }]}>Sesiune finalizată</Text>
           <Text style={[styles.completedScore, { fontSize: rs(16) }]}>
@@ -542,7 +543,7 @@ function TowerTrialInner({
   })();
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, trialUiRootShellStyle]}>
       <View style={[styles.progressContainer, { top: rs(20), left: rs(24) }]}>
         <Text style={[styles.progressText, { fontSize: rs(14) }]}>{progressText}</Text>
       </View>

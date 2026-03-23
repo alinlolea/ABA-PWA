@@ -21,6 +21,7 @@ import {
   Animated,
   Image,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -28,6 +29,7 @@ import {
 import { playAudio } from "@/utils/audio";
 import { stopSpeech } from "@/utils/speech";
 import { useResponsive } from "@/utils/responsive";
+import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 const ITEM_RADIUS = 16;
 const SNAP_DURATION = 200;
@@ -65,6 +67,7 @@ function LogicalImageView({
         borderRadius,
       }}
       accessibilityIgnoresInvertColors
+      {...(Platform.OS === "web" ? { draggable: false } : {})}
     />
   );
 }
@@ -236,7 +239,7 @@ export default function LogicalMatchingTrial({
 
   if (sessionCompleted) {
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, trialUiRootShellStyle]}>
         <View style={styles.completedRoot}>
           <Text style={styles.completedTitle}>Sesiune finalizată</Text>
           <Text style={styles.completedScore}>
@@ -605,14 +608,14 @@ function LogicalMatchingTrialInner({
 
   if (n === 0) {
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, trialUiRootShellStyle]}>
         <Text style={styles.emptyText}>Nicio pereche disponibilă.</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, trialUiRootShellStyle]}>
       {progressLabel ? (
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>{progressLabel}</Text>
