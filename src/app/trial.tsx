@@ -36,6 +36,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
+import { isRasterImageSource, normalizeRasterSource } from "@/utils/rasterImageSource";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
@@ -155,11 +156,6 @@ function isPlaceholderStimulus(image: unknown): image is { type: "placeholder" }
     "type" in image &&
     (image as { type: string }).type === "placeholder"
   );
-}
-
-/** Metro `require("*.png")` — used for e.g. animals category image stimuli. */
-function isBundledRasterImage(image: unknown): image is number {
-  return typeof image === "number";
 }
 
 function TrialShapeSvg({
@@ -291,7 +287,7 @@ function StimulusPlaceholder({
       </Animated.View>
     );
   }
-  if (isBundledRasterImage(stimulus.image)) {
+  if (isRasterImageSource(stimulus.image)) {
     return (
       <Animated.View style={itemBoxStyle}>
         <View
@@ -304,7 +300,7 @@ function StimulusPlaceholder({
           }}
         >
           <Image
-            source={stimulus.image}
+            source={normalizeRasterSource(stimulus.image)}
             style={{ width: size, height: size }}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
@@ -405,7 +401,7 @@ function OptionSlot({
       </View>
     );
   }
-  if (isBundledRasterImage(stimulus.image)) {
+  if (isRasterImageSource(stimulus.image)) {
     return (
       <View
         ref={optionRef}
@@ -423,7 +419,7 @@ function OptionSlot({
             }}
           >
             <Image
-              source={stimulus.image}
+              source={normalizeRasterSource(stimulus.image)}
               style={{ width: itemSize, height: itemSize }}
               resizeMode="contain"
               accessibilityIgnoresInvertColors

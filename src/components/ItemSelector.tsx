@@ -1,4 +1,5 @@
 import { Colors } from "@/design/colors";
+import { normalizeRasterSource } from "@/utils/rasterImageSource";
 import { Spacing } from "@/design/spacing";
 import { Typography } from "@/design/typography";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
@@ -23,7 +24,7 @@ const COLOR_CIRCLE_MIN = 30;
 const COLOR_CIRCLE_MAX = 40;
 const COLOR_GRID_GAP = 24;
 
-const MAX_TARGETS = 3;
+const MAX_TARGETS = 5;
 const MAX_BOTTOM_ITEMS = 6;
 const DISTRACTOR_MAX = 3;
 const SHAPE_FILL = "#4B5563";
@@ -439,7 +440,7 @@ export default function ItemSelector({
                       ]}
                     >
                       <Image
-                        source={stimulus.image}
+                        source={normalizeRasterSource(stimulus.image)}
                         resizeMode="contain"
                         style={{ width: shapeThumbSize, height: shapeThumbSize }}
                         accessibilityIgnoresInvertColors
@@ -555,7 +556,7 @@ export default function ItemSelector({
 
         <View style={styles.selectionRow}>
           <View style={styles.selectedTargetsSection}>
-            <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Selected Targets (max 3)</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Selected Targets (max 5)</Text>
             <View style={styles.selectedTargetsChips}>
               {localTargets.length === 0 ? (
                 <Text style={styles.selectedTargetsEmpty}>None selected</Text>
