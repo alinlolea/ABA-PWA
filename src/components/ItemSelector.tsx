@@ -50,7 +50,7 @@ function isSvgStimulus(
   );
 }
 
-const PLACEHOLDER_CATEGORY_IDS = ["fruits", "vegetables", "vehicles", "food", "objects"];
+const PLACEHOLDER_CATEGORY_IDS = ["vehicles", "food", "objects"];
 function isPlaceholderCategory(categoryId: string): boolean {
   return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
 }
@@ -220,7 +220,8 @@ export default function ItemSelector({
   const itemWidth = cardWidth > 0 && numColumns > 0 ? cardWidth / numColumns - 16 : undefined;
   const isColorsCategory = categoryId === "colors";
   const isShapesCategory = categoryId === "shapes";
-  const isAnimalsCategory = categoryId === "animals";
+  const isRasterThumbnailCategory =
+    categoryId === "animals" || categoryId === "fruits" || categoryId === "vegetables";
   const columnCount = isShapesCategory
     ? 4
     : filteredStimuli.length <= 6
@@ -245,14 +246,14 @@ export default function ItemSelector({
     columnCount > 0
       ? colorCellWidth * columnCount + COLOR_GRID_GAP * (columnCount - 1)
       : 0;
-  const gridGap = isColorsCategory || isShapesCategory || isAnimalsCategory ? COLOR_GRID_GAP : Spacing.sm;
+  const gridGap = isColorsCategory || isShapesCategory || isRasterThumbnailCategory ? COLOR_GRID_GAP : Spacing.sm;
   const gridInnerWidth = Math.max(0, configColumnWidth - gridPadding * 2 - gridGap * (GRID_COLUMNS - 1));
   const gridItemSize = Math.min(
     Math.max(56, Math.floor(gridInnerWidth / GRID_COLUMNS - gridGap)),
     96
   );
   const targetGridWidth =
-    isColorsCategory || isShapesCategory || isAnimalsCategory || isPlaceholderCategory(categoryId)
+    isColorsCategory || isShapesCategory || isRasterThumbnailCategory || isPlaceholderCategory(categoryId)
       ? colorGridWidth
       : gridItemSize * GRID_COLUMNS + gridGap * (GRID_COLUMNS - 1);
   const shapeThumbSize = colorCircleDiameter;
@@ -409,7 +410,7 @@ export default function ItemSelector({
               })}
             </View>
           </View>
-        ) : isAnimalsCategory ? (
+        ) : isRasterThumbnailCategory ? (
           <View style={styles.targetGridWrap}>
             <View
               style={[

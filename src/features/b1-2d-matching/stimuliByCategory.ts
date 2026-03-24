@@ -46,97 +46,63 @@ function placeholderStimuli(
   }));
 }
 
-const FRUITS_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "apple", label: "Măr" },
-  { id: "pear", label: "Pară" },
-  { id: "banana", label: "Banană" },
-  { id: "orange", label: "Portocală" },
-  { id: "strawberry", label: "Căpșună" },
-  { id: "grapes", label: "Struguri" },
-  { id: "watermelon", label: "Pepene" },
-  { id: "lemon", label: "Lămâie" },
-  { id: "cherries", label: "Cireșe" },
-  { id: "pineapple", label: "Ananas" },
-  { id: "plum", label: "Prună" },
-  { id: "raspberry", label: "Zmeură" },
-]);
+const FRUITS_AS_STIMULI: Stimulus[] = [
+  { id: "ananas", label: "ananas", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/ananas.png") },
+  { id: "banana", label: "banana", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/banana.png") },
+  { id: "capsuna", label: "capsuna", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/capsuna.png") },
+  { id: "cireasa", label: "cireasa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/cireasa.png") },
+  { id: "kiwi", label: "kiwi", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/kiwi.png") },
+  { id: "lubenita", label: "lubenita", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/lubenita.png") },
+  { id: "mango", label: "mango", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/mango.png") },
+  { id: "mar", label: "mar", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/mar.png") },
+  { id: "para", label: "para", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/para.png") },
+  { id: "pepene", label: "pepene", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/pepene.png") },
+  { id: "piersica", label: "piersica", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/piersica.png") },
+  { id: "portocala", label: "portocala", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/portocala.png") },
+  { id: "pruna", label: "pruna", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/pruna.png") },
+  { id: "struguri", label: "struguri", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/struguri.png") },
+  { id: "zmeura", label: "zmeura", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/zmeura.png") },
+];
 
-const VEGETABLES_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "carrot", label: "Morcov" },
-  { id: "potato", label: "Cartof" },
-  { id: "tomato", label: "Roșie" },
-  { id: "cucumber", label: "Castravete" },
-  { id: "pepper", label: "Ardei" },
-  { id: "onion", label: "Ceapă" },
-  { id: "garlic", label: "Usturoi" },
-  { id: "eggplant", label: "Vânătă" },
-  { id: "broccoli", label: "Broccoli" },
-  { id: "corn", label: "Porumb" },
-  { id: "lettuce", label: "Salată" },
-  { id: "pumpkin", label: "Dovleac" },
-]);
+const VEGETABLES_AS_STIMULI: Stimulus[] = [
+  { id: "ardei", label: "ardei", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/ardei.png") },
+  { id: "broccoli", label: "broccoli", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/broccoli.png") },
+  { id: "cartof", label: "cartof", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/cartof.png") },
+  { id: "castravete", label: "castravete", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/castravete.png") },
+  { id: "ceapa", label: "ceapa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/ceapa.png") },
+  { id: "fasole", label: "fasole", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/fasole.png") },
+  { id: "mazare", label: "mazare", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/mazare.png") },
+  { id: "morcov", label: "morcov", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/morcov.png") },
+  { id: "porumb", label: "porumb", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/porumb.png") },
+  { id: "rosie", label: "rosie", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/rosie.png") },
+  { id: "usturoi", label: "usturoi", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/usturoi.png") },
+  { id: "vanata", label: "vanata", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/vanata.png") },
+  { id: "varza", label: "varza", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/varza.png") },
+];
 
 const ANIMALS_AS_STIMULI: Stimulus[] = [
-  {
-    id: "caine",
-    label: "Câine",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/caine.png"),
-  },
-  {
-    id: "pisica",
-    label: "Pisică",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/pisica.png"),
-  },
-  {
-    id: "cal",
-    label: "Cal",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cal.png"),
-  },
-  {
-    id: "vaca",
-    label: "Vacă",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vaca.png"),
-  },
-  {
-    id: "oaie",
-    label: "Oaie",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/oaie.png"),
-  },
-  {
-    id: "porc",
-    label: "Porc",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/porc.png"),
-  },
-  {
-    id: "gaina",
-    label: "Găină",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/gaina.png"),
-  },
-  {
-    id: "rata",
-    label: "Rață",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/rata.png"),
-  },
-  {
-    id: "curcan",
-    label: "Curcan",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/curcan.png"),
-  },
-  {
-    id: "iepure",
-    label: "Iepure",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/iepure.png"),
-  },
-  {
-    id: "magar",
-    label: "Măgar",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/magar.png"),
-  },
-  {
-    id: "capra",
-    label: "Capră",
-    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/capra.png"),
-  },
+  { id: "caine", label: "caine", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/caine.png") },
+  { id: "cal", label: "cal", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cal.png") },
+  { id: "capra", label: "capra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/capra.png") },
+  { id: "cangur", label: "cangur", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cangur.png") },
+  { id: "crocodil", label: "crocodil", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/crocodil.png") },
+  { id: "curcan", label: "curcan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/curcan.png") },
+  { id: "gaina", label: "gaina", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/gaina.png") },
+  { id: "girafa", label: "girafa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/girafa.png") },
+  { id: "iepure", label: "iepure", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/iepure.png") },
+  { id: "leu", label: "leu", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/leu.png") },
+  { id: "lup", label: "lup", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/lup.png") },
+  { id: "magar", label: "magar", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/magar.png") },
+  { id: "maimuta", label: "maimuta", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/maimuta.png") },
+  { id: "oaie", label: "oaie", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/oaie.png") },
+  { id: "pisica", label: "pisica", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/pisica.png") },
+  { id: "porc", label: "porc", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/porc.png") },
+  { id: "rata", label: "rata", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/rata.png") },
+  { id: "tigru", label: "tigru", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/tigru.png") },
+  { id: "urs", label: "urs", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/urs.png") },
+  { id: "vaca", label: "vaca", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vaca.png") },
+  { id: "vulpe", label: "vulpe", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vulpe.png") },
+  { id: "zebra", label: "zebra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/zebra.png") },
 ];
 
 const VEHICLES_AS_STIMULI: Stimulus[] = placeholderStimuli([

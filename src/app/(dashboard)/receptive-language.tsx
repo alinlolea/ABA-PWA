@@ -9,6 +9,7 @@ import {
   RECEPTIVE_CATEGORIES,
   type ReceptiveCategory,
 } from "@/features/receptive-language/categories";
+import { getReceptiveItemPool } from "@/features/receptive-language/receptiveItemAssets";
 import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -70,7 +71,8 @@ export default function ReceptiveLanguageRoute() {
 
   const canStart =
     isShowCommonObjects &&
-    selectedCategory === "animale_domestice" &&
+    selectedCategory != null &&
+    getReceptiveItemPool(selectedCategory).length > 0 &&
     itemCount >= 1 &&
     itemCount <= 5;
 
@@ -113,7 +115,7 @@ export default function ReceptiveLanguageRoute() {
 
     if (selectedId === SHOW_COMMON_OBJECTS_ID) {
       if (selectedCategory == null || itemCount < 1) return;
-      if (selectedCategory !== "animale_domestice") return;
+      if (getReceptiveItemPool(selectedCategory).length === 0) return;
       try {
         const sessionRef = await addDoc(collection(db, "sessions"), {
           userId: currentUser.uid,
@@ -333,7 +335,7 @@ export default function ReceptiveLanguageRoute() {
                       {categoryMenuVisible ? (
                         <View style={styles.categoryDropdownPanel}>
                           {RECEPTIVE_CATEGORIES.map(({ key, label }) => {
-                            const disabled = key !== "animale_domestice";
+                            const disabled = getReceptiveItemPool(key).length === 0;
                             return (
                               <TouchableOpacity
                                 key={key}
@@ -364,7 +366,7 @@ export default function ReceptiveLanguageRoute() {
                       ) : null}
                     </View>
                     <Text style={[styles.categoryHelperText, { fontSize: rs(13), marginTop: rs(Spacing.sm) }]}>
-                      Momentan disponibil doar: Animale domestice
+                      Categoriile fără conținut încărcat sunt indisponibile.
                     </Text>
                   </View>
                 </View>
