@@ -29,6 +29,7 @@ import {
 import { playAudio } from "@/utils/audio";
 import { stopSpeech } from "@/utils/speech";
 import { useResponsive } from "@/utils/responsive";
+import { getUnifiedTrialStimulusSize, stimulusSizeForColumnCount } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 const ITEM_RADIUS = 16;
@@ -228,10 +229,10 @@ export default function LogicalMatchingTrial({
   }, [sessionCompleted, sessionId, trialsCompletedScore, onComplete]);
 
   const totalItems = Math.max(1, trial.topImages.length || 1);
-  const availableWidth = screenWidth * 0.9;
-  const sizeFromWidth = availableWidth / totalItems;
-  const maxItemSize = rs(90);
-  const itemSize = Math.min(maxItemSize, sizeFromWidth, topZoneHeight * 0.32);
+  const unified = getUnifiedTrialStimulusSize(screenWidth, screenHeight);
+  const fitPool = stimulusSizeForColumnCount(screenWidth, totalItems);
+  const maxByTopZone = Math.floor(topZoneHeight * 0.35);
+  const itemSize = Math.min(unified, fitPool, maxByTopZone);
 
   const progressLabel = `${currentTrialIndex + 1} / ${TOTAL_TRIALS}`;
   /** Remount inner when trial index or drawn pair set changes (avoid tying to completedPairIds to prevent clearing advance timeout). */

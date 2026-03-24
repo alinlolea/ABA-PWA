@@ -2,6 +2,12 @@
 
 This document describes the **ABA Visual Performance** codebase as observed in the repository. Where behavior is inferred but not fully traced, it is marked explicitly.
 
+### Recent updates (2026-03-23)
+
+- **Interacțiune tabletă / web în trial-uri:** În `src/app/_layout.tsx` (doar web), listener global pe `contextmenu` cu `preventDefault()` pentru a reduce meniul contextual la long-press. Stiluri comune pentru suprafețe trial în `src/utils/trialUiShell.ts` (`trialUiRootShellStyle`: `touchAction: "none"`, pe web `userSelect` / `WebkitUserSelect` / `WebkitTouchCallout`), aplicate pe containerele rădăcină ale trial-urilor relevante și fluxului B1 din `trial.tsx`. Imagini: pe web, `draggable={false}` unde e cazul pe `Image` în trial-uri (ex. potrivire logică, receptiv).
+- **Potriviri 2D (B1) — categorie „Animale”:** În `src/features/b1-2d-matching/stimuliByCategory.ts`, `ANIMALS_AS_STIMULI` folosește **imagini reale** (`require` static din `assets/programe/discriminare-vizuala/potriviri/imagini/animale/*.png`), cu `id` / `label` (română) per animal. Sidebar: în `ItemSelector`, categoria `animals` are ramură dedicată (miniaturi `Image`, ca la culori/forme), nu mai e tratată ca placeholder cu literă; **limită ținte selectabile: 5** (înainte 3), constantă `MAX_TARGETS`.
+- **Randare PNG în trial B1:** În `src/app/trial.tsx`, `StimulusPlaceholder` și `OptionSlot` afișează `Image` pentru stimuli cu sursă raster. Pe web, `require` poate returna obiect (`uri` / `default`), nu doar `number`; helperi în `src/utils/rasterImageSource.ts` — `isRasterImageSource`, `normalizeRasterSource` — folosiți și în `ItemSelector` pentru miniaturi animale. Comportamentul trial-ului (randomizare, `generateTrials`, audio generic B1) neschimbat.
+
 ### Recent updates (2025-03-08)
 
 - **Indicator progres trial — limbaj receptiv:** În `src/features/receptive-language/ReceptiveShowCommonObjectsTrial.tsx`, textul de progres (`1 / N`) folosește același model ca în `trial.tsx` (B1) și ca în trial-urile pattern/tower: `Typography.small` + `Colors.textSecondary`, container absolut `top: 20`, `left: 24`, `zIndex: 10`, format cu spații în jurul `/`.
@@ -139,15 +145,17 @@ Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/
 
 | File / area | Role |
 |-------------|------|
-| `src/app/_layout.tsx` | Fonts, auth redirect, landscape lock (native), web zoom/gesture prevention, PWA resume hook |
+| `src/app/_layout.tsx` | Fonts, auth redirect, landscape lock (native), web zoom/gesture prevention, **web: `contextmenu` preventDefault**, PWA resume hook |
 | `src/app/(dashboard)/_layout.tsx` | Sidebar navigation, selected child context wiring, logout, PWA install affordance |
-| `src/app/trial.tsx` | Trial type routing + B1 matching implementation (Reanimated gestures, SVG/shapes, session completion write) |
+| `src/app/trial.tsx` | Trial type routing + B1 matching (Reanimated gestures, SVG/shapes, **Image pentru stimuli raster**, `trialUiRootShellStyle`), session completion write |
 | `src/config/objectives.ts` | **`OBJECTIVES`** (ids 1–14) and **`RECEPTIVE_LANGUAGE_OBJECTIVES`** (ids 100–120); obiectivele fără categorii/`trialType` rămân în listă dar sunt **dezactivate în UI** prin `objectiveTrialAvailability` |
 | `src/utils/objectiveTrialAvailability.ts` | Sursă unică: care obiective au trial în `trial.tsx` / dashboard (vizual, receptiv, etichetare, citire) |
 | `src/design/objectiveCard.ts` | **`objectiveGridCardDisabledStyle`** — opacitate 0.5 pentru carduri dezactivate |
 | `src/features/receptive-language/ReceptiveShowCommonObjectsTrial.tsx` | Trial receptiv „obiecte comune”; progres trial aliniat vizual cu B1 / pattern / tower |
 | `src/features/b1-2d-matching/logic/generateTrials.ts` | Trial generation for B1 matching |
-| `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`** limited to colors, shapes, fruits, vegetables, animals, vehicles, food, objects |
+| `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`**: colors, shapes, fruits, vegetables, animals, vehicles, food, objects; **animale** = PNG-uri bundle-uite (`potriviri/imagini/animale`), nu placeholder |
+| `src/utils/trialUiShell.ts` | **`trialUiRootShellStyle`** — suprafețe trial: `touchAction: "none"`, pe web blocare selecție / callout implicit |
+| `src/utils/rasterImageSource.ts` | Detectare / normalizare sursă `Image` pentru PNG-uri Metro pe web (`uri` / `default`) |
 | `src/utils/audio.ts` | **`playAudio(name)`** maps string keys to bundled MP3 assets |
 | `src/contexts/SelectedChildContext.tsx` | Selected child id for dashboard and sessions (exact provider location: context folder) |
 

@@ -37,6 +37,7 @@ import Reanimated, {
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
 import { isRasterImageSource, normalizeRasterSource } from "@/utils/rasterImageSource";
+import { getB1MatchingItemSize, TRIAL_INTER_ITEM_GAP_RATIO, TRIAL_USABLE_WIDTH_RATIO } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 
@@ -48,8 +49,6 @@ const SNAP_ANIM_DURATION = 200;
 const MAX_TOP_TARGETS = 5;
 const MAX_BOTTOM_OPTIONS = 6;
 const DEFAULT_DISTRACTOR_COUNT = 0;
-const MIN_ITEM_SIZE = 70;
-const MAX_ITEM_SIZE = 120;
 const OPTION_BORDER_DEFAULT = "#444";
 const OPTION_BORDER_SUCCESS = "#2ecc71";
 const OPTION_BORDER_ERROR = "#e74c3c";
@@ -507,7 +506,7 @@ function buildB1Config(params: TrialParams): B1Config {
 
 export default function TrialScreen() {
   // When adding new top-level branches (objective= / trialType=), update `@/utils/objectiveTrialAvailability`.
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const params = useLocalSearchParams<TrialParams>();
   const sessionIdRaw = params.sessionId;
   const sessionId =
@@ -772,17 +771,13 @@ export default function TrialScreen() {
   const topTargets = currentTrial?.topTargets ?? [];
   const bottomOptions = currentTrial?.bottomOptions ?? [];
   const bottomCount = bottomOptions.length > 0 ? bottomOptions.length : 1;
-  const usableWidth = screenWidth * 0.9;
-  const gap = usableWidth * 0.02;
-  const ITEM_SIZE = clamp(
-    (usableWidth - gap * (bottomCount - 1)) / bottomCount,
-    MIN_ITEM_SIZE,
-    MAX_ITEM_SIZE
-  );
+  const usableWidth = screenWidth * TRIAL_USABLE_WIDTH_RATIO;
+  const gap = usableWidth * TRIAL_INTER_ITEM_GAP_RATIO;
+  const topCount = topTargets.length;
+  const ITEM_SIZE = getB1MatchingItemSize(screenWidth, screenHeight, topCount, bottomCount);
   const ITEM_RADIUS = Math.round(ITEM_SIZE * ITEM_RADIUS_RATIO);
   const snapRadius = ITEM_SIZE * 0.6;
   const optionGap = bottomCount > 1 ? (usableWidth - ITEM_SIZE * bottomCount) / (bottomCount - 1) : 0;
-  const topCount = topTargets.length;
   const topGap = topCount > 1 ? (usableWidth - ITEM_SIZE * topCount) / (topCount - 1) : 0;
 
   const snapRadiusRef = useRef(snapRadius);

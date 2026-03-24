@@ -20,6 +20,7 @@ import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
 import { playAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
+import { getUnifiedTrialStimulusSize, stimulusSizeForColumnCount } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
 export type ShapeType =
@@ -433,10 +434,9 @@ export default function PatternContinuationTrial({
   }
 
   const totalItems = Math.max(1, currentTrial.availableCubes.length);
-  const availableWidth = screenWidth * 0.9;
-  const sizeFromWidth = availableWidth / totalItems;
-  const maxItemSize = rs(90);
-  const itemSize = Math.min(maxItemSize, sizeFromWidth);
+  const unified = getUnifiedTrialStimulusSize(screenWidth, screenHeight);
+  const fitRow = stimulusSizeForColumnCount(screenWidth, totalItems);
+  const itemSize = Math.min(unified, fitRow);
 
   return (
     <PatternContinuationTrialInner

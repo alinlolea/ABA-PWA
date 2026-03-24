@@ -9,6 +9,7 @@ import {
 } from "@/features/receptive-language/receptiveItemAssets";
 import { playAudioModule } from "@/features/receptive-language/playReceptiveAsset";
 import { playAudio } from "@/utils/audio";
+import { getUnifiedTrialStimulusSize } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useRouter } from "expo-router";
@@ -134,7 +135,7 @@ export default function ReceptiveShowCommonObjectsTrial({
     [receptiveCategory]
   );
 
-  const imageOuter = Math.min(112, Math.max(72, width * 0.11));
+  const imageOuter = getUnifiedTrialStimulusSize(width, height);
 
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
