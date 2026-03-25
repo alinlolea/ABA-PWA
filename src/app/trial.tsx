@@ -60,9 +60,8 @@ const VALID_CATEGORIES: CategoryKey[] = [
   "shapes",
   "fruits",
   "vegetables",
-  "animals",
-  "vehicles",
-  "food",
+  "animals_domestic",
+  "animals_wild",
   "objects",
 ];
 

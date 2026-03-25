@@ -50,7 +50,7 @@ function isSvgStimulus(
   );
 }
 
-const PLACEHOLDER_CATEGORY_IDS = ["vehicles", "food", "objects"];
+const PLACEHOLDER_CATEGORY_IDS = ["objects"];
 function isPlaceholderCategory(categoryId: string): boolean {
   return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
 }
@@ -60,9 +60,8 @@ const CATEGORY_ID_TO_ENGLISH: Record<string, string> = {
   shapes: "Shapes",
   fruits: "Fruits",
   vegetables: "Vegetables",
-  animals: "Animals",
-  vehicles: "Vehicles",
-  food: "Food",
+  animals_domestic: "Domestic animals",
+  animals_wild: "Wild animals",
   objects: "Objects",
 };
 
@@ -221,7 +220,10 @@ export default function ItemSelector({
   const isColorsCategory = categoryId === "colors";
   const isShapesCategory = categoryId === "shapes";
   const isRasterThumbnailCategory =
-    categoryId === "animals" || categoryId === "fruits" || categoryId === "vegetables";
+    categoryId === "animals_domestic" ||
+    categoryId === "animals_wild" ||
+    categoryId === "fruits" ||
+    categoryId === "vegetables";
   const columnCount = isShapesCategory
     ? 4
     : filteredStimuli.length <= 6

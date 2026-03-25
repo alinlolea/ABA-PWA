@@ -5,9 +5,8 @@ export type CategoryKey =
   | "shapes"
   | "fruits"
   | "vegetables"
-  | "animals"
-  | "vehicles"
-  | "food"
+  | "animals_domestic"
+  | "animals_wild"
   | "objects";
 
 const COLORS_AS_STIMULI: Stimulus[] = [
@@ -80,60 +79,33 @@ const VEGETABLES_AS_STIMULI: Stimulus[] = [
   { id: "varza", label: "varza", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/legume/varza.png") },
 ];
 
-const ANIMALS_AS_STIMULI: Stimulus[] = [
-  { id: "caine", label: "caine", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/caine.png") },
-  { id: "cal", label: "cal", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cal.png") },
-  { id: "capra", label: "capra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/capra.png") },
-  { id: "cangur", label: "cangur", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/cangur.png") },
-  { id: "crocodil", label: "crocodil", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/crocodil.png") },
-  { id: "curcan", label: "curcan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/curcan.png") },
-  { id: "gaina", label: "gaina", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/gaina.png") },
-  { id: "girafa", label: "girafa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/girafa.png") },
-  { id: "iepure", label: "iepure", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/iepure.png") },
-  { id: "leu", label: "leu", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/leu.png") },
-  { id: "lup", label: "lup", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/lup.png") },
-  { id: "magar", label: "magar", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/magar.png") },
-  { id: "maimuta", label: "maimuta", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/maimuta.png") },
-  { id: "oaie", label: "oaie", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/oaie.png") },
-  { id: "pisica", label: "pisica", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/pisica.png") },
-  { id: "porc", label: "porc", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/porc.png") },
-  { id: "rata", label: "rata", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/rata.png") },
-  { id: "tigru", label: "tigru", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/tigru.png") },
-  { id: "urs", label: "urs", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/urs.png") },
-  { id: "vaca", label: "vaca", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vaca.png") },
-  { id: "vulpe", label: "vulpe", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/vulpe.png") },
-  { id: "zebra", label: "zebra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale/zebra.png") },
+const ANIMALE_DOMESTICE_AS_STIMULI: Stimulus[] = [
+  { id: "caine", label: "caine", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/caine.png") },
+  { id: "cal", label: "cal", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/cal.png") },
+  { id: "capra", label: "capra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/capra.png") },
+  { id: "curcan", label: "curcan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/curcan.png") },
+  { id: "gaina", label: "gaina", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/gaina.png") },
+  { id: "iepure", label: "iepure", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/iepure.png") },
+  { id: "magar", label: "magar", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/magar.png") },
+  { id: "oaie", label: "oaie", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/oaie.png") },
+  { id: "pisica", label: "pisica", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/pisica.png") },
+  { id: "porc", label: "porc", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/porc.png") },
+  { id: "rata", label: "rata", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/rata.png") },
+  { id: "vaca", label: "vaca", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/vaca.png") },
 ];
 
-const VEHICLES_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "car", label: "Mașină" },
-  { id: "bus", label: "Autobuz" },
-  { id: "truck", label: "Camion" },
-  { id: "bicycle", label: "Bicicletă" },
-  { id: "motorcycle", label: "Motocicletă" },
-  { id: "train", label: "Tren" },
-  { id: "plane", label: "Avion" },
-  { id: "ship", label: "Vapor" },
-  { id: "tractor", label: "Tractor" },
-  { id: "ambulance", label: "Ambulanță" },
-  { id: "fire-truck", label: "Pompieri" },
-  { id: "helicopter", label: "Helicopter" },
-]);
-
-const FOOD_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "bread", label: "Pâine" },
-  { id: "milk", label: "Lapte" },
-  { id: "egg", label: "Ou" },
-  { id: "cheese", label: "Brânză" },
-  { id: "pizza", label: "Pizza" },
-  { id: "burger", label: "Burger" },
-  { id: "soup", label: "Supă" },
-  { id: "sandwich", label: "Sandviș" },
-  { id: "cake", label: "Tort" },
-  { id: "icecream", label: "Înghețată" },
-  { id: "salad", label: "Salată" },
-  { id: "coffee", label: "Cafea" },
-]);
+const ANIMALE_SALBATICE_AS_STIMULI: Stimulus[] = [
+  { id: "cangur", label: "cangur", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/cangur.png") },
+  { id: "crocodil", label: "crocodil", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/crocodil.png") },
+  { id: "girafa", label: "girafa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/girafa.png") },
+  { id: "leu", label: "leu", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/leu.png") },
+  { id: "lup", label: "lup", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/lup.png") },
+  { id: "maimuta", label: "maimuta", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/maimuta.png") },
+  { id: "tigru", label: "tigru", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/tigru.png") },
+  { id: "urs", label: "urs", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/urs.png") },
+  { id: "vulpe", label: "vulpe", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/vulpe.png") },
+  { id: "zebra", label: "zebra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/zebra.png") },
+];
 
 const OBJECTS_AS_STIMULI: Stimulus[] = placeholderStimuli([
   { id: "chair", label: "Scaun" },
@@ -155,8 +127,7 @@ export const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
   shapes: SHAPES_AS_STIMULI,
   fruits: FRUITS_AS_STIMULI,
   vegetables: VEGETABLES_AS_STIMULI,
-  animals: ANIMALS_AS_STIMULI,
-  vehicles: VEHICLES_AS_STIMULI,
-  food: FOOD_AS_STIMULI,
+  animals_domestic: ANIMALE_DOMESTICE_AS_STIMULI,
+  animals_wild: ANIMALE_SALBATICE_AS_STIMULI,
   objects: OBJECTS_AS_STIMULI,
 };
