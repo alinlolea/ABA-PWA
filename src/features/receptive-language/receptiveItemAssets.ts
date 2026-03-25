@@ -283,12 +283,195 @@ const LEGUME: ReceptiveItemAsset[] = [
   },
 ];
 
+const OBIECTE: ReceptiveItemAsset[] = [
+  {
+    id: "balon",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/balon.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata balon.mp3"),
+  },
+  {
+    id: "caciula",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/caciula.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata caciula.mp3"),
+  },
+  {
+    id: "cana",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/cana.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata cana.mp3"),
+  },
+  {
+    id: "ceas",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/ceas.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata ceas.mp3"),
+  },
+  {
+    id: "clopotel",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/clopotel.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata clopotel.mp3"),
+  },
+  {
+    id: "cos",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/cos.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata cos.mp3"),
+  },
+  {
+    id: "cos_gunoi",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/cos gunoi.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata cos gunoi.mp3"),
+  },
+  {
+    id: "cuburi",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/cuburi.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata cuburi.mp3"),
+  },
+  {
+    id: "cutit",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/cutit.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata cutit.mp3"),
+  },
+  {
+    id: "dulap",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/dulap.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata dulap.mp3"),
+  },
+  {
+    id: "farfurie",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/farfurie.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata farfurie.mp3"),
+  },
+  {
+    id: "frigider",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/frigider.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata frigider.mp3"),
+  },
+  {
+    id: "galeata",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/galeata.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata galeata.mp3"),
+  },
+  {
+    id: "geaca",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/geaca.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata geaca.mp3"),
+  },
+  {
+    id: "ghiozdan",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/ghiozdan.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata ghiozdan.mp3"),
+  },
+  {
+    id: "laptop",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/laptop.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata laptop.mp3"),
+  },
+  {
+    id: "leagan",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/leagan.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata leagan.mp3"),
+  },
+  {
+    id: "lego",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/lego.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata lego.mp3"),
+  },
+  {
+    id: "masa",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/masa.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata masa.mp3"),
+  },
+  {
+    id: "matura",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/matura.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata matura.mp3"),
+  },
+  {
+    id: "minge",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/minge.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata minge.mp3"),
+  },
+  {
+    id: "oala",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/oala.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata oala.mp3"),
+  },
+  {
+    id: "oglinda",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/oglinda.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata oglinda.mp3"),
+  },
+  {
+    id: "pantaloni",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/pantaloni.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata pantaloni.mp3"),
+  },
+  {
+    id: "pantofi",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/pantofi.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata pantofi.mp3"),
+  },
+  {
+    id: "pat",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/pat.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata pat.mp3"),
+  },
+  {
+    id: "pieptene",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/pieptene.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata pieptene.mp3"),
+  },
+  {
+    id: "prosop",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/prosop.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata prosop.mp3"),
+  },
+  {
+    id: "robinet",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/robinet.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata robinet.mp3"),
+  },
+  {
+    id: "scaun",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/scaun.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata scaun.mp3"),
+  },
+  {
+    id: "sosete",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/sosete.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata sosete.mp3"),
+  },
+  {
+    id: "sticla",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/sticla.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata sticla.mp3"),
+  },
+  {
+    id: "tobogan",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/tobogan.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata tobogan.mp3"),
+  },
+  {
+    id: "tricicleta",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/tricicleta.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata tricicleta.mp3"),
+  },
+  {
+    id: "tricou",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/tricou.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata tricou.mp3"),
+  },
+  {
+    id: "trotineta",
+    image: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/imagini/trotineta.png"),
+    audio: require("../../../assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/audio/arata trotineta.mp3"),
+  },
+];
+
 const ITEMS_BY_CATEGORY: Record<ReceptiveCategory, ReceptiveItemAsset[]> = {
   animale_domestice: ANIMALE_DOMESTICE,
   animale_salbatice: ANIMALE_SALBATICE,
   fructe: FRUCTE,
   legume: LEGUME,
-  obiecte: [],
+  obiecte: OBIECTE,
 };
 
 export function getReceptiveItemPool(category: ReceptiveCategory): ReceptiveItemAsset[] {

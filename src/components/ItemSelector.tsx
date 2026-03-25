@@ -50,7 +50,7 @@ function isSvgStimulus(
   );
 }
 
-const PLACEHOLDER_CATEGORY_IDS = ["objects"];
+const PLACEHOLDER_CATEGORY_IDS: string[] = [];
 function isPlaceholderCategory(categoryId: string): boolean {
   return PLACEHOLDER_CATEGORY_IDS.includes(categoryId);
 }
@@ -223,7 +223,8 @@ export default function ItemSelector({
     categoryId === "animals_domestic" ||
     categoryId === "animals_wild" ||
     categoryId === "fruits" ||
-    categoryId === "vegetables";
+    categoryId === "vegetables" ||
+    categoryId === "objects";
   const columnCount = isShapesCategory
     ? 4
     : filteredStimuli.length <= 6

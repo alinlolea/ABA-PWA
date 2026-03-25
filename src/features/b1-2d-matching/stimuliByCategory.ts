@@ -35,16 +35,6 @@ const SHAPES_AS_STIMULI: Stimulus[] = [
   { id: "diamond", label: "Romb", image: { type: "shape", form: "diamond", fill: SHAPE_FILL } },
 ];
 
-function placeholderStimuli(
-  items: { id: string; label: string }[]
-): Stimulus[] {
-  return items.map(({ id, label }) => ({
-    id,
-    label,
-    image: { type: "placeholder" as const },
-  }));
-}
-
 const FRUITS_AS_STIMULI: Stimulus[] = [
   { id: "ananas", label: "ananas", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/ananas.png") },
   { id: "banana", label: "banana", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/fructe/banana.png") },
@@ -107,20 +97,48 @@ const ANIMALE_SALBATICE_AS_STIMULI: Stimulus[] = [
   { id: "zebra", label: "zebra", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/animale-salbatice/zebra.png") },
 ];
 
-const OBJECTS_AS_STIMULI: Stimulus[] = placeholderStimuli([
-  { id: "chair", label: "Scaun" },
-  { id: "table", label: "Masă" },
-  { id: "bed", label: "Pat" },
-  { id: "mug", label: "Cană" },
-  { id: "glass", label: "Pahar" },
-  { id: "book", label: "Carte" },
-  { id: "pencil", label: "Creion" },
-  { id: "phone", label: "Telefon" },
-  { id: "key", label: "Cheie" },
-  { id: "ball", label: "Minge" },
-  { id: "lamp", label: "Lampă" },
-  { id: "clock", label: "Ceas" },
-]);
+const OBJECTS_AS_STIMULI: Stimulus[] = [
+  { id: "balon", label: "balon", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/balon.png") },
+  { id: "caciula", label: "caciula", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/caciula.png") },
+  { id: "cana", label: "cana", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/cana.png") },
+  { id: "ceas", label: "ceas", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/ceas.png") },
+  { id: "clopotel", label: "clopotel", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/clopotel.png") },
+  { id: "cos", label: "cos", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/cos.png") },
+  {
+    id: "cos_gunoi",
+    label: "cos gunoi",
+    image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/cos gunoi.png"),
+  },
+  { id: "cuburi", label: "cuburi", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/cuburi.png") },
+  { id: "cutit", label: "cutit", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/cutit.png") },
+  { id: "dulap", label: "dulap", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/dulap.png") },
+  { id: "farfurie", label: "farfurie", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/farfurie.png") },
+  { id: "frigider", label: "frigider", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/frigider.png") },
+  { id: "galeata", label: "galeata", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/galeata.png") },
+  { id: "geaca", label: "geaca", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/geaca.png") },
+  { id: "ghiozdan", label: "ghiozdan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/ghiozdan.png") },
+  { id: "laptop", label: "laptop", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/laptop.png") },
+  { id: "leagan", label: "leagan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/leagan.png") },
+  { id: "lego", label: "lego", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/lego.png") },
+  { id: "masa", label: "masa", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/masa.png") },
+  { id: "matura", label: "matura", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/matura.png") },
+  { id: "minge", label: "minge", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/minge.png") },
+  { id: "oala", label: "oala", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/oala.png") },
+  { id: "oglinda", label: "oglinda", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/oglinda.png") },
+  { id: "pantaloni", label: "pantaloni", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/pantaloni.png") },
+  { id: "pantofi", label: "pantofi", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/pantofi.png") },
+  { id: "pat", label: "pat", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/pat.png") },
+  { id: "pieptene", label: "pieptene", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/pieptene.png") },
+  { id: "prosop", label: "prosop", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/prosop.png") },
+  { id: "robinet", label: "robinet", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/robinet.png") },
+  { id: "scaun", label: "scaun", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/scaun.png") },
+  { id: "sosete", label: "sosete", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/sosete.png") },
+  { id: "sticla", label: "sticla", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/sticla.png") },
+  { id: "tobogan", label: "tobogan", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/tobogan.png") },
+  { id: "tricicleta", label: "tricicleta", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/tricicleta.png") },
+  { id: "tricou", label: "tricou", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/tricou.png") },
+  { id: "trotineta", label: "trotineta", image: require("../../../assets/programe/discriminare-vizuala/potriviri/imagini/obiecte/trotineta.png") },
+];
 
 export const STIMULI_BY_CATEGORY: Record<CategoryKey, Stimulus[]> = {
   colors: COLORS_AS_STIMULI,
