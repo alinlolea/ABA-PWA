@@ -2,6 +2,7 @@ import ColorLabelingTrial from "@/components/trials/ColorLabelingTrial";
 import PatternContinuationTrial from "@/components/trials/PatternContinuationTrial";
 import LogicalMatchingTrial from "@/components/trials/LogicalMatchingTrial";
 import PatternReproductionTrial from "@/components/trials/PatternReproductionTrial";
+import SortNonIdenticalTrial from "@/components/trials/SortNonIdenticalTrial";
 import TowerConstructionCopyTrial from "@/components/trials/TowerConstructionCopyTrial";
 import TowerConstructionTrial from "@/components/trials/TowerConstructionTrial";
 import { Colors } from "@/design/colors";
@@ -11,6 +12,7 @@ import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import ReceptiveShowCommonObjectsTrial from "@/features/receptive-language/ReceptiveShowCommonObjectsTrial";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
+import type { SortCategoryId } from "@/features/sort-non-identical/sortNonIdenticalAssets";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/config/firebase";
 import { LinearGradient } from "expo-linear-gradient";
@@ -461,6 +463,8 @@ type TrialParams = {
   patternStructure?: string;
   /** Number of pairs (top targets) for logical-image-association / B1 trials; 1–5. */
   numberOfPairs?: string;
+  /** JSON array of SortCategoryId for sort-non-identical-items. */
+  sortCategories?: string;
 };
 
 function buildB1Config(params: TrialParams): B1Config {
@@ -646,6 +650,47 @@ export default function TrialScreen() {
         }}
         voiceEnabled={voiceEnabledPattern}
       />
+    );
+  }
+  if (trialType === "sort-non-identical-items") {
+    const rawSort = params.sortCategories;
+    const json =
+      typeof rawSort === "string" ? rawSort : Array.isArray(rawSort) ? rawSort[0] ?? "[]" : "[]";
+    let parsed: string[] = [];
+    try {
+      parsed = JSON.parse(json) as string[];
+    } catch {
+      parsed = [];
+    }
+    const valid = new Set<string>([
+      "animale_domestice",
+      "animale_salbatice",
+      "caini",
+      "copaci",
+      "flori",
+      "fructe",
+      "legume",
+      "pasari",
+    ]);
+    const sortCats = parsed.filter((x): x is SortCategoryId => valid.has(x));
+    if (sortCats.length < 2 || sortCats.length > 3) {
+      throw new Error("TrialScreen: sortCategories must contain 2–3 valid category ids.");
+    }
+    const voiceEnabledSort =
+      (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <View
+        style={[
+          { flex: 1, backgroundColor: Theme.colors.background },
+          trialUiRootShellStyle,
+        ]}
+      >
+        <SortNonIdenticalTrial
+          sessionId={sessionId}
+          sessionCategories={sortCats}
+          voiceEnabled={voiceEnabledSort}
+        />
+      </View>
     );
   }
   if (trialType === "logical-image-association") {

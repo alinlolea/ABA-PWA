@@ -2,10 +2,18 @@
 
 This document describes the **ABA Visual Performance** codebase as observed in the repository. Where behavior is inferred but not fully traced, it is marked explicitly.
 
+### Recent updates (2026-03-27)
+
+- **Potriviri 2D (B1) — categorii animale și obiecte:** Categoria unică „Animale” a fost **împărțită** în **`animals_domestic`** / **`animals_wild`** (`CategoryKey` în `src/features/b1-2d-matching/stimuliByCategory.ts` și `types.ts` — `B1Config.category`). Imagini: `assets/programe/discriminare-vizuala/potriviri/imagini/animale-domestice/*.png` și `.../animale-salbatice/*.png`. A fost adăugată categoria **`objects`** (label în `src/config/objectives.ts`: „Obiecte”) cu PNG-uri în `potriviri/imagini/obiecte/`. `VALID_CATEGORIES` din `src/app/trial.tsx` și `ItemSelector` (miniaturi raster, inclusiv `objects`) sunt aliniate cu aceste chei.
+- **Limbaj receptiv — „Arată obiecte comune”:** `src/features/receptive-language/receptiveItemAssets.ts` include categoria **`obiecte`** (`RECEPTIVE_CATEGORY_FOLDER.obiecte` → folder `obiecte`); imagini + audio `arata … .mp3` sub `assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/` (și set paralel de potriviri pentru B1 în `potriviri/imagini/obiecte` + `obiecte/audio/` unde e cazul).
+- **Altele (commit-uri recente):** redenumiri/reorganizare foldere animale; remedieri audio pentru unele legume (ex. morcov, cartof).
+
+**Lucru în curs (nesupus încă la git în snapshot-ul verificat):** există un director **`assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/`** cu multe PNG-uri (ex. `caini/`, `copaci/`, `flori/`, `pasari/`, duplicate tematice); obiectivul **„Sortare itemi non-identici”** (`OBJECTIVES` id 2) rămâne **fără trial** în `trial.tsx` până la implementare — asset-urile par pregătite pentru viitor.
+
 ### Recent updates (2026-03-23)
 
 - **Interacțiune tabletă / web în trial-uri:** În `src/app/_layout.tsx` (doar web), listener global pe `contextmenu` cu `preventDefault()` pentru a reduce meniul contextual la long-press. Stiluri comune pentru suprafețe trial în `src/utils/trialUiShell.ts` (`trialUiRootShellStyle`: `touchAction: "none"`, pe web `userSelect` / `WebkitUserSelect` / `WebkitTouchCallout`), aplicate pe containerele rădăcină ale trial-urilor relevante și fluxului B1 din `trial.tsx`. Imagini: pe web, `draggable={false}` unde e cazul pe `Image` în trial-uri (ex. potrivire logică, receptiv).
-- **Potriviri 2D (B1) — categorie „Animale”:** În `src/features/b1-2d-matching/stimuliByCategory.ts`, `ANIMALS_AS_STIMULI` folosește **imagini reale** (`require` static din `assets/programe/discriminare-vizuala/potriviri/imagini/animale/*.png`), cu `id` / `label` (română) per animal. Sidebar: în `ItemSelector`, categoria `animals` are ramură dedicată (miniaturi `Image`, ca la culori/forme), nu mai e tratată ca placeholder cu literă; **limită ținte selectabile: 5** (înainte 3), constantă `MAX_TARGETS`.
+- **Potriviri 2D (B1) — animale (înainte de împărțirea domestic/sălbatic):** Versiunea anterioară folosea o singură categorie „animale” cu PNG-uri sub un folder `animale/`; ulterior (vezi actualizarea **2026-03-27**) structura a fost **împărțită** în `animale-domestice` / `animale-salbatice`. În `ItemSelector`, categoriile cu imagini raster folosesc miniaturi `Image` (nu placeholder cu literă); **limită ținte selectabile: 5** (înainte 3), constantă `MAX_TARGETS`.
 - **Randare PNG în trial B1:** În `src/app/trial.tsx`, `StimulusPlaceholder` și `OptionSlot` afișează `Image` pentru stimuli cu sursă raster. Pe web, `require` poate returna obiect (`uri` / `default`), nu doar `number`; helperi în `src/utils/rasterImageSource.ts` — `isRasterImageSource`, `normalizeRasterSource` — folosiți și în `ItemSelector` pentru miniaturi animale. Comportamentul trial-ului (randomizare, `generateTrials`, audio generic B1) neschimbat.
 
 ### Recent updates (2025-03-08)
@@ -94,7 +102,7 @@ A top-level **`app/`** folder exists (e.g. placeholder “Dashboard”). **Expo 
 - **`MainDashboard`** (`src/screens/Dashboard/MainDashboard.tsx`): CRUD-style management of **`children`** collection documents (`userId`, name, birth date validation, notes, `voiceEnabled`), real-time or fetched lists, session aggregation for export/delete flows, sign-out, account navigation. **Large single file** mixing UI and Firestore logic.
 
 ### Visual skills — objective selection & session start
-- **`src/app/(dashboard)/visual-skills.tsx`**: Lists **`OBJECTIVES`** from `src/config/objectives.ts`. User picks objective, configures via drawer (categories, targets via **`ItemSelector`**, tower/pattern/logical parameters). **Start** creates a Firestore **`sessions`** document (`userId`, `childId`, `startedAt`, counters, `objectives` array) and navigates to **`/trial`** with query params (`sessionId`, `trialType` or B1 params, `voiceEnabled`, etc.). Obiectivele fără trial implementat sunt **afiliate gri și neclicabile** (`isVisualSkillsObjectiveImplemented` din `@/utils/objectiveTrialAvailability`); **`canStart`** cere obiectiv selectat implementat.
+- **`src/app/(dashboard)/visual-skills.tsx`**: Lists **`OBJECTIVES`** from `src/config/objectives.ts`. User picks objective, configures via drawer (categories, targets via **`ItemSelector`**, tower/pattern/logical parameters). Pentru **Potriviri 2D** (id 1), categoriile B1 includ culori, forme, fructe, legume, **animale domestice / sălbatice**, **obiecte**. **Start** creates a Firestore **`sessions`** document (`userId`, `childId`, `startedAt`, counters, `objectives` array) and navigates to **`/trial`** with query params (`sessionId`, `trialType` or B1 params, `voiceEnabled`, etc.). Obiectivele fără trial implementat sunt **afiliate gri și neclicabile** (`isVisualSkillsObjectiveImplemented` din `@/utils/objectiveTrialAvailability`); **`canStart`** cere obiectiv selectat implementat.
 
 ### Trial router (`src/app/trial.tsx`)
 Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/objectiveTrialAvailability.ts`**):
@@ -117,7 +125,7 @@ Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/
 - **`LogicalMatchingTrial`** + **`src/utils/logicalMatchingEngine.ts`**: Fixed image pairs; matching UI; **`updateDoc`** on `sessions/{sessionId}` when done.
 
 ### Receptive language & reading — session UI
-- **`receptive-language.tsx`**, **`reading.tsx`**: Objective lists local to each file; configurable objectives use **`ItemSelector`** / setup drawer. **Start** creează sesiune și navighează la **`/trial`** doar pentru obiective marcate ca implementate în **`objectiveTrialAvailability.ts`**. Cardurile fără trial sunt dezactivate (**„În curând”**). Receptiv: doar **Arată obiecte comune** pornește trial dedicat (`ReceptiveShowCommonObjectsTrial`). Citire: **`receptive_letters`** folosește calea B1 cu parametri din ecran; celelalte obiective din listă sunt dezactivate până la implementare.
+- **`receptive-language.tsx`**, **`reading.tsx`**: Objective lists local to each file; configurable objectives use **`ItemSelector`** / setup drawer. **Start** creează sesiune și navighează la **`/trial`** doar pentru obiective marcate ca implementate în **`objectiveTrialAvailability.ts`**. Cardurile fără trial sunt dezactivate (**„În curând”**). Receptiv: doar **Arată obiecte comune** pornește trial dedicat (`ReceptiveShowCommonObjectsTrial`); categoriile sunt definite în **`src/features/receptive-language/categories.ts`** (inclusiv **`obiecte`**, cu asset-uri în `receptiveItemAssets.ts`). Citire: **`receptive_letters`** folosește calea B1 cu parametri din ecran; celelalte obiective din listă sunt dezactivate până la implementare.
 
 ### Labeling (expressive)
 - **`labeling.tsx`**: Objective list includes **“Numeste culori”**; creates session and routes to **`/trial`** with **`objective=numeste-culori`** (and `sessionId`, etc.). Cardurile respectă **`isLabelingObjectiveImplemented`** și stilul partajat de dezactivare (în plus față de lipsa copilului selectat).
@@ -153,7 +161,7 @@ Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/
 | `src/design/objectiveCard.ts` | **`objectiveGridCardDisabledStyle`** — opacitate 0.5 pentru carduri dezactivate |
 | `src/features/receptive-language/ReceptiveShowCommonObjectsTrial.tsx` | Trial receptiv „obiecte comune”; progres trial aliniat vizual cu B1 / pattern / tower |
 | `src/features/b1-2d-matching/logic/generateTrials.ts` | Trial generation for B1 matching |
-| `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`**: colors, shapes, fruits, vegetables, animals, vehicles, food, objects; **animale** = PNG-uri bundle-uite (`potriviri/imagini/animale`), nu placeholder |
+| `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`**: `colors`, `shapes`, `fruits`, `vegetables`, `animals_domestic`, `animals_wild`, `objects`; raster-urile sunt sub `potriviri/imagini/` (subfoldere per categorie, ex. `animale-domestice`, `obiecte`) |
 | `src/utils/trialUiShell.ts` | **`trialUiRootShellStyle`** — suprafețe trial: `touchAction: "none"`, pe web blocare selecție / callout implicit |
 | `src/utils/rasterImageSource.ts` | Detectare / normalizare sursă `Image` pentru PNG-uri Metro pe web (`uri` / `default`) |
 | `src/utils/audio.ts` | **`playAudio(name)`** maps string keys to bundled MP3 assets |

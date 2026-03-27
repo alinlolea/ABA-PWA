@@ -17,6 +17,7 @@ const ASSET_MAP: Record<string, number> = {
   potriveste: require("../../assets/audio/Potrivește.mp3"),
   potriveste_perechea: require("../../assets/audio/Potriveste perechea.mp3"),
   "pune-la-fel": require("../../assets/audio/Pune la fel.mp3"),
+  sorteaza: require("../../assets/audio/Sorteaza.mp3"),
 };
 
 export async function playAudio(name: string): Promise<void> {

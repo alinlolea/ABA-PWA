@@ -61,6 +61,7 @@ export default function VisualSkillsRoute() {
   const [patternUseShapes, setPatternUseShapes] = useState(false);
   const [patternStructure, setPatternStructure] = useState<"free" | "alternating">("free");
   const [logicalNumberOfPairs, setLogicalNumberOfPairs] = useState(3);
+  const [sortSelectedCategoryIds, setSortSelectedCategoryIds] = useState<string[]>([]);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
@@ -111,6 +112,9 @@ export default function VisualSkillsRoute() {
   const isPatternReproductionObjective = selectedObjective?.trialType === "pattern-reproduction";
   const isPatternContinuationObjective = selectedObjective?.trialType === "pattern-continuation";
   const isLogicalImageObjective = selectedObjective?.trialType === "logical-image-association";
+  const isSortObjective = selectedObjective?.trialType === "sort-non-identical-items";
+  const sortTrialValid =
+    sortSelectedCategoryIds.length >= 2 && sortSelectedCategoryIds.length <= 3;
   const patternValid = patternLength * patternRepetitions <= 14;
   const patternStimuliValid = patternUseColors || patternUseShapes;
   const totalItems = patternLength && patternRepetitions
@@ -133,7 +137,8 @@ export default function VisualSkillsRoute() {
       (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
       (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
       isLogicalImageObjective ||
-      (!isLogicalImageObjective && selectedTargets.length > 0));
+      (isSortObjective && sortTrialValid) ||
+      (!isLogicalImageObjective && !isSortObjective && selectedTargets.length > 0));
 
   useEffect(() => {
     if (isSetupOpen) {
@@ -291,6 +296,15 @@ export default function VisualSkillsRoute() {
             numberOfPairs: String(logicalNumberOfPairs),
           },
         });
+      } else if (isSortObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "sort-non-identical-items",
+            sortCategories: JSON.stringify(sortSelectedCategoryIds),
+          },
+        });
       } else {
         router.push({
           pathname: "/trial",
@@ -339,16 +353,23 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled || !isVisualSkillsObjectiveImplemented(obj);
+                const sortNeedsConfig =
+                  obj.trialType === "sort-non-identical-items" && !sortTrialValid;
                 const configurable =
                   obj.categories.length > 0 ||
                   obj.trialType === "tower_over_model" ||
                   obj.trialType === "tower-copy" ||
                   obj.trialType === "pattern-reproduction" ||
                   obj.trialType === "pattern-continuation" ||
-                  obj.trialType === "logical-image-association";
+                  obj.trialType === "logical-image-association" ||
+                  obj.trialType === "sort-non-identical-items";
                 const processCategory =
                   obj.trialType === "logical-image-association"
                     ? "Perechi din imagini fixe"
+                    : obj.trialType === "sort-non-identical-items"
+                      ? sortSelectedCategoryIds.length > 0
+                        ? `${sortSelectedCategoryIds.length} categorii selectate`
+                        : "—"
                     : obj.categories.length > 0
                       ? obj.categories.map((c) => c.label).join(", ")
                       : "—";
@@ -360,6 +381,7 @@ export default function VisualSkillsRoute() {
                       { padding: rs(14), borderRadius: rs(12) },
                       isSelected && styles.objectiveGridCardSelected,
                       isDisabled && objectiveGridCardDisabledStyle,
+                      sortNeedsConfig && { opacity: 0.52 },
                     ]}
                     onPress={() => {
                       if (isDisabled) return;
@@ -370,7 +392,8 @@ export default function VisualSkillsRoute() {
                         obj.trialType === "tower-copy" ||
                         obj.trialType === "pattern-reproduction" ||
                         obj.trialType === "pattern-continuation" ||
-                        obj.trialType === "logical-image-association"
+                        obj.trialType === "logical-image-association" ||
+                        obj.trialType === "sort-non-identical-items"
                       )
                         setIsSetupOpen(true);
                     }}
@@ -427,7 +450,13 @@ export default function VisualSkillsRoute() {
                     </Text>
                     <View style={[styles.objectiveGridBadge, { paddingHorizontal: rs(8), paddingVertical: rs(4), borderRadius: rs(8) }]}>
                       <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
-                        {isDisabled ? "În curând" : configurable ? "⚙ Configurabil" : "Standard"}
+                        {isDisabled
+                          ? "În curând"
+                          : obj.trialType === "sort-non-identical-items" && !sortTrialValid
+                            ? "Configurează probele"
+                            : configurable
+                              ? "⚙ Configurabil"
+                              : "Standard"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -896,6 +925,114 @@ export default function VisualSkillsRoute() {
                           {logicalNumberOfPairs === 1 ? "pereche" : "perechi"} din setul fix de imagini.
                         </Text>
                       </View>
+                    </ScrollView>
+                    <LinearGradient
+                      colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}
+                      style={styles.drawerFadeTopScroll}
+                      pointerEvents="none"
+                    />
+                    <LinearGradient
+                      colors={["rgba(244,247,248,0)", "rgba(244,247,248,1)"]}
+                      style={styles.drawerFadeBottomScroll}
+                      pointerEvents="none"
+                    />
+                  </View>
+                  <View style={[styles.drawerFooter, { paddingHorizontal: rs(20), paddingTop: rs(24), paddingBottom: rs(16) }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.floatingButton,
+                        { paddingVertical: rs(14), paddingHorizontal: rs(40), borderRadius: rs(14) },
+                        !canStart && styles.floatingButtonDisabled,
+                      ]}
+                      onPress={handleStartSesiune}
+                      disabled={!canStart}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.floatingButtonText, { fontSize: rs(14) }]}>Start sesiune</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Animated.View>
+            ) : isSortObjective ? (
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.setupDrawer,
+                  { width: width * 0.4 },
+                  {
+                    transform: [
+                      {
+                        translateX: drawerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [width * 0.4, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.drawerContainer}>
+                  <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
+                    <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
+                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Sortare itemi</Text>
+                      <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(4) }]}>
+                        Alege 2–3 categorii (min. 2, max. 3)
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.drawerCloseButton, { right: rs(16), top: rs(16) }]}
+                      onPress={() => setIsSetupOpen(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Ionicons name="close" size={rs(24)} color="#1E293B" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ScrollView
+                      style={styles.drawerScroll}
+                      contentContainerStyle={{ padding: rs(24), paddingBottom: rs(40) }}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {categories.map((cat) => {
+                        const on = sortSelectedCategoryIds.includes(cat.id);
+                        const atMax = sortSelectedCategoryIds.length >= 3 && !on;
+                        return (
+                          <TouchableOpacity
+                            key={cat.id}
+                            activeOpacity={0.85}
+                            disabled={atMax}
+                            onPress={() => {
+                              setSortSelectedCategoryIds((prev) => {
+                                if (prev.includes(cat.id)) return prev.filter((x) => x !== cat.id);
+                                if (prev.length >= 3) return prev;
+                                return [...prev, cat.id];
+                              });
+                            }}
+                            style={[
+                              styles.rowItem,
+                              on && styles.rowItemSelected,
+                              atMax && !on && { opacity: 0.45 },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.categoryRowText, on && styles.categoryRowTextSelected]}
+                              numberOfLines={2}
+                            >
+                              {cat.label}
+                            </Text>
+                            <Ionicons
+                              name={on ? "checkbox" : "square-outline"}
+                              size={rs(22)}
+                              color={on ? "#2C6468" : "#94A3B8"}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {sortSelectedCategoryIds.length > 0 && sortSelectedCategoryIds.length < 2 && (
+                        <Text style={{ marginTop: rs(12), fontSize: rs(13), color: "#D32F2F" }}>
+                          Selectați cel puțin 2 categorii.
+                        </Text>
+                      )}
                     </ScrollView>
                     <LinearGradient
                       colors={["rgba(244,247,248,1)", "rgba(244,247,248,0)"]}

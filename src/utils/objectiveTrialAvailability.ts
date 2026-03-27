@@ -11,6 +11,7 @@ export const SUPPORTED_SPECIAL_TRIAL_TYPES = [
   "pattern-reproduction",
   "pattern-continuation",
   "logical-image-association",
+  "sort-non-identical-items",
 ] as const;
 
 export type SupportedSpecialTrialType = (typeof SUPPORTED_SPECIAL_TRIAL_TYPES)[number];
