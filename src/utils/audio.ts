@@ -42,21 +42,18 @@ export async function playAudio(name: string): Promise<void> {
 }
 
 const SUCCESS_FEEDBACK_KEYS = ["bravo", "grozav", "foarte_bine"] as const;
-let successFeedbackIndex = 0;
-
 const ERROR_FEEDBACK_KEYS = ["gresit", "mai_incearca"] as const;
-let errorFeedbackIndex = 0;
 
-/** Cycles positive reinforcement clips across trials (module-level counter). */
-export async function playSuccessAudio(): Promise<void> {
-  const name = SUCCESS_FEEDBACK_KEYS[successFeedbackIndex];
-  successFeedbackIndex = (successFeedbackIndex + 1) % SUCCESS_FEEDBACK_KEYS.length;
-  await playAudio(name);
+function pickRandomFeedbackKey<const T extends readonly string[]>(keys: T): T[number] {
+  return keys[Math.floor(Math.random() * keys.length)]!;
 }
 
-/** Alternates error clips per incorrect attempt (module-level counter). */
+/** Random positive reinforcement clip each time (no fixed cycle). */
+export async function playSuccessAudio(): Promise<void> {
+  await playAudio(pickRandomFeedbackKey(SUCCESS_FEEDBACK_KEYS));
+}
+
+/** Random error clip each time (no fixed alternation). */
 export async function playErrorAudio(): Promise<void> {
-  const name = ERROR_FEEDBACK_KEYS[errorFeedbackIndex];
-  errorFeedbackIndex = (errorFeedbackIndex + 1) % ERROR_FEEDBACK_KEYS.length;
-  await playAudio(name);
+  await playAudio(pickRandomFeedbackKey(ERROR_FEEDBACK_KEYS));
 }

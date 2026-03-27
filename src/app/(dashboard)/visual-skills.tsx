@@ -355,6 +355,9 @@ export default function VisualSkillsRoute() {
                 const isDisabled = !obj.enabled || !isVisualSkillsObjectiveImplemented(obj);
                 const sortNeedsConfig =
                   obj.trialType === "sort-non-identical-items" && !sortTrialValid;
+                /** Dim only the selected sort card until 2–3 categories are chosen; avoid looking "disabled" when another objective is selected or after remount. */
+                const sortSelectedButIncomplete =
+                  sortNeedsConfig && isSelected;
                 const configurable =
                   obj.categories.length > 0 ||
                   obj.trialType === "tower_over_model" ||
@@ -381,7 +384,7 @@ export default function VisualSkillsRoute() {
                       { padding: rs(14), borderRadius: rs(12) },
                       isSelected && styles.objectiveGridCardSelected,
                       isDisabled && objectiveGridCardDisabledStyle,
-                      sortNeedsConfig && { opacity: 0.52 },
+                      sortSelectedButIncomplete && { opacity: 0.52 },
                     ]}
                     onPress={() => {
                       if (isDisabled) return;
