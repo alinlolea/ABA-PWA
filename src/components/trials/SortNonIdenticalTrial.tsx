@@ -356,7 +356,6 @@ export default function SortNonIdenticalTrial({
     if (completed) return;
     if (visibleTop.length > 0 || poolsRemainCount > 0) return;
     const t = setTimeout(() => {
-      void playSuccessAudio();
       setCompleted(true);
     }, COMPLETION_BRAVO_DELAY_MS);
     return () => clearTimeout(t);
@@ -396,21 +395,6 @@ export default function SortNonIdenticalTrial({
       }),
     ]).start();
   }, []);
-
-  const randomizeTopPosition = useCallback(
-    (instanceId: string) => {
-      const w = poolLayout.current.w || screenWidth;
-      const h = poolLayout.current.h || topZoneHeight;
-      const others = visibleTop
-        .filter((t) => t.instanceId !== instanceId)
-        .map((t) => positionsById[t.instanceId])
-        .filter(Boolean) as { x: number; y: number }[];
-      const prev = positionsById[instanceId];
-      const pos = findSpawnTopPosition(w, h, itemSize, others, prev ?? null);
-      setPositionsById((p) => ({ ...p, [instanceId]: pos }));
-    },
-    [visibleTop, positionsById, screenWidth, topZoneHeight, itemSize]
-  );
 
   const runContainerCorrectFeedback = useCallback(
     (slotIndex: number) => {
@@ -470,12 +454,11 @@ export default function SortNonIdenticalTrial({
         panAnim,
       ]).start(() => {
         border.setValue(0);
-        randomizeTopPosition(poolInstanceId);
         setInteractionLocked(false);
         feedbackBusyRef.current = false;
       });
     },
-    [randomizeTopPosition, slotBorderAnims, slotShakeX]
+    [slotBorderAnims, slotShakeX]
   );
 
   const handleRelease = useCallback(
