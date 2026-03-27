@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
 import Svg, { Circle, Ellipse, Polygon, Rect } from "react-native-svg";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playSuccessAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
 import { getUnifiedTrialStimulusSize, stimulusSizeForColumnCount } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
@@ -571,7 +571,7 @@ function PatternTrialInner({
     let t: ReturnType<typeof setTimeout> | undefined;
     (async () => {
       stopSpeech();
-      await playAudio("bravo");
+      await playSuccessAudio();
       t = setTimeout(() => onTrialComplete(), 1200);
     })();
     return () => {

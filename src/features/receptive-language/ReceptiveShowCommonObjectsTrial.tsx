@@ -8,7 +8,7 @@ import {
   type ReceptiveItemAsset,
 } from "@/features/receptive-language/receptiveItemAssets";
 import { playAudioModule } from "@/features/receptive-language/playReceptiveAsset";
-import { playAudio } from "@/utils/audio";
+import { playErrorAudio, playSuccessAudio } from "@/utils/audio";
 import { getUnifiedTrialStimulusSize } from "@/utils/trialStimulusSize";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -143,7 +143,6 @@ export default function ReceptiveShowCommonObjectsTrial({
   const [remainingTargets, setRemainingTargets] = useState<ItemType[]>([]);
   const [currentTarget, setCurrentTarget] = useState<ItemType | null>(null);
 
-  const wrongAlternateRef = useRef(false);
   const audioChainRef = useRef(Promise.resolve());
   const mountedRef = useRef(true);
   const sessionFinishedRef = useRef(false);
@@ -256,16 +255,11 @@ export default function ReceptiveShowCommonObjectsTrial({
         }
 
         if (item.id !== ct.id) {
-          wrongAlternateRef.current = !wrongAlternateRef.current;
           if (mountedRef.current) {
             setFeedbackById((prev) => ({ ...prev, [item.id]: "incorrect" }));
           }
           if (voiceEnabled) {
-            if (wrongAlternateRef.current) {
-              await playAudio("gresit");
-            } else {
-              await playAudio("mai-incearca");
-            }
+            await playErrorAudio();
             const replay = currentTargetRef.current;
             if (replay && mountedRef.current && !sessionFinishedRef.current) {
               await playAudioModule(replay.audio);
@@ -289,7 +283,7 @@ export default function ReceptiveShowCommonObjectsTrial({
         }
 
         if (voiceEnabled) {
-          await playAudio("bravo");
+          await playSuccessAudio();
         }
 
         if (updated.length === 0) {

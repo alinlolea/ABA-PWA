@@ -36,7 +36,7 @@ import Reanimated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playErrorAudio, playSuccessAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
 import { isRasterImageSource, normalizeRasterSource } from "@/utils/rasterImageSource";
 import { getB1MatchingItemSize, TRIAL_INTER_ITEM_GAP_RATIO, TRIAL_USABLE_WIDTH_RATIO } from "@/utils/trialStimulusSize";
@@ -1006,7 +1006,7 @@ export default function TrialScreen() {
                 runOptionBorderFeedback(bestIndex, true);
                 if (voiceEnabled) {
                   stopSpeech();
-                  await playAudio("bravo");
+                  await playSuccessAudio();
                 }
                 setCorrectAttempts((prev) => prev + 1);
                 setMatchedTargetIds((prev) => new Set(prev).add(targetId));
@@ -1015,7 +1015,7 @@ export default function TrialScreen() {
                 runOptionBorderFeedback(bestIndex, false);
                 if (voiceEnabled) {
                   stopSpeech();
-                  await playAudio("mai-incearca");
+                  await playErrorAudio();
                 }
                 runShakeThenBack(targetIndex);
               }

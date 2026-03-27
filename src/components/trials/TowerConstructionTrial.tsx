@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useResponsive } from "@/utils/responsive";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playSuccessAudio } from "@/utils/audio";
 import { initSpeech, stopSpeech } from "@/utils/speech";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 
@@ -339,7 +339,7 @@ function TowerTrialInner({
     let t: ReturnType<typeof setTimeout> | undefined;
     (async () => {
       stopSpeech();
-      await playAudio("bravo");
+      await playSuccessAudio();
       t = setTimeout(() => onTrialComplete(), 1200);
     })();
     return () => {

@@ -24,14 +24,13 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playErrorAudio, playSuccessAudio } from "@/utils/audio";
 import { normalizeRasterSource } from "@/utils/rasterImageSource";
 import { trialUiRootShellStyle } from "@/utils/trialUiShell";
 import { stopSpeech } from "@/utils/speech";
 
 const RETURN_DURATION = 220;
 const SHAKE_DURATION = 280;
-const INCORRECT_SECOND_AUDIO_DELAY_MS = 500;
 const COMPLETION_BRAVO_DELAY_MS = 450;
 const ITEM_RADIUS = 14;
 const DROP_PAD_RATIO = 0.05;
@@ -322,7 +321,7 @@ export default function SortNonIdenticalTrial({
     if (completed) return;
     if (visibleTop.length > 0 || poolsRemainCount > 0) return;
     const t = setTimeout(() => {
-      void playAudio("bravo");
+      void playSuccessAudio();
       setCompleted(true);
     }, COMPLETION_BRAVO_DELAY_MS);
     return () => clearTimeout(t);
@@ -403,11 +402,7 @@ export default function SortNonIdenticalTrial({
 
   const runIncorrectFeedback = useCallback(
     (poolInstanceId: string, slotIndex: number) => {
-      void (async () => {
-        await playAudio("gresit");
-        await new Promise<void>((r) => setTimeout(r, INCORRECT_SECOND_AUDIO_DELAY_MS));
-        await playAudio("mai_incearca");
-      })();
+      void playErrorAudio();
       const border = slotBorderAnims[slotIndex];
       const shake = slotShakeX[slotIndex];
       const pan = pansRef.current[poolInstanceId];
@@ -508,7 +503,7 @@ export default function SortNonIdenticalTrial({
         const z = ++placedZRef.current;
         const placed: PlacedItem = { ...item, relX, relY, zIndex: z };
 
-        void playAudio("bravo");
+        void playSuccessAudio();
         feedbackBusyRef.current = true;
         setInteractionLocked(true);
         setSlotCategory(result.nextSlot);

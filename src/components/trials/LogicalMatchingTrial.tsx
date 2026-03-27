@@ -26,7 +26,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playErrorAudio, playSuccessAudio } from "@/utils/audio";
 import { stopSpeech } from "@/utils/speech";
 import { useResponsive } from "@/utils/responsive";
 import { getUnifiedTrialStimulusSize, stimulusSizeForColumnCount } from "@/utils/trialStimulusSize";
@@ -428,7 +428,7 @@ function LogicalMatchingTrialInner({
       const border = slotBorderAnims.current[slotIndex];
       const shake = slotShakeX.current[slotIndex];
       border.setValue(2);
-      void playAudio("mai_incearca");
+      void playErrorAudio();
       Animated.parallel([
         Animated.sequence([
           Animated.timing(shake, {
@@ -561,7 +561,7 @@ function LogicalMatchingTrialInner({
             prev.includes(poolIndex) ? prev : [...prev, poolIndex]
           );
           slotBorderAnims.current[slotIndex].setValue(1);
-          void playAudio("bravo");
+          void playSuccessAudio();
           if (correctFeedbackTimeoutRef.current != null) {
             clearTimeout(correctFeedbackTimeoutRef.current);
           }

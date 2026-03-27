@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { playAudio } from "@/utils/audio";
+import { playAudio, playErrorAudio, playSuccessAudio } from "@/utils/audio";
 import {
   getConfiguredSpeechRecognition,
   initSpeech,
@@ -173,12 +173,12 @@ export default function ColorLabelingTrial({
             setCorrectCount((c) => c + 1);
             setPhase("feedback");
             stopSpeech();
-            await playAudio("bravo");
+            await playSuccessAudio();
           } else if (result === false) {
             setIncorrectCount((i) => i + 1);
             setPhase("feedback");
             stopSpeech();
-            await playAudio("gresit");
+            await playErrorAudio();
           }
           setTrialIndex((i) => i + 1);
           sequenceRef.current = false;
@@ -241,14 +241,14 @@ export default function ColorLabelingTrial({
           if (voiceEnabled) {
             setPhase("feedback");
             stopSpeech();
-            await playAudio("bravo");
+            await playSuccessAudio();
           }
         } else if (result === false) {
           setIncorrectCount((i) => i + 1);
           if (voiceEnabled) {
             setPhase("feedback");
             stopSpeech();
-            await playAudio("gresit");
+            await playErrorAudio();
           }
         }
         setTrialIndex((i) => i + 1);

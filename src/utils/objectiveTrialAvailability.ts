@@ -25,10 +25,19 @@ export function isSpecialTrialTypeImplemented(
 }
 
 /**
+ * `OBJECTIVES.id` values with a full route in `trial.tsx` (see `src/config/objectives.ts`).
+ * Mirrors other dashboards’ explicit id sets; complements `SUPPORTED_SPECIAL_TRIAL_TYPES`.
+ */
+const VISUAL_SKILLS_IMPLEMENTED_OBJECTIVE_IDS = new Set<number>([
+  2, // Sortare itemi non-identici — trialType: sort-non-identical-items
+]);
+
+/**
  * Visual skills list (`OBJECTIVES`): B1 2D matching (category drawer) or a supported `trialType`.
  */
 export function isVisualSkillsObjectiveImplemented(obj: ObjectiveDefinition): boolean {
   if (!obj.enabled) return false;
+  if (VISUAL_SKILLS_IMPLEMENTED_OBJECTIVE_IDS.has(obj.id)) return true;
   if (isSpecialTrialTypeImplemented(obj.trialType)) return true;
   if (obj.categories.length > 0 && obj.trialType == null) return true;
   return false;
