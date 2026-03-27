@@ -12,7 +12,6 @@ export type SortCategoryId =
 export type SortPoolItem = { id: string; categoryId: SortCategoryId; image: number };
 
 const POOL_ANIMALE_DOMESTICE: SortPoolItem[] = [
-  { id: "caine", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/animale-domestice/caine.png") },
   { id: "cal", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/animale-domestice/cal.png") },
   { id: "capra", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/animale-domestice/capra.png") },
   { id: "curcan", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/animale-domestice/curcan.png") },
