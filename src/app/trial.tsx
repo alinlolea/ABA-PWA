@@ -12,7 +12,6 @@ import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
 import ReceptiveShowCommonObjectsTrial from "@/features/receptive-language/ReceptiveShowCommonObjectsTrial";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
-import type { SortCategoryId } from "@/features/sort-non-identical/sortNonIdenticalAssets";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/config/firebase";
 import { LinearGradient } from "expo-linear-gradient";
@@ -463,9 +462,23 @@ type TrialParams = {
   patternStructure?: string;
   /** Number of pairs (top targets) for logical-image-association / B1 trials; 1–5. */
   numberOfPairs?: string;
-  /** JSON array of SortCategoryId for sort-non-identical-items. */
+  /** JSON array of category ids for sort-non-identical-items / sort-by-category. */
   sortCategories?: string;
 };
+
+const VALID_SORT_NON_IDENTICAL_CATEGORY_IDS = new Set<string>([
+  "caini",
+  "copaci",
+  "flori",
+  "pasari",
+]);
+
+const VALID_SORT_BY_CATEGORY_IDS = new Set<string>([
+  "animale_domestice",
+  "animale_salbatice",
+  "fructe",
+  "legume",
+]);
 
 function buildB1Config(params: TrialParams): B1Config {
   const category = (VALID_CATEGORIES.includes(params.category as CategoryKey)
@@ -662,17 +675,7 @@ export default function TrialScreen() {
     } catch {
       parsed = [];
     }
-    const valid = new Set<string>([
-      "animale_domestice",
-      "animale_salbatice",
-      "caini",
-      "copaci",
-      "flori",
-      "fructe",
-      "legume",
-      "pasari",
-    ]);
-    const sortCats = parsed.filter((x): x is SortCategoryId => valid.has(x));
+    const sortCats = parsed.filter((x) => VALID_SORT_NON_IDENTICAL_CATEGORY_IDS.has(x));
     if (sortCats.length < 2 || sortCats.length > 3) {
       throw new Error("TrialScreen: sortCategories must contain 2–3 valid category ids.");
     }
@@ -689,6 +692,39 @@ export default function TrialScreen() {
           sessionId={sessionId}
           sessionCategories={sortCats}
           voiceEnabled={voiceEnabledSort}
+          variant="non_identical"
+        />
+      </View>
+    );
+  }
+  if (trialType === "sort-by-category") {
+    const rawSort = params.sortCategories;
+    const json =
+      typeof rawSort === "string" ? rawSort : Array.isArray(rawSort) ? rawSort[0] ?? "[]" : "[]";
+    let parsed: string[] = [];
+    try {
+      parsed = JSON.parse(json) as string[];
+    } catch {
+      parsed = [];
+    }
+    const sortCats = parsed.filter((x) => VALID_SORT_BY_CATEGORY_IDS.has(x));
+    if (sortCats.length < 2 || sortCats.length > 3) {
+      throw new Error("TrialScreen: sortCategories must contain 2–3 valid category ids.");
+    }
+    const voiceEnabledSortCat =
+      (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <View
+        style={[
+          { flex: 1, backgroundColor: Theme.colors.background },
+          trialUiRootShellStyle,
+        ]}
+      >
+        <SortNonIdenticalTrial
+          sessionId={sessionId}
+          sessionCategories={sortCats}
+          voiceEnabled={voiceEnabledSortCat}
+          variant="sort_by_category"
         />
       </View>
     );

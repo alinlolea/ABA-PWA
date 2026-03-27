@@ -12,6 +12,7 @@ export const SUPPORTED_SPECIAL_TRIAL_TYPES = [
   "pattern-continuation",
   "logical-image-association",
   "sort-non-identical-items",
+  "sort-by-category",
 ] as const;
 
 export type SupportedSpecialTrialType = (typeof SUPPORTED_SPECIAL_TRIAL_TYPES)[number];
@@ -30,6 +31,7 @@ export function isSpecialTrialTypeImplemented(
  */
 const VISUAL_SKILLS_IMPLEMENTED_OBJECTIVE_IDS = new Set<number>([
   2, // Sortare itemi non-identici — trialType: sort-non-identical-items
+  10, // Sortare pe categorie — trialType: sort-by-category
 ]);
 
 /**

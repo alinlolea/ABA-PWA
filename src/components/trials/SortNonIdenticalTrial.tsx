@@ -6,11 +6,15 @@ import { db } from "@/config/firebase";
 import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import {
-  getSortPool,
-  SORT_CATEGORY_LABELS,
-  type SortCategoryId,
-  type SortPoolItem,
+  getSortPool as getSortNonIdenticalPool,
+  SORT_CATEGORY_LABELS as SORT_NON_IDENTICAL_LABELS,
 } from "@/features/sort-non-identical/sortNonIdenticalAssets";
+import {
+  getSortPeCategoriePool,
+  SORT_PE_CATEGORIE_LABELS,
+} from "@/features/sort-pe-categorie/sortPeCategorieAssets";
+import type { SortNonIdenticalCategoryId } from "@/features/sort-non-identical/sortNonIdenticalAssets";
+import type { SortPeCategorieCategoryId } from "@/features/sort-pe-categorie/sortPeCategorieAssets";
 import { LinearGradient } from "expo-linear-gradient";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -38,9 +42,11 @@ const SPAWN_ATTEMPTS = 10;
 const CORRECT_PULSE_MS = 520;
 const CARD_BORDER = "#E2E8F0";
 
+export type SortTrialVariant = "non_identical" | "sort_by_category";
+
 type TopItem = {
   instanceId: string;
-  categoryId: SortCategoryId;
+  categoryId: string;
   id: string;
   image: number;
 };
@@ -60,7 +66,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function poolItemToTopItem(p: SortPoolItem, instanceId: string): TopItem {
+function poolItemToTopItem(
+  p: { id: string; categoryId: string; image: number },
+  instanceId: string
+): TopItem {
   return {
     instanceId,
     categoryId: p.categoryId,
@@ -69,14 +78,17 @@ function poolItemToTopItem(p: SortPoolItem, instanceId: string): TopItem {
   };
 }
 
-function initRemainingAndVisible(sessionCats: SortCategoryId[]): {
-  remaining: Record<SortCategoryId, TopItem[]>;
+function initRemainingAndVisible(
+  sessionCats: string[],
+  getPool: (categoryId: string) => { id: string; categoryId: string; image: number }[]
+): {
+  remaining: Record<string, TopItem[]>;
   visible: TopItem[];
 } {
   let uid = 0;
-  const remaining = {} as Record<SortCategoryId, TopItem[]>;
+  const remaining = {} as Record<string, TopItem[]>;
   for (const cat of sessionCats) {
-    const pool = shuffle(getSortPool(cat));
+    const pool = shuffle(getPool(cat));
     remaining[cat] = pool.map((p) => poolItemToTopItem(p, `t-${uid++}`));
   }
   const visible: TopItem[] = [];
@@ -102,8 +114,8 @@ function rectsOverlap(
 
 function isNullDropTargetValid(
   slotIndex: number,
-  slotCategory: (SortCategoryId | null)[],
-  sessionCats: SortCategoryId[]
+  slotCategory: (string | null)[],
+  sessionCats: string[]
 ): boolean {
   if (slotCategory[slotIndex] !== null) return true;
   const assigned = slotCategory.filter(Boolean).length;
@@ -112,11 +124,11 @@ function isNullDropTargetValid(
 }
 
 function applyAutoAssign(
-  next: (SortCategoryId | null)[],
-  sessionCats: SortCategoryId[]
+  next: (string | null)[],
+  sessionCats: string[]
 ): void {
   const empty = next.map((v, i) => (v == null ? i : -1)).filter((i) => i >= 0);
-  const used = new Set(next.filter(Boolean) as SortCategoryId[]);
+  const used = new Set(next.filter(Boolean) as string[]);
   const missing = sessionCats.filter((c) => !used.has(c));
 
   if (sessionCats.length === 2 && used.size === 1 && empty.length >= 1 && missing.length === 1) {
@@ -132,9 +144,9 @@ function applyAutoAssign(
 function tryDrop(
   item: TopItem,
   slotIndex: number,
-  slotCategory: (SortCategoryId | null)[],
-  sessionCats: SortCategoryId[]
-): { ok: true; nextSlot: (SortCategoryId | null)[] } | { ok: false } {
+  slotCategory: (string | null)[],
+  sessionCats: string[]
+): { ok: true; nextSlot: (string | null)[] } | { ok: false } {
   const next = [...slotCategory];
 
   if (next[slotIndex] === null) {
@@ -198,20 +210,43 @@ function clamp(n: number, lo: number, hi: number): number {
 
 type Props = {
   sessionId: string;
-  sessionCategories: SortCategoryId[];
+  sessionCategories: string[];
   voiceEnabled?: boolean;
+  /** Uses pools from `sort-pe-categorie` when set; default is sort non-identical. */
+  variant?: SortTrialVariant;
 };
 
 export default function SortNonIdenticalTrial({
   sessionId,
   sessionCategories,
   voiceEnabled = true,
+  variant = "non_identical",
 }: Props) {
+  const getPool = useCallback(
+    (cat: string) => {
+      if (variant === "sort_by_category") {
+        return getSortPeCategoriePool(cat as SortPeCategorieCategoryId);
+      }
+      return getSortNonIdenticalPool(cat as SortNonIdenticalCategoryId);
+    },
+    [variant]
+  );
+
+  const categoryLabels = useMemo(
+    () =>
+      (variant === "sort_by_category" ? SORT_PE_CATEGORIE_LABELS : SORT_NON_IDENTICAL_LABELS) as Record<
+        string,
+        string
+      >,
+    [variant]
+  );
+  const getLabel = useCallback((id: string) => categoryLabels[id] ?? " ", [categoryLabels]);
+
   const nSlots = sessionCategories.length;
   const sessionKey = sessionCategories.join(",");
   const initialTrialState = useMemo(
-    () => initRemainingAndVisible(sessionCategories),
-    [sessionKey]
+    () => initRemainingAndVisible(sessionCategories, getPool),
+    [sessionKey, getPool]
   );
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -219,13 +254,13 @@ export default function SortNonIdenticalTrial({
   const topZoneHeight = screenHeight * 0.48;
 
   const [remainingByCategory, setRemainingByCategory] = useState<
-    Record<SortCategoryId, TopItem[]>
+    Record<string, TopItem[]>
   >(() => initialTrialState.remaining);
   const [visibleTop, setVisibleTop] = useState<TopItem[]>(() => initialTrialState.visible);
   const [placedBins, setPlacedBins] = useState<PlacedItem[][]>(() =>
     Array.from({ length: nSlots }, () => [])
   );
-  const [slotCategory, setSlotCategory] = useState<(SortCategoryId | null)[]>(() =>
+  const [slotCategory, setSlotCategory] = useState<(string | null)[]>(() =>
     Array(nSlots).fill(null)
   );
   const slotCategoryRef = useRef(slotCategory);
@@ -687,9 +722,7 @@ export default function SortNonIdenticalTrial({
         <View style={[styles.dropRow, { width: rowWidth, gap: bottomGap }]}>
           {Array.from({ length: nSlots }, (_, slotIndex) => {
             const label =
-              slotCategory[slotIndex] != null
-                ? SORT_CATEGORY_LABELS[slotCategory[slotIndex]!]
-                : " ";
+              slotCategory[slotIndex] != null ? getLabel(slotCategory[slotIndex]!) : " ";
             const stack = placedBins[slotIndex] ?? [];
             return (
               <View

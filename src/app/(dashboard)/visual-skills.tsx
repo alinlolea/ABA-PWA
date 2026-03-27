@@ -61,7 +61,8 @@ export default function VisualSkillsRoute() {
   const [patternUseShapes, setPatternUseShapes] = useState(false);
   const [patternStructure, setPatternStructure] = useState<"free" | "alternating">("free");
   const [logicalNumberOfPairs, setLogicalNumberOfPairs] = useState(3);
-  const [sortSelectedCategoryIds, setSortSelectedCategoryIds] = useState<string[]>([]);
+  const [sortNiCategoryIds, setSortNiCategoryIds] = useState<string[]>([]);
+  const [sortPcCategoryIds, setSortPcCategoryIds] = useState<string[]>([]);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<{ id: string; label: string } | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
@@ -113,8 +114,11 @@ export default function VisualSkillsRoute() {
   const isPatternContinuationObjective = selectedObjective?.trialType === "pattern-continuation";
   const isLogicalImageObjective = selectedObjective?.trialType === "logical-image-association";
   const isSortObjective = selectedObjective?.trialType === "sort-non-identical-items";
-  const sortTrialValid =
-    sortSelectedCategoryIds.length >= 2 && sortSelectedCategoryIds.length <= 3;
+  const isSortByCategoryObjective = selectedObjective?.trialType === "sort-by-category";
+  const sortNiValid =
+    sortNiCategoryIds.length >= 2 && sortNiCategoryIds.length <= 3;
+  const sortPcValid =
+    sortPcCategoryIds.length >= 2 && sortPcCategoryIds.length <= 3;
   const patternValid = patternLength * patternRepetitions <= 14;
   const patternStimuliValid = patternUseColors || patternUseShapes;
   const totalItems = patternLength && patternRepetitions
@@ -137,8 +141,12 @@ export default function VisualSkillsRoute() {
       (isPatternReproductionObjective ? patternValid && patternStimuliValid : false) ||
       (isPatternContinuationObjective ? patternValid && patternStimuliValid : false) ||
       isLogicalImageObjective ||
-      (isSortObjective && sortTrialValid) ||
-      (!isLogicalImageObjective && !isSortObjective && selectedTargets.length > 0));
+      (isSortObjective && sortNiValid) ||
+      (isSortByCategoryObjective && sortPcValid) ||
+      (!isLogicalImageObjective &&
+        !isSortObjective &&
+        !isSortByCategoryObjective &&
+        selectedTargets.length > 0));
 
   useEffect(() => {
     if (isSetupOpen) {
@@ -302,7 +310,16 @@ export default function VisualSkillsRoute() {
           params: {
             ...baseParams,
             trialType: "sort-non-identical-items",
-            sortCategories: JSON.stringify(sortSelectedCategoryIds),
+            sortCategories: JSON.stringify(sortNiCategoryIds),
+          },
+        });
+      } else if (isSortByCategoryObjective) {
+        router.push({
+          pathname: "/trial",
+          params: {
+            ...baseParams,
+            trialType: "sort-by-category",
+            sortCategories: JSON.stringify(sortPcCategoryIds),
           },
         });
       } else {
@@ -360,13 +377,18 @@ export default function VisualSkillsRoute() {
                   obj.trialType === "pattern-reproduction" ||
                   obj.trialType === "pattern-continuation" ||
                   obj.trialType === "logical-image-association" ||
-                  obj.trialType === "sort-non-identical-items";
+                  obj.trialType === "sort-non-identical-items" ||
+                  obj.trialType === "sort-by-category";
                 const processCategory =
                   obj.trialType === "logical-image-association"
                     ? "Perechi din imagini fixe"
                     : obj.trialType === "sort-non-identical-items"
-                      ? sortSelectedCategoryIds.length > 0
-                        ? `${sortSelectedCategoryIds.length} categorii selectate`
+                      ? sortNiCategoryIds.length > 0
+                        ? `${sortNiCategoryIds.length} categorii selectate`
+                        : "—"
+                    : obj.trialType === "sort-by-category"
+                      ? sortPcCategoryIds.length > 0
+                        ? `${sortPcCategoryIds.length} categorii selectate`
                         : "—"
                     : obj.categories.length > 0
                       ? obj.categories.map((c) => c.label).join(", ")
@@ -390,7 +412,8 @@ export default function VisualSkillsRoute() {
                         obj.trialType === "pattern-reproduction" ||
                         obj.trialType === "pattern-continuation" ||
                         obj.trialType === "logical-image-association" ||
-                        obj.trialType === "sort-non-identical-items"
+                        obj.trialType === "sort-non-identical-items" ||
+                        obj.trialType === "sort-by-category"
                       )
                         setIsSetupOpen(true);
                     }}
@@ -948,7 +971,7 @@ export default function VisualSkillsRoute() {
                   </View>
                 </View>
               </Animated.View>
-            ) : isSortObjective ? (
+            ) : isSortObjective || isSortByCategoryObjective ? (
               <Animated.View
                 {...panResponder.panHandlers}
                 style={[
@@ -969,7 +992,9 @@ export default function VisualSkillsRoute() {
                 <View style={styles.drawerContainer}>
                   <View style={[styles.drawerHeader, { paddingHorizontal: rs(20), paddingTop: rs(20), paddingBottom: rs(12) }]}>
                     <View style={[styles.drawerHeaderTextContainer, { paddingRight: rs(48) }]}>
-                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Sortare itemi</Text>
+                      <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>
+                        {isSortObjective ? "Sortare itemi non-identici" : "Sortare pe categorie"}
+                      </Text>
                       <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(4) }]}>
                         Alege 2–3 categorii (min. 2, max. 3)
                       </Text>
@@ -989,15 +1014,19 @@ export default function VisualSkillsRoute() {
                       showsVerticalScrollIndicator={false}
                     >
                       {categories.map((cat) => {
-                        const on = sortSelectedCategoryIds.includes(cat.id);
-                        const atMax = sortSelectedCategoryIds.length >= 3 && !on;
+                        const sortSel = isSortObjective ? sortNiCategoryIds : sortPcCategoryIds;
+                        const on = sortSel.includes(cat.id);
+                        const atMax = sortSel.length >= 3 && !on;
                         return (
                           <TouchableOpacity
                             key={cat.id}
                             activeOpacity={0.85}
                             disabled={atMax}
                             onPress={() => {
-                              setSortSelectedCategoryIds((prev) => {
+                              const setter = isSortObjective
+                                ? setSortNiCategoryIds
+                                : setSortPcCategoryIds;
+                              setter((prev) => {
                                 if (prev.includes(cat.id)) return prev.filter((x) => x !== cat.id);
                                 if (prev.length >= 3) return prev;
                                 return [...prev, cat.id];
@@ -1023,7 +1052,8 @@ export default function VisualSkillsRoute() {
                           </TouchableOpacity>
                         );
                       })}
-                      {sortSelectedCategoryIds.length > 0 && sortSelectedCategoryIds.length < 2 && (
+                      {((isSortObjective ? sortNiCategoryIds : sortPcCategoryIds).length > 0 &&
+                        (isSortObjective ? sortNiCategoryIds : sortPcCategoryIds).length < 2) && (
                         <Text style={{ marginTop: rs(12), fontSize: rs(13), color: "#D32F2F" }}>
                           Selectați cel puțin 2 categorii.
                         </Text>

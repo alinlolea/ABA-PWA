@@ -13,7 +13,8 @@ export type ObjectiveDefinition = {
     | "pattern-reproduction"
     | "pattern-continuation"
     | "logical-image-association"
-    | "sort-non-identical-items";
+    | "sort-non-identical-items"
+    | "sort-by-category";
   /** When true, floating Start button is hidden; user must open config drawer first. */
   requiresConfig?: boolean;
 };
@@ -53,19 +54,27 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
     requiresConfig: true,
     trialType: "sort-non-identical-items",
     categories: [
-      { id: "animale_domestice", label: "Animale domestice" },
-      { id: "animale_salbatice", label: "Animale sălbatice" },
       { id: "caini", label: "Câini" },
       { id: "copaci", label: "Copaci" },
       { id: "flori", label: "Flori" },
-      { id: "fructe", label: "Fructe" },
-      { id: "legume", label: "Legume" },
       { id: "pasari", label: "Păsări" },
     ],
   },
-  { id: 8, title: "Sortare după funcție", enabled: true, categories: [] },
+  {
+    id: 10,
+    title: "Sortare pe categorie",
+    enabled: true,
+    requiresConfig: true,
+    trialType: "sort-by-category",
+    categories: [
+      { id: "animale_domestice", label: "Animale domestice" },
+      { id: "animale_salbatice", label: "Animale sălbatice" },
+      { id: "fructe", label: "Fructe" },
+      { id: "legume", label: "Legume" },
+    ],
+  },
   { id: 9, title: "Sortare după caracteristică", enabled: true, categories: [] },
-  { id: 10, title: "Sortare pe categorie", enabled: true, categories: [] },
+  { id: 8, title: "Sortare după funcție", enabled: true, categories: [] },
   { id: 11, title: "Găsește item dispărut", enabled: true, categories: [] },
   { id: 12, title: "Reproduce secvență obiecte", enabled: true, categories: [] },
   { id: 13, title: "Ordonează după criteriu", enabled: true, categories: [] },
