@@ -1,5 +1,5 @@
 /**
- * Sortare itemi non-identici — single trial, drag from top pool to 3 bottom bins.
+ * Sortare itemi non-identici — pool-based stream, dynamic bin count, free placement in bins.
  */
 
 import { db } from "@/config/firebase";
@@ -35,12 +35,21 @@ const INCORRECT_SECOND_AUDIO_DELAY_MS = 500;
 const COMPLETION_BRAVO_DELAY_MS = 450;
 const ITEM_RADIUS = 14;
 const DROP_PAD_RATIO = 0.05;
+const SPAWN_ATTEMPTS = 10;
+const CORRECT_PULSE_MS = 520;
+const CARD_BORDER = "#E2E8F0";
 
-type SessionItem = {
+type TopItem = {
   instanceId: string;
   categoryId: SortCategoryId;
   id: string;
   image: number;
+};
+
+type PlacedItem = TopItem & {
+  relX: number;
+  relY: number;
+  zIndex: number;
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -52,22 +61,33 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function pickThreePerCategory(cats: SortCategoryId[]): SessionItem[] {
-  const out: SessionItem[] = [];
-  let counter = 0;
-  for (const cat of cats) {
-    const pool = getSortPool(cat);
-    const picked: SortPoolItem[] = shuffle(pool).slice(0, 3);
-    for (const p of picked) {
-      out.push({
-        instanceId: `${cat}-${p.id}-${counter++}`,
-        categoryId: cat,
-        id: p.id,
-        image: p.image,
-      });
+function poolItemToTopItem(p: SortPoolItem, instanceId: string): TopItem {
+  return {
+    instanceId,
+    categoryId: p.categoryId,
+    id: p.id,
+    image: p.image,
+  };
+}
+
+function initRemainingAndVisible(sessionCats: SortCategoryId[]): {
+  remaining: Record<SortCategoryId, TopItem[]>;
+  visible: TopItem[];
+} {
+  let uid = 0;
+  const remaining = {} as Record<SortCategoryId, TopItem[]>;
+  for (const cat of sessionCats) {
+    const pool = shuffle(getSortPool(cat));
+    remaining[cat] = pool.map((p) => poolItemToTopItem(p, `t-${uid++}`));
+  }
+  const visible: TopItem[] = [];
+  for (const cat of sessionCats) {
+    for (let i = 0; i < 3; i++) {
+      const next = remaining[cat].shift();
+      if (next) visible.push(next);
     }
   }
-  return shuffle(out);
+  return { remaining, visible: shuffle(visible) };
 }
 
 function rectsOverlap(
@@ -96,7 +116,7 @@ function applyAutoAssign(
   next: (SortCategoryId | null)[],
   sessionCats: SortCategoryId[]
 ): void {
-  const empty = [0, 1, 2].filter((i) => next[i] == null);
+  const empty = next.map((v, i) => (v == null ? i : -1)).filter((i) => i >= 0);
   const used = new Set(next.filter(Boolean) as SortCategoryId[]);
   const missing = sessionCats.filter((c) => !used.has(c));
 
@@ -111,7 +131,7 @@ function applyAutoAssign(
 }
 
 function tryDrop(
-  item: SessionItem,
+  item: TopItem,
   slotIndex: number,
   slotCategory: (SortCategoryId | null)[],
   sessionCats: SortCategoryId[]
@@ -132,42 +152,49 @@ function tryDrop(
   return { ok: false };
 }
 
-function randomPositionsForItems(
-  count: number,
+/** Top pool: random position in ~90% bounds, no overlap with existing boxes; optional exclude previous point. */
+function findSpawnTopPosition(
   poolW: number,
   poolH: number,
-  itemSize: number
-): { x: number; y: number }[] {
+  itemSize: number,
+  existing: { x: number; y: number }[],
+  excludePrevious?: { x: number; y: number } | null
+): { x: number; y: number } {
   const pad = DROP_PAD_RATIO * Math.min(poolW, poolH);
-  const maxX = Math.max(pad, poolW - itemSize - pad);
-  const maxY = Math.max(pad, poolH - itemSize - pad);
   const minX = pad;
   const minY = pad;
-  const positions: { x: number; y: number }[] = [];
-  const maxTries = 60;
-  for (let i = 0; i < count; i++) {
-    let placed = false;
-    for (let t = 0; t < maxTries && !placed; t++) {
-      const x = minX + Math.random() * (maxX - minX);
-      const y = minY + Math.random() * (maxY - minY);
-      const overlaps = positions.some((p) =>
-        rectsOverlap(x, y, itemSize, p.x, p.y, itemSize)
-      );
-      if (!overlaps) {
-        positions.push({ x, y });
-        placed = true;
-      }
+  const maxX = Math.max(minX, poolW - itemSize - pad);
+  const maxY = Math.max(minY, poolH - itemSize - pad);
+
+  const distOk = (x: number, y: number) => {
+    if (
+      excludePrevious &&
+      rectsOverlap(x, y, itemSize, excludePrevious.x, excludePrevious.y, itemSize)
+    ) {
+      return false;
     }
-    if (!placed) {
-      const fx = minX + (i % 5) * (itemSize * 0.35);
-      const fy = minY + Math.floor(i / 5) * (itemSize * 0.35);
-      positions.push({
-        x: Math.min(fx, maxX),
-        y: Math.min(fy, maxY),
-      });
+    return !existing.some((p) => rectsOverlap(x, y, itemSize, p.x, p.y, itemSize));
+  };
+
+  for (let t = 0; t < SPAWN_ATTEMPTS; t++) {
+    const x = minX + Math.random() * (maxX - minX);
+    const y = minY + Math.random() * (maxY - minY);
+    if (distOk(x, y)) return { x, y };
+  }
+
+  const step = Math.max(8, itemSize * 0.35);
+  for (let gy = minY; gy <= maxY; gy += step) {
+    for (let gx = minX; gx <= maxX; gx += step) {
+      const x = Math.min(gx, maxX);
+      const y = Math.min(gy, maxY);
+      if (distOk(x, y)) return { x, y };
     }
   }
-  return positions;
+  return { x: minX, y: minY };
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n));
 }
 
 type Props = {
@@ -181,23 +208,33 @@ export default function SortNonIdenticalTrial({
   sessionCategories,
   voiceEnabled = true,
 }: Props) {
+  const nSlots = sessionCategories.length;
+  const sessionKey = sessionCategories.join(",");
+  const initialTrialState = useMemo(
+    () => initRemainingAndVisible(sessionCategories),
+    [sessionKey]
+  );
+
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const itemSize = Math.min(100, Math.max(72, screenWidth * 0.09));
   const topZoneHeight = screenHeight * 0.48;
 
-  const [sessionItems] = useState<SessionItem[]>(() => pickThreePerCategory(sessionCategories));
-  const [topItems, setTopItems] = useState<SessionItem[]>(() => [...sessionItems]);
-  const [bins, setBins] = useState<SessionItem[][]>(() => [[], [], []]);
-  const [slotCategory, setSlotCategory] = useState<(SortCategoryId | null)[]>(() => [
-    null,
-    null,
-    null,
-  ]);
+  const [remainingByCategory, setRemainingByCategory] = useState<
+    Record<SortCategoryId, TopItem[]>
+  >(() => initialTrialState.remaining);
+  const [visibleTop, setVisibleTop] = useState<TopItem[]>(() => initialTrialState.visible);
+  const [placedBins, setPlacedBins] = useState<PlacedItem[][]>(() =>
+    Array.from({ length: nSlots }, () => [])
+  );
+  const [slotCategory, setSlotCategory] = useState<(SortCategoryId | null)[]>(() =>
+    Array(nSlots).fill(null)
+  );
   const slotCategoryRef = useRef(slotCategory);
   slotCategoryRef.current = slotCategory;
 
   const [positionsById, setPositionsById] = useState<Record<string, { x: number; y: number }>>({});
-  const positionsInitRef = useRef(false);
+  const placedZRef = useRef(0);
+
   const [completed, setCompleted] = useState(false);
   const [trialPromptReady, setTrialPromptReady] = useState(!voiceEnabled);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -205,19 +242,26 @@ export default function SortNonIdenticalTrial({
 
   const poolRef = useRef<View | null>(null);
   const poolLayout = useRef({ x: 0, y: 0, w: 0, h: 0 });
-  const dropSlotRefs = useRef<(View | null)[]>([null, null, null]);
-  const dropLayouts = useRef<{ x: number; y: number; w: number; h: number }[]>([
-    { x: 0, y: 0, w: 0, h: 0 },
-    { x: 0, y: 0, w: 0, h: 0 },
-    { x: 0, y: 0, w: 0, h: 0 },
-  ]);
+  const dropSlotRefs = useRef<(View | null)[]>(
+    Array.from({ length: nSlots }, () => null)
+  );
+  const dropLayouts = useRef<{ x: number; y: number; w: number; h: number }[]>(
+    Array.from({ length: nSlots }, () => ({ x: 0, y: 0, w: 0, h: 0 }))
+  );
 
   const pansRef = useRef<Record<string, Animated.ValueXY>>({});
-  const slotBorderAnims = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
-  const slotShakeX = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  const slotBorderAnims = useRef(
+    Array.from({ length: nSlots }, () => new Animated.Value(0))
+  ).current;
+  const slotShakeX = useRef(Array.from({ length: nSlots }, () => new Animated.Value(0))).current;
+  const slotPulseScale = useRef(Array.from({ length: nSlots }, () => new Animated.Value(1))).current;
   const feedbackBusyRef = useRef(false);
-
   const firestoreSyncedRef = useRef(false);
+
+  const poolsRemainCount = useMemo(
+    () => sessionCategories.reduce((s, c) => s + remainingByCategory[c].length, 0),
+    [remainingByCategory, sessionCategories]
+  );
 
   const ensurePan = useCallback((id: string) => {
     if (!pansRef.current[id]) {
@@ -226,22 +270,35 @@ export default function SortNonIdenticalTrial({
     return pansRef.current[id];
   }, []);
 
-  const topItemsRef = useRef(topItems);
-  topItemsRef.current = topItems;
+  const visibleTopRef = useRef(visibleTop);
+  visibleTopRef.current = visibleTop;
 
-  const initPositionsOnce = useCallback(() => {
-    if (positionsInitRef.current) return;
+  const assignInitialTopPositions = useCallback(() => {
     const w = poolLayout.current.w;
     const h = poolLayout.current.h;
-    if (!w || !h || topItemsRef.current.length === 0) return;
-    positionsInitRef.current = true;
-    const pos = randomPositionsForItems(topItemsRef.current.length, w, h, itemSize);
-    const map: Record<string, { x: number; y: number }> = {};
-    topItemsRef.current.forEach((it, i) => {
-      map[it.instanceId] = pos[i] ?? { x: 0, y: 0 };
+    if (!w || !h || visibleTopRef.current.length === 0) return;
+    setPositionsById((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const occupied: { x: number; y: number }[] = [];
+      for (const t of visibleTopRef.current) {
+        const existing = next[t.instanceId];
+        if (existing != null) {
+          occupied.push(existing);
+          continue;
+        }
+        const pos = findSpawnTopPosition(w, h, itemSize, occupied, null);
+        next[t.instanceId] = pos;
+        occupied.push(pos);
+        changed = true;
+      }
+      return changed ? next : prev;
     });
-    setPositionsById(map);
   }, [itemSize]);
+
+  useEffect(() => {
+    assignInitialTopPositions();
+  }, [visibleTop, assignInitialTopPositions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,13 +319,14 @@ export default function SortNonIdenticalTrial({
   }, [voiceEnabled]);
 
   useEffect(() => {
-    if (topItems.length > 0 || completed) return;
+    if (completed) return;
+    if (visibleTop.length > 0 || poolsRemainCount > 0) return;
     const t = setTimeout(() => {
       void playAudio("bravo");
       setCompleted(true);
     }, COMPLETION_BRAVO_DELAY_MS);
     return () => clearTimeout(t);
-  }, [topItems.length, completed]);
+  }, [visibleTop.length, poolsRemainCount, completed]);
 
   useEffect(() => {
     if (!completed || !sessionId || firestoreSyncedRef.current) return;
@@ -281,12 +339,12 @@ export default function SortNonIdenticalTrial({
   }, [completed, sessionId]);
 
   const measureSlots = useCallback(() => {
-    for (let s = 0; s < 3; s++) {
+    for (let s = 0; s < nSlots; s++) {
       dropSlotRefs.current[s]?.measureInWindow((x, y, w, h) => {
         dropLayouts.current[s] = { x, y, w, h };
       });
     }
-  }, []);
+  }, [nSlots]);
 
   const animateReturn = useCallback((instanceId: string) => {
     const pan = pansRef.current[instanceId];
@@ -305,32 +363,42 @@ export default function SortNonIdenticalTrial({
     ]).start();
   }, []);
 
-  const randomizePosition = useCallback(
+  const randomizeTopPosition = useCallback(
     (instanceId: string) => {
       const w = poolLayout.current.w || screenWidth;
       const h = poolLayout.current.h || topZoneHeight;
-      const others = topItems.filter((t) => t.instanceId !== instanceId);
-      const otherPos = others.map((t) => positionsById[t.instanceId]).filter(Boolean) as {
-        x: number;
-        y: number;
-      }[];
-      const pad = DROP_PAD_RATIO * Math.min(w, h);
-      const maxX = Math.max(pad, w - itemSize - pad);
-      const maxY = Math.max(pad, h - itemSize - pad);
-      let tries = 0;
-      let nx = pad;
-      let ny = pad;
-      while (tries++ < 50) {
-        nx = pad + Math.random() * (maxX - pad);
-        ny = pad + Math.random() * (maxY - pad);
-        const overlaps = otherPos.some((p) =>
-          rectsOverlap(nx, ny, itemSize, p.x, p.y, itemSize)
-        );
-        if (!overlaps) break;
-      }
-      setPositionsById((prev) => ({ ...prev, [instanceId]: { x: nx, y: ny } }));
+      const others = visibleTop
+        .filter((t) => t.instanceId !== instanceId)
+        .map((t) => positionsById[t.instanceId])
+        .filter(Boolean) as { x: number; y: number }[];
+      const prev = positionsById[instanceId];
+      const pos = findSpawnTopPosition(w, h, itemSize, others, prev ?? null);
+      setPositionsById((p) => ({ ...p, [instanceId]: pos }));
     },
-    [topItems, positionsById, screenWidth, topZoneHeight, itemSize]
+    [visibleTop, positionsById, screenWidth, topZoneHeight, itemSize]
+  );
+
+  const runContainerCorrectFeedback = useCallback(
+    (slotIndex: number) => {
+      slotBorderAnims[slotIndex].setValue(1);
+      slotPulseScale[slotIndex].setValue(1);
+      Animated.sequence([
+        Animated.timing(slotPulseScale[slotIndex], {
+          toValue: 1.06,
+          duration: CORRECT_PULSE_MS / 2,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slotPulseScale[slotIndex], {
+          toValue: 1,
+          duration: CORRECT_PULSE_MS / 2,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      setTimeout(() => {
+        slotBorderAnims[slotIndex].setValue(0);
+      }, CORRECT_PULSE_MS);
+    },
+    [slotBorderAnims, slotPulseScale]
   );
 
   const runIncorrectFeedback = useCallback(
@@ -372,16 +440,16 @@ export default function SortNonIdenticalTrial({
         panAnim,
       ]).start(() => {
         border.setValue(0);
-        randomizePosition(poolInstanceId);
+        randomizeTopPosition(poolInstanceId);
         setInteractionLocked(false);
         feedbackBusyRef.current = false;
       });
     },
-    [randomizePosition, slotBorderAnims, slotShakeX]
+    [randomizeTopPosition, slotBorderAnims, slotShakeX]
   );
 
   const handleRelease = useCallback(
-    (instanceId: string, item: SessionItem) =>
+    (instanceId: string, item: TopItem) =>
       (_: unknown, gestureState: { dx: number; dy: number }) => {
         setActiveDragId(null);
         if (interactionLocked || feedbackBusyRef.current || !trialPromptReady) {
@@ -398,11 +466,13 @@ export default function SortNonIdenticalTrial({
         }
 
         const pool = poolLayout.current;
-        const cubeScreenX = pool.x + pos.x + itemSize / 2 + dx;
-        const cubeScreenY = pool.y + pos.y + itemSize / 2 + dy;
+        const itemLeft = pool.x + pos.x + dx;
+        const itemTop = pool.y + pos.y + dy;
+        const cubeScreenX = itemLeft + itemSize / 2;
+        const cubeScreenY = itemTop + itemSize / 2;
 
         let hit: number | null = null;
-        for (let s = 0; s < 3; s++) {
+        for (let s = 0; s < nSlots; s++) {
           const L = dropLayouts.current[s];
           if (!L || L.w < 8) continue;
           if (
@@ -429,37 +499,82 @@ export default function SortNonIdenticalTrial({
           return;
         }
 
+        const L = dropLayouts.current[hit];
+        let relX = itemLeft - L.x;
+        let relY = itemTop - L.y;
+        relX = clamp(relX, 0, Math.max(0, L.w - itemSize));
+        relY = clamp(relY, 0, Math.max(0, L.h - itemSize));
+
+        const z = ++placedZRef.current;
+        const placed: PlacedItem = { ...item, relX, relY, zIndex: z };
+
         void playAudio("bravo");
         feedbackBusyRef.current = true;
         setInteractionLocked(true);
         setSlotCategory(result.nextSlot);
-        setBins((prev) => {
+        setPlacedBins((prev) => {
           const next = prev.map((b) => [...b]);
-          next[hit!] = [...next[hit!], item];
+          next[hit!] = [...next[hit!], placed];
           return next;
         });
-        setTopItems((prev) => prev.filter((t) => t.instanceId !== instanceId));
-        slotBorderAnims[hit].setValue(1);
+
+        const cat = item.categoryId;
+        const excludePos = { x: pos.x, y: pos.y };
+
+        setRemainingByCategory((prevR) => {
+          const newR = { ...prevR, [cat]: [...prevR[cat]] };
+          const nextFromPool = newR[cat].shift() ?? null;
+
+          setVisibleTop((prevV) => {
+            const nv = prevV.filter((t) => t.instanceId !== instanceId);
+            setPositionsById((pp) => {
+              const copy = { ...pp };
+              delete copy[instanceId];
+              if (nextFromPool) {
+                const w = poolLayout.current.w;
+                const h = poolLayout.current.h;
+                if (w && h) {
+                  const existingBoxes = nv
+                    .map((t) => copy[t.instanceId] ?? pp[t.instanceId])
+                    .filter((p): p is { x: number; y: number } => p != null);
+                  copy[nextFromPool.instanceId] = findSpawnTopPosition(
+                    w,
+                    h,
+                    itemSize,
+                    existingBoxes,
+                    excludePos
+                  );
+                }
+              }
+              return copy;
+            });
+            return nextFromPool ? [...nv, nextFromPool] : nv;
+          });
+
+          return newR;
+        });
+
+        runContainerCorrectFeedback(hit);
         setTimeout(() => {
-          slotBorderAnims[hit].setValue(0);
           setInteractionLocked(false);
           feedbackBusyRef.current = false;
-        }, 450);
+        }, CORRECT_PULSE_MS + 40);
       },
     [
       interactionLocked,
       trialPromptReady,
       positionsById,
       sessionCategories,
+      nSlots,
       animateReturn,
       runIncorrectFeedback,
       itemSize,
-      slotBorderAnims,
+      runContainerCorrectFeedback,
     ]
   );
 
   const panResponders = useMemo(() => {
-    return topItems.map((item) => {
+    return visibleTop.map((item) => {
       const pan = ensurePan(item.instanceId);
       return PanResponder.create({
         onStartShouldSetPanResponder: () =>
@@ -473,10 +588,41 @@ export default function SortNonIdenticalTrial({
         onPanResponderTerminate: handleRelease(item.instanceId, item),
       });
     });
-  }, [topItems, trialPromptReady, activeDragId, interactionLocked, ensurePan, handleRelease]);
+  }, [visibleTop, trialPromptReady, activeDragId, interactionLocked, ensurePan, handleRelease]);
 
   const bottomGap = 10;
-  const slotW = (screenWidth * 0.92 - bottomGap * 2) / 3;
+  const rowWidth = screenWidth * 0.95;
+  const slotW = (rowWidth - bottomGap * (nSlots - 1)) / nSlots;
+
+  const renderItemCard = (image: number, size: number, elevated?: boolean) => (
+    <View
+      style={[
+        styles.itemCard,
+        {
+          width: size,
+          height: size,
+          borderRadius: ITEM_RADIUS,
+          borderWidth: 1,
+          borderColor: CARD_BORDER,
+          backgroundColor: "#FFFFFF",
+          elevation: elevated ? 6 : 3,
+          shadowOpacity: elevated ? 0.18 : 0.12,
+        },
+      ]}
+    >
+      <Image
+        source={normalizeRasterSource(image)}
+        style={{
+          width: size * 0.88,
+          height: size * 0.88,
+          borderRadius: ITEM_RADIUS - 3,
+        }}
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+        {...(Platform.OS === "web" ? { draggable: false } : {})}
+      />
+    </View>
+  );
 
   if (completed) {
     return (
@@ -502,13 +648,14 @@ export default function SortNonIdenticalTrial({
           onLayout={() => {
             poolRef.current?.measureInWindow((x, y, w, h) => {
               poolLayout.current = { x, y, w, h };
-              initPositionsOnce();
+              assignInitialTopPositions();
             });
           }}
         >
-          {topItems.map((item, index) => {
+          {visibleTop.map((item, index) => {
             const pos = positionsById[item.instanceId] ?? { x: 0, y: 0 };
             const pan = ensurePan(item.instanceId);
+            const dragging = activeDragId === item.instanceId;
             return (
               <Animated.View
                 key={item.instanceId}
@@ -519,7 +666,7 @@ export default function SortNonIdenticalTrial({
                     top: pos.y,
                     width: itemSize,
                     height: itemSize,
-                    zIndex: activeDragId === item.instanceId ? 20 : 1,
+                    zIndex: dragging ? 40 : 2,
                   },
                   {
                     transform: [{ translateX: pan.x }, { translateY: pan.y }],
@@ -527,28 +674,7 @@ export default function SortNonIdenticalTrial({
                 ]}
                 {...panResponders[index].panHandlers}
               >
-                <View
-                  style={[
-                    styles.cardOuter,
-                    {
-                      width: itemSize,
-                      height: itemSize,
-                      borderRadius: ITEM_RADIUS,
-                    },
-                  ]}
-                >
-                  <Image
-                    source={normalizeRasterSource(item.image)}
-                    style={{
-                      width: itemSize * 0.92,
-                      height: itemSize * 0.92,
-                      borderRadius: ITEM_RADIUS - 2,
-                    }}
-                    resizeMode="contain"
-                    accessibilityIgnoresInvertColors
-                    {...(Platform.OS === "web" ? { draggable: false } : {})}
-                  />
-                </View>
+                {renderItemCard(item.image, itemSize, dragging)}
               </Animated.View>
             );
           })}
@@ -563,77 +689,73 @@ export default function SortNonIdenticalTrial({
       />
 
       <View style={styles.bottomZone}>
-        <View style={[styles.dropRow, { width: screenWidth * 0.95, gap: bottomGap }]}>
-          {[0, 1, 2].map((slotIndex) => {
+        <View style={[styles.dropRow, { width: rowWidth, gap: bottomGap }]}>
+          {Array.from({ length: nSlots }, (_, slotIndex) => {
             const label =
               slotCategory[slotIndex] != null
                 ? SORT_CATEGORY_LABELS[slotCategory[slotIndex]!]
                 : " ";
-            const stack = bins[slotIndex];
+            const stack = placedBins[slotIndex] ?? [];
             return (
               <View
                 key={slotIndex}
-                style={[styles.slotCol, { width: slotW, minHeight: itemSize * 2.4 }]}
+                style={[styles.slotCol, { width: slotW, minHeight: itemSize * 2.6 }]}
               >
                 <Text style={styles.slotLabel} numberOfLines={2}>
                   {label}
                 </Text>
                 <Animated.View
-                  ref={(el) => {
-                    dropSlotRefs.current[slotIndex] = el as unknown as View | null;
+                  style={{
+                    transform: [{ scale: slotPulseScale[slotIndex] }],
+                    width: "100%",
                   }}
-                  onLayout={() => {
-                    measureSlots();
-                  }}
-                  style={[
-                    styles.slotBox,
-                    {
-                      minHeight: itemSize * 2,
-                      borderColor: slotBorderAnims[slotIndex].interpolate({
-                        inputRange: [0, 1, 2],
-                        outputRange: ["rgba(148, 163, 184, 0.85)", "#2ecc71", "#e74c3c"],
-                      }),
-                    },
-                  ]}
                 >
                   <Animated.View
-                    style={{
-                      flex: 1,
-                      width: "100%",
-                      transform: [{ translateX: slotShakeX[slotIndex] }],
+                    ref={(el) => {
+                      dropSlotRefs.current[slotIndex] = el as unknown as View | null;
                     }}
+                    onLayout={() => {
+                      measureSlots();
+                    }}
+                    style={[
+                      styles.slotBox,
+                      {
+                        minHeight: itemSize * 2.2,
+                        borderColor: slotBorderAnims[slotIndex].interpolate({
+                          inputRange: [0, 1, 2],
+                          outputRange: ["rgba(148, 163, 184, 0.85)", "#2ecc71", "#e74c3c"],
+                        }),
+                      },
+                    ]}
                   >
-                    <View style={styles.stackInner}>
-                      {stack.map((b, bi) => {
-                        const rot = bi % 2 === 0 ? "4deg" : "-5deg";
-                        const ox = (bi % 3) * 4 - 4;
-                        const oy = -bi * 6;
-                        return (
+                    <Animated.View
+                      style={{
+                        flex: 1,
+                        width: "100%",
+                        minHeight: itemSize * 2,
+                        transform: [{ translateX: slotShakeX[slotIndex] }],
+                      }}
+                    >
+                      <View style={styles.binContent}>
+                        {stack.map((b) => (
                           <View
                             key={b.instanceId}
                             style={[
-                              styles.stackItem,
+                              styles.placedAbsolute,
                               {
-                                zIndex: bi + 1,
-                                transform: [{ translateX: ox }, { translateY: oy }, { rotate: rot }],
+                                left: b.relX,
+                                top: b.relY,
+                                width: itemSize,
+                                height: itemSize,
+                                zIndex: b.zIndex,
                               },
                             ]}
                           >
-                            <Image
-                              source={normalizeRasterSource(b.image)}
-                              style={{
-                                width: itemSize * 0.88,
-                                height: itemSize * 0.88,
-                                borderRadius: ITEM_RADIUS - 2,
-                              }}
-                              resizeMode="contain"
-                              accessibilityIgnoresInvertColors
-                              {...(Platform.OS === "web" ? { draggable: false } : {})}
-                            />
+                            {renderItemCard(b.image, itemSize)}
                           </View>
-                        );
-                      })}
-                    </View>
+                        ))}
+                      </View>
+                    </Animated.View>
                   </Animated.View>
                 </Animated.View>
               </View>
@@ -671,16 +793,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardOuter: {
-    backgroundColor: Theme.colors.card,
+  itemCard: {
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
     shadowRadius: 6,
-    elevation: 4,
   },
   horizontalDivider: {
     height: 2,
@@ -711,27 +830,21 @@ const styles = StyleSheet.create({
     fontFamily: Theme.fontFamily.medium,
   },
   slotBox: {
-    flex: 1,
     width: "100%",
     borderRadius: ITEM_RADIUS,
     borderWidth: 2,
     borderStyle: "dashed",
     backgroundColor: Theme.colors.activeBg,
-    overflow: "visible",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingBottom: 8,
+    overflow: "hidden",
   },
-  stackInner: {
+  binContent: {
+    flex: 1,
     width: "100%",
-    alignItems: "center",
-    justifyContent: "flex-end",
     minHeight: 40,
     position: "relative",
   },
-  stackItem: {
+  placedAbsolute: {
     position: "absolute",
-    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
   },
