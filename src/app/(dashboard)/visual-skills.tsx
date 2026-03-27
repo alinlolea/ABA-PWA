@@ -353,11 +353,6 @@ export default function VisualSkillsRoute() {
               {OBJECTIVES.map((obj) => {
                 const isSelected = obj.id === selectedId;
                 const isDisabled = !obj.enabled || !isVisualSkillsObjectiveImplemented(obj);
-                const sortNeedsConfig =
-                  obj.trialType === "sort-non-identical-items" && !sortTrialValid;
-                /** Dim only the selected sort card until 2–3 categories are chosen; avoid looking "disabled" when another objective is selected or after remount. */
-                const sortSelectedButIncomplete =
-                  sortNeedsConfig && isSelected;
                 const configurable =
                   obj.categories.length > 0 ||
                   obj.trialType === "tower_over_model" ||
@@ -384,7 +379,6 @@ export default function VisualSkillsRoute() {
                       { padding: rs(14), borderRadius: rs(12) },
                       isSelected && styles.objectiveGridCardSelected,
                       isDisabled && objectiveGridCardDisabledStyle,
-                      sortSelectedButIncomplete && { opacity: 0.52 },
                     ]}
                     onPress={() => {
                       if (isDisabled) return;
@@ -455,11 +449,9 @@ export default function VisualSkillsRoute() {
                       <Text style={[styles.objectiveGridBadgeText, { fontSize: rs(12) }]}>
                         {isDisabled
                           ? "În curând"
-                          : obj.trialType === "sort-non-identical-items" && !sortTrialValid
-                            ? "Configurează probele"
-                            : configurable
-                              ? "⚙ Configurabil"
-                              : "Standard"}
+                          : configurable
+                            ? "⚙ Configurabil"
+                            : "Standard"}
                       </Text>
                     </View>
                   </TouchableOpacity>
