@@ -110,7 +110,7 @@ function buildRound(
   height: number,
   imageOuter: number,
   lastSignature: string | null
-): { placed: PlacedIdentifyItem[]; correct: IdentifyByCategoryItem; targetCategory: IdentifyByCategoryId } | null {
+): { placed: PlacedIdentifyItem[]; targetCategory: IdentifyByCategoryId } | null {
   if (categories.length < 2) return null;
 
   const maxAttempts = 24;
@@ -133,8 +133,7 @@ function buildRound(
       continue;
     }
 
-    const correct = correctPool[Math.floor(Math.random() * correctPool.length)]!;
-    return { placed, correct, targetCategory };
+    return { placed, targetCategory };
   }
 
   return null;
@@ -167,7 +166,9 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
   const mountedRef = useRef(true);
   const sessionFinishedRef = useRef(false);
-  const correctItemRef = useRef<IdentifyByCategoryItem | null>(null);
+  /** Category named in the prompt; every on-screen item in this category must be tapped. */
+  const targetCategoryRef = useRef<IdentifyByCategoryId | null>(null);
+  const remainingTargetKeysRef = useRef<Set<string>>(new Set());
   const lastLayoutSigRef = useRef<string | null>(null);
   const correctTrialsRef = useRef(0);
   const audioChainRef = useRef(Promise.resolve());
@@ -197,7 +198,8 @@ export default function ReceptiveIdentifyByCategoryTrial({
   useEffect(() => {
     if (selectedCategories.length < 2) {
       setPlacedItems([]);
-      correctItemRef.current = null;
+      targetCategoryRef.current = null;
+      remainingTargetKeysRef.current = new Set();
       setPromptReady(false);
       return;
     }
@@ -217,13 +219,17 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
     if (!round) {
       setPlacedItems([]);
-      correctItemRef.current = null;
+      targetCategoryRef.current = null;
+      remainingTargetKeysRef.current = new Set();
       setPromptReady(false);
       return;
     }
 
     lastLayoutSigRef.current = layoutSignature(round.targetCategory, round.placed);
-    correctItemRef.current = round.correct;
+    targetCategoryRef.current = round.targetCategory;
+    remainingTargetKeysRef.current = new Set(
+      round.placed.filter((p) => p.categoryId === round.targetCategory).map(itemKey)
+    );
     setPlacedItems(round.placed);
 
     if (!voiceEnabled) {
@@ -262,37 +268,65 @@ export default function ReceptiveIdentifyByCategoryTrial({
   const handlePress = useCallback(
     (item: PlacedIdentifyItem) => {
       if (sessionFinishedRef.current || !promptReady || interactionLocked) return;
-      const correct = correctItemRef.current;
-      if (!correct) return;
+      const targetCat = targetCategoryRef.current;
+      if (targetCat == null) return;
+
+      const k = itemKey(item);
+      const inTargetCategory = item.categoryId === targetCat;
+      const stillNeeded = remainingTargetKeysRef.current.has(k);
+
+      if (inTargetCategory && !stillNeeded) {
+        return;
+      }
+
+      const isCorrect = inTargetCategory && stillNeeded;
 
       setInteractionLocked(true);
-      const k = itemKey(item);
-      const isCorrect = item.categoryId === correct.categoryId && item.id === correct.id;
 
       enqueueAudio(async () => {
         if (sessionFinishedRef.current) return;
 
         if (isCorrect) {
-          correctTrialsRef.current += 1;
+          remainingTargetKeysRef.current.delete(k);
+          const trialComplete = remainingTargetKeysRef.current.size === 0;
+
           if (mountedRef.current) {
-            setFeedbackByKey({ [k]: "correct" });
+            setFeedbackByKey((prev) => ({ ...prev, [k]: "correct" }));
           }
           if (voiceEnabled) {
             await playSuccessAudio();
           }
-        } else {
-          if (mountedRef.current) {
-            setFeedbackByKey({ [k]: "incorrect" });
+
+          await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
+
+          if (!mountedRef.current || sessionFinishedRef.current) return;
+
+          if (trialComplete) {
+            correctTrialsRef.current += 1;
+            advanceAfterResponse();
+          } else if (mountedRef.current) {
+            setInteractionLocked(false);
           }
-          if (voiceEnabled) {
-            await playErrorAudio();
-          }
+          return;
+        }
+
+        if (mountedRef.current) {
+          setFeedbackByKey((prev) => ({ ...prev, [k]: "incorrect" }));
+        }
+        if (voiceEnabled) {
+          await playErrorAudio();
         }
 
         await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
 
-        if (!mountedRef.current || sessionFinishedRef.current) return;
-        advanceAfterResponse();
+        if (mountedRef.current && !sessionFinishedRef.current) {
+          setFeedbackByKey((prev) => {
+            const next = { ...prev };
+            delete next[k];
+            return next;
+          });
+          setInteractionLocked(false);
+        }
       });
     },
     [promptReady, interactionLocked, voiceEnabled, enqueueAudio, advanceAfterResponse]
@@ -319,7 +353,7 @@ export default function ReceptiveIdentifyByCategoryTrial({
           <Pressable
             key={`${currentTrialIndex}-${k}-${item.left}-${item.top}`}
             accessibilityLabel=""
-            disabled={!tapsEnabled}
+            disabled={!tapsEnabled || fb === "correct"}
             style={[
               styles.tile,
               {
