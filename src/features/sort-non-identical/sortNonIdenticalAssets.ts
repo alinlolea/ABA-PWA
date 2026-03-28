@@ -3,6 +3,7 @@ export type SortNonIdenticalCategoryId =
   | "caini"
   | "copaci"
   | "flori"
+  | "masini"
   | "pasari"
   | "pesti"
   | "scaune";
@@ -46,6 +47,17 @@ const POOL_FLORI: SortPoolItem[] = [
   { id: "floare7", categoryId: "flori", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/flori/floare7.png") },
   { id: "floare8", categoryId: "flori", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/flori/floare8.png") },
   { id: "floare9", categoryId: "flori", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/flori/floare9.png") },
+];
+
+const POOL_MASINI: SortPoolItem[] = [
+  { id: "masina1", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina1.png") },
+  { id: "masina2", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina2.png") },
+  { id: "masina3", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina3.png") },
+  { id: "masina4", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina4.png") },
+  { id: "masina5", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina5.png") },
+  { id: "masina6", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina6.png") },
+  { id: "masina7", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina7.png") },
+  { id: "masina8", categoryId: "masini", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/masini/masina8.png") },
 ];
 
 const POOL_PASARI: SortPoolItem[] = [
@@ -92,6 +104,7 @@ export const SORT_POOL_BY_CATEGORY: Record<SortNonIdenticalCategoryId, SortPoolI
   "caini": POOL_CAINI,
   "copaci": POOL_COPACI,
   "flori": POOL_FLORI,
+  "masini": POOL_MASINI,
   "pasari": POOL_PASARI,
   "pesti": POOL_PESTI,
   "scaune": POOL_SCAUNE,
@@ -105,6 +118,7 @@ export const SORT_CATEGORY_LABELS: Record<SortNonIdenticalCategoryId, string> = 
   caini: "Câini",
   copaci: "Copaci",
   flori: "Flori",
+  masini: "Mașini",
   pasari: "Păsări",
   pesti: "Pești",
   scaune: "Scaune",

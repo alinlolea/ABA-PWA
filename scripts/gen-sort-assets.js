@@ -2,11 +2,12 @@ const fs = require("fs");
 const path = require("path");
 
 const base = "assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini";
-const folders = ["caini", "copaci", "flori", "pasari", "pesti", "scaune"];
+const folders = ["caini", "copaci", "flori", "masini", "pasari", "pesti", "scaune"];
 const idMap = {
   caini: "caini",
   copaci: "copaci",
   flori: "flori",
+  masini: "masini",
   pasari: "pasari",
   pesti: "pesti",
   scaune: "scaune",
@@ -16,6 +17,7 @@ const categoryLabels = {
   caini: "Câini",
   copaci: "Copaci",
   flori: "Flori",
+  masini: "Mașini",
   pasari: "Păsări",
   pesti: "Pești",
   scaune: "Scaune",
@@ -32,6 +34,9 @@ out += "export type SortPoolItem = { id: string; categoryId: SortNonIdenticalCat
 for (const f of folders) {
   const cid = idMap[f];
   const dir = path.join(__dirname, "..", base, f);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   const files = fs.readdirSync(dir).filter((x) => x.endsWith(".png")).sort();
   out += `const POOL_${cid.toUpperCase()}: SortPoolItem[] = [\n`;
   for (const file of files) {

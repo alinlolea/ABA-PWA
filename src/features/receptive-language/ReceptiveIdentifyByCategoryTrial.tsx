@@ -19,8 +19,9 @@ import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from
 
 const TRIAL_TOTAL = 10;
 const POST_RESPONSE_MS = 800;
+const BETWEEN_PROMPT_MS = 400;
 
-type FeedbackState = "neutral" | "correct" | "incorrect";
+type FeedbackState = "neutral" | "incorrect";
 
 type PlacedIdentifyItem = IdentifyByCategoryItem & {
   left: number;
@@ -72,13 +73,13 @@ function buildPlacements(
   return out;
 }
 
-function layoutSignature(targetCategory: IdentifyByCategoryId, placed: PlacedIdentifyItem[]): string {
+function layoutSignatureFromPlaced(placed: PlacedIdentifyItem[]): string {
   const keys = [...placed].map((p) => itemKey(p)).sort().join("|");
   const pos = [...placed]
     .map((p) => `${Math.round(p.left)},${Math.round(p.top)}`)
     .sort()
     .join(";");
-  return `${targetCategory}|${keys}|${pos}`;
+  return `${keys}|${pos}`;
 }
 
 function sampleItemsForCategories(
@@ -103,6 +104,24 @@ function sampleItemsForCategories(
   return out;
 }
 
+/** Prefer a different category than the last prompt when more than one still has unidentified items. */
+function pickNextPromptCategory(
+  placed: PlacedIdentifyItem[],
+  unidentified: Set<string>,
+  lastPromptedCategory: IdentifyByCategoryId | null
+): IdentifyByCategoryId | null {
+  const eligible = new Set<IdentifyByCategoryId>();
+  for (const p of placed) {
+    if (unidentified.has(itemKey(p))) eligible.add(p.categoryId);
+  }
+  const list = [...eligible];
+  if (list.length === 0) return null;
+  if (list.length === 1) return list[0]!;
+  const others = list.filter((c) => c !== lastPromptedCategory);
+  const pool = others.length > 0 ? others : list;
+  return pool[Math.floor(Math.random() * pool.length)]!;
+}
+
 function buildRound(
   categories: IdentifyByCategoryId[],
   perCategory: number,
@@ -110,15 +129,16 @@ function buildRound(
   height: number,
   imageOuter: number,
   lastSignature: string | null
-): { placed: PlacedIdentifyItem[]; targetCategory: IdentifyByCategoryId } | null {
+): { placed: PlacedIdentifyItem[] } | null {
   if (categories.length < 2) return null;
 
   const maxAttempts = 24;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const targetCategory = categories[Math.floor(Math.random() * categories.length)]!;
     const items = sampleItemsForCategories(categories, perCategory);
-    const correctPool = items.filter((it) => it.categoryId === targetCategory);
-    if (correctPool.length === 0) continue;
+    if (items.length === 0) continue;
+
+    const catsOnScreen = new Set(items.map((i) => i.categoryId));
+    if (catsOnScreen.size < 2) continue;
 
     const shuffledItems = shuffle(items);
     const positions = buildPlacements(shuffledItems.length, width, height, imageOuter);
@@ -128,12 +148,12 @@ function buildRound(
       top: positions[i]!.top,
     }));
 
-    const sig = layoutSignature(targetCategory, placed);
+    const sig = layoutSignatureFromPlaced(placed);
     if (lastSignature != null && sig === lastSignature && attempt < maxAttempts - 1) {
       continue;
     }
 
-    return { placed, targetCategory };
+    return { placed };
   }
 
   return null;
@@ -160,18 +180,26 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
   const [placedItems, setPlacedItems] = useState<PlacedIdentifyItem[]>([]);
+  /** Correctly identified items are removed from the screen for the rest of this trial. */
+  const [eliminatedKeys, setEliminatedKeys] = useState<Set<string>>(() => new Set());
   const [feedbackByKey, setFeedbackByKey] = useState<Record<string, FeedbackState>>({});
   const [promptReady, setPromptReady] = useState(false);
   const [interactionLocked, setInteractionLocked] = useState(false);
 
   const mountedRef = useRef(true);
   const sessionFinishedRef = useRef(false);
-  /** Category named in the prompt; every on-screen item in this category must be tapped. */
-  const targetCategoryRef = useRef<IdentifyByCategoryId | null>(null);
-  const remainingTargetKeysRef = useRef<Set<string>>(new Set());
+  const placedItemsRef = useRef<PlacedIdentifyItem[]>([]);
+  /** Items not yet correctly identified for the current prompt sequence. */
+  const unidentifiedKeysRef = useRef<Set<string>>(new Set());
+  /** Category spoken in the current instruction (must match tap). */
+  const currentPromptCategoryRef = useRef<IdentifyByCategoryId | null>(null);
   const lastLayoutSigRef = useRef<string | null>(null);
   const correctTrialsRef = useRef(0);
   const audioChainRef = useRef(Promise.resolve());
+
+  useEffect(() => {
+    placedItemsRef.current = placedItems;
+  }, [placedItems]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -195,11 +223,22 @@ export default function ReceptiveIdentifyByCategoryTrial({
     router.back();
   }, [sessionId, router]);
 
+  const advanceAfterResponse = useCallback(() => {
+    if (sessionFinishedRef.current) return;
+    const ti = currentTrialIndex;
+    if (ti >= TRIAL_TOTAL - 1) {
+      void completeSession();
+    } else {
+      setCurrentTrialIndex((i) => i + 1);
+    }
+  }, [currentTrialIndex, completeSession]);
+
   useEffect(() => {
     if (selectedCategories.length < 2) {
       setPlacedItems([]);
-      targetCategoryRef.current = null;
-      remainingTargetKeysRef.current = new Set();
+      setEliminatedKeys(new Set());
+      unidentifiedKeysRef.current = new Set();
+      currentPromptCategoryRef.current = null;
       setPromptReady(false);
       return;
     }
@@ -207,6 +246,7 @@ export default function ReceptiveIdentifyByCategoryTrial({
     setPromptReady(false);
     setInteractionLocked(false);
     setFeedbackByKey({});
+    setEliminatedKeys(new Set());
 
     const round = buildRound(
       selectedCategories,
@@ -219,18 +259,29 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
     if (!round) {
       setPlacedItems([]);
-      targetCategoryRef.current = null;
-      remainingTargetKeysRef.current = new Set();
+      setEliminatedKeys(new Set());
+      unidentifiedKeysRef.current = new Set();
+      currentPromptCategoryRef.current = null;
       setPromptReady(false);
       return;
     }
 
-    lastLayoutSigRef.current = layoutSignature(round.targetCategory, round.placed);
-    targetCategoryRef.current = round.targetCategory;
-    remainingTargetKeysRef.current = new Set(
-      round.placed.filter((p) => p.categoryId === round.targetCategory).map(itemKey)
-    );
+    lastLayoutSigRef.current = layoutSignatureFromPlaced(round.placed);
     setPlacedItems(round.placed);
+    placedItemsRef.current = round.placed;
+
+    unidentifiedKeysRef.current = new Set(round.placed.map(itemKey));
+    const firstPrompt = pickNextPromptCategory(
+      round.placed,
+      unidentifiedKeysRef.current,
+      null
+    );
+    currentPromptCategoryRef.current = firstPrompt;
+
+    if (firstPrompt == null) {
+      setPromptReady(false);
+      return;
+    }
 
     if (!voiceEnabled) {
       setPromptReady(true);
@@ -239,7 +290,10 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
     enqueueAudio(async () => {
       if (!mountedRef.current || sessionFinishedRef.current) return;
-      await playAudioModule(getIdentifyByCategoryPromptAudio(round.targetCategory));
+      const cat = currentPromptCategoryRef.current;
+      if (cat == null) return;
+      if (mountedRef.current) setPromptReady(false);
+      await playAudioModule(getIdentifyByCategoryPromptAudio(cat));
       if (mountedRef.current && !sessionFinishedRef.current) {
         setPromptReady(true);
       }
@@ -255,56 +309,69 @@ export default function ReceptiveIdentifyByCategoryTrial({
     enqueueAudio,
   ]);
 
-  const advanceAfterResponse = useCallback(() => {
-    if (sessionFinishedRef.current) return;
-    const ti = currentTrialIndex;
-    if (ti >= TRIAL_TOTAL - 1) {
-      void completeSession();
-    } else {
-      setCurrentTrialIndex((i) => i + 1);
-    }
-  }, [currentTrialIndex, completeSession]);
-
   const handlePress = useCallback(
     (item: PlacedIdentifyItem) => {
       if (sessionFinishedRef.current || !promptReady || interactionLocked) return;
-      const targetCat = targetCategoryRef.current;
-      if (targetCat == null) return;
+      const promptCat = currentPromptCategoryRef.current;
+      if (promptCat == null) return;
 
       const k = itemKey(item);
-      const inTargetCategory = item.categoryId === targetCat;
-      const stillNeeded = remainingTargetKeysRef.current.has(k);
+      const unidentified = unidentifiedKeysRef.current;
+      const stillUnidentified = unidentified.has(k);
+      const matchesPrompt = item.categoryId === promptCat;
 
-      if (inTargetCategory && !stillNeeded) {
+      if (matchesPrompt && !stillUnidentified) {
         return;
       }
 
-      const isCorrect = inTargetCategory && stillNeeded;
+      const isCorrect = matchesPrompt && stillUnidentified;
 
       setInteractionLocked(true);
+      if (voiceEnabled) {
+        setPromptReady(false);
+      }
 
       enqueueAudio(async () => {
         if (sessionFinishedRef.current) return;
 
         if (isCorrect) {
-          remainingTargetKeysRef.current.delete(k);
-          const trialComplete = remainingTargetKeysRef.current.size === 0;
+          const promptedCategory = promptCat;
+          unidentified.delete(k);
+          const trialComplete = unidentified.size === 0;
 
           if (mountedRef.current) {
-            setFeedbackByKey((prev) => ({ ...prev, [k]: "correct" }));
-          }
-          if (voiceEnabled) {
-            await playSuccessAudio();
+            setEliminatedKeys((prev) => new Set([...prev, k]));
           }
 
-          await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
+          if (voiceEnabled) {
+            await playSuccessAudio();
+            await new Promise<void>((r) => setTimeout(r, BETWEEN_PROMPT_MS));
+          } else {
+            await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
+          }
 
           if (!mountedRef.current || sessionFinishedRef.current) return;
 
           if (trialComplete) {
             correctTrialsRef.current += 1;
+            if (voiceEnabled) setPromptReady(false);
             advanceAfterResponse();
-          } else if (mountedRef.current) {
+            return;
+          }
+
+          const nextCat = pickNextPromptCategory(
+            placedItemsRef.current,
+            unidentified,
+            promptedCategory
+          );
+          currentPromptCategoryRef.current = nextCat;
+
+          if (voiceEnabled && nextCat != null) {
+            await playAudioModule(getIdentifyByCategoryPromptAudio(nextCat));
+          }
+
+          if (mountedRef.current && !sessionFinishedRef.current) {
+            setPromptReady(true);
             setInteractionLocked(false);
           }
           return;
@@ -315,9 +382,14 @@ export default function ReceptiveIdentifyByCategoryTrial({
         }
         if (voiceEnabled) {
           await playErrorAudio();
+          await new Promise<void>((r) => setTimeout(r, BETWEEN_PROMPT_MS));
+          const repeatCat = currentPromptCategoryRef.current;
+          if (repeatCat != null) {
+            await playAudioModule(getIdentifyByCategoryPromptAudio(repeatCat));
+          }
+        } else {
+          await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
         }
-
-        await new Promise<void>((r) => setTimeout(r, POST_RESPONSE_MS));
 
         if (mountedRef.current && !sessionFinishedRef.current) {
           setFeedbackByKey((prev) => {
@@ -325,6 +397,7 @@ export default function ReceptiveIdentifyByCategoryTrial({
             delete next[k];
             return next;
           });
+          setPromptReady(true);
           setInteractionLocked(false);
         }
       });
@@ -338,22 +411,22 @@ export default function ReceptiveIdentifyByCategoryTrial({
 
   const progressLabel = `${currentTrialIndex + 1} / ${TRIAL_TOTAL}`;
   const tapsEnabled = promptReady && !interactionLocked;
+  const visiblePlacedItems = placedItems.filter((p) => !eliminatedKeys.has(itemKey(p)));
 
   return (
     <View style={[styles.screen, { width, height }, trialUiRootShellStyle]}>
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>{progressLabel}</Text>
       </View>
-      {placedItems.map((item) => {
+      {visiblePlacedItems.map((item) => {
         const k = itemKey(item);
         const fb = feedbackByKey[k] ?? "neutral";
-        const borderColor =
-          fb === "correct" ? "#22C55E" : fb === "incorrect" ? "#EF4444" : "#64748B";
+        const borderColor = fb === "incorrect" ? "#EF4444" : "#64748B";
         return (
           <Pressable
             key={`${currentTrialIndex}-${k}-${item.left}-${item.top}`}
             accessibilityLabel=""
-            disabled={!tapsEnabled || fb === "correct"}
+            disabled={!tapsEnabled}
             style={[
               styles.tile,
               {
