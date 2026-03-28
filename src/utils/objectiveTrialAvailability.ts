@@ -46,7 +46,10 @@ export function isVisualSkillsObjectiveImplemented(obj: ObjectiveDefinition): bo
 }
 
 /** Receptive dashboard card ids that map to a dedicated `TrialScreen` branch. */
-const RECEPTIVE_IMPLEMENTED_IDS = new Set<string>(["show_common_objects"]);
+const RECEPTIVE_IMPLEMENTED_IDS = new Set<string>([
+  "show_common_objects",
+  "receptive_identify_by_category",
+]);
 
 export function isReceptiveDashboardObjectiveImplemented(objectiveId: string): boolean {
   return RECEPTIVE_IMPLEMENTED_IDS.has(objectiveId);

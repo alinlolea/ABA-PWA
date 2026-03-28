@@ -10,7 +10,9 @@ import { Spacing } from "@/design/spacing";
 import { Theme } from "@/design/theme";
 import { Typography } from "@/design/typography";
 import { generateTrials } from "@/features/b1-2d-matching/logic/generateTrials";
+import ReceptiveIdentifyByCategoryTrial from "@/features/receptive-language/ReceptiveIdentifyByCategoryTrial";
 import ReceptiveShowCommonObjectsTrial from "@/features/receptive-language/ReceptiveShowCommonObjectsTrial";
+import { isIdentifyByCategoryId, type IdentifyByCategoryId } from "@/features/receptive-language/identifyByCategoryAssets";
 import { STIMULI_BY_CATEGORY, type CategoryKey } from "@/features/b1-2d-matching/stimuliByCategory";
 import type { B1Config, SessionState, Stimulus, Trial } from "@/features/b1-2d-matching/types";
 import { auth, db } from "@/config/firebase";
@@ -464,6 +466,10 @@ type TrialParams = {
   numberOfPairs?: string;
   /** JSON array of category ids for sort-non-identical-items / sort-by-category. */
   sortCategories?: string;
+  /** JSON array of `IdentifyByCategoryId` for receptive_identify_by_category. */
+  selectedCategories?: string;
+  /** Items sampled per category (1–4) for receptive_identify_by_category. */
+  itemsPerCategory?: string;
 };
 
 const VALID_SORT_NON_IDENTICAL_CATEGORY_IDS = new Set<string>([
@@ -579,6 +585,44 @@ export default function TrialScreen() {
         itemCount={itemCount}
         distractorCount={distractorCount}
         voiceEnabled={voiceEnabledReceptive}
+      />
+    );
+  }
+  if (objective === "receptive_identify_by_category") {
+    if (!sessionId) {
+      throw new Error("TrialScreen: sessionId is required for receptive_identify_by_category.");
+    }
+    const rawCats =
+      typeof params.selectedCategories === "string"
+        ? params.selectedCategories
+        : Array.isArray(params.selectedCategories)
+          ? params.selectedCategories[0] ?? "[]"
+          : "[]";
+    let parsedCats: string[] = [];
+    try {
+      parsedCats = JSON.parse(rawCats) as string[];
+    } catch {
+      parsedCats = [];
+    }
+    const selectedCats = parsedCats.filter(isIdentifyByCategoryId) as IdentifyByCategoryId[];
+    if (selectedCats.length < 2 || selectedCats.length > 3) {
+      throw new Error("TrialScreen: selectedCategories must contain 2–3 valid category ids.");
+    }
+    const ipcRaw = Array.isArray(params.itemsPerCategory)
+      ? params.itemsPerCategory[0]
+      : params.itemsPerCategory;
+    const itemsPerCategoryIdentify = Math.min(
+      4,
+      Math.max(1, parseInt(String(ipcRaw ?? "2"), 10) || 2)
+    );
+    const voiceEnabledIdentify =
+      (Array.isArray(params.voiceEnabled) ? params.voiceEnabled[0] : params.voiceEnabled) !== "false";
+    return (
+      <ReceptiveIdentifyByCategoryTrial
+        sessionId={sessionId}
+        selectedCategories={selectedCats}
+        itemsPerCategory={itemsPerCategoryIdentify}
+        voiceEnabled={voiceEnabledIdentify}
       />
     );
   }

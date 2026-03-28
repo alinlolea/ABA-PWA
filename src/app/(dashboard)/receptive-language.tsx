@@ -9,6 +9,11 @@ import {
   RECEPTIVE_CATEGORIES,
   type ReceptiveCategory,
 } from "@/features/receptive-language/categories";
+import {
+  getIdentifyByCategoryPool,
+  isIdentifyByCategoryId,
+  type IdentifyByCategoryId,
+} from "@/features/receptive-language/identifyByCategoryAssets";
 import { getReceptiveItemPool } from "@/features/receptive-language/receptiveItemAssets";
 import { auth, db } from "@/config/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -29,6 +34,15 @@ import {
 } from "react-native";
 
 const SHOW_COMMON_OBJECTS_ID = "show_common_objects";
+const RECEPTIVE_IDENTIFY_BY_CATEGORY_ID = "receptive_identify_by_category";
+
+const IDENTIFY_BY_CATEGORY_OPTIONS: { id: IdentifyByCategoryId; label: string }[] = [
+  { id: "animale_domestice", label: "Animale domestice" },
+  { id: "animale_salbatice", label: "Animale sălbatice" },
+  { id: "fructe", label: "Fructe" },
+  { id: "legume", label: "Legume" },
+  { id: "haine", label: "Haine" },
+];
 
 const RECEPTIVE_OBJECTIVES = [
   { id: SHOW_COMMON_OBJECTS_ID, name: "Arată obiecte comune", processCategory: "Identificare simplă", configurable: true },
@@ -37,7 +51,12 @@ const RECEPTIVE_OBJECTIVES = [
   { id: "show_actions", name: "Arată acțiuni", processCategory: "Identificare simplă", configurable: false },
   { id: "identify_by_function", name: "Identifică obiect după funcție", processCategory: "Conceptual", configurable: false },
   { id: "identify_by_characteristic", name: "Identifică obiect după caracteristică", processCategory: "Conceptual", configurable: false },
-  { id: "identify_by_category", name: "Identifică după categorie", processCategory: "Conceptual", configurable: false },
+  {
+    id: RECEPTIVE_IDENTIFY_BY_CATEGORY_ID,
+    name: "Identifică după categorie",
+    processCategory: "Conceptual",
+    configurable: true,
+  },
   { id: "show_two_items", name: "Arată 2 itemi", processCategory: "Multi-select", configurable: false },
   { id: "show_two_items_order", name: "Arată 2 itemi în ordine", processCategory: "Secvențiere verbală", configurable: false },
   { id: "identify_jobs", name: "Identifică meserii", processCategory: "Identificare simplă", configurable: false },
@@ -67,14 +86,27 @@ export default function ReceptiveLanguageRoute() {
   const [distractorCount, setDistractorCount] = useState<number>(0);
   const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
 
+  const [identifySelectedIds, setIdentifySelectedIds] = useState<IdentifyByCategoryId[]>([]);
+  const [identifyItemsPerCat, setIdentifyItemsPerCat] = useState(2);
+
   const isShowCommonObjects = selectedId === SHOW_COMMON_OBJECTS_ID;
+  const isIdentifyByCategory = selectedId === RECEPTIVE_IDENTIFY_BY_CATEGORY_ID;
+
+  const identifyConfigOk =
+    isIdentifyByCategory &&
+    identifySelectedIds.length >= 2 &&
+    identifySelectedIds.length <= 3 &&
+    identifyItemsPerCat >= 1 &&
+    identifyItemsPerCat <= 4 &&
+    identifySelectedIds.every((id) => getIdentifyByCategoryPool(id).length > 0);
 
   const canStart =
-    isShowCommonObjects &&
-    selectedCategory != null &&
-    getReceptiveItemPool(selectedCategory).length > 0 &&
-    itemCount >= 1 &&
-    itemCount <= 5;
+    (isShowCommonObjects &&
+      selectedCategory != null &&
+      getReceptiveItemPool(selectedCategory).length > 0 &&
+      itemCount >= 1 &&
+      itemCount <= 5) ||
+    identifyConfigOk;
 
   const touchMin = Math.max(48, TouchTarget.minSize);
 
@@ -97,6 +129,13 @@ export default function ReceptiveLanguageRoute() {
   }, [isShowCommonObjects]);
 
   useEffect(() => {
+    if (!isIdentifyByCategory) {
+      setIdentifySelectedIds([]);
+      setIdentifyItemsPerCat(2);
+    }
+  }, [isIdentifyByCategory]);
+
+  useEffect(() => {
     if (!isSetupOpen) setCategoryMenuVisible(false);
   }, [isSetupOpen]);
 
@@ -106,6 +145,22 @@ export default function ReceptiveLanguageRoute() {
 
   const bumpDistractorCount = (delta: number) => {
     setDistractorCount((c) => Math.min(3, Math.max(0, c + delta)));
+  };
+
+  const toggleIdentifyCategory = (id: IdentifyByCategoryId) => {
+    if (!isIdentifyByCategoryId(id)) return;
+    if (getIdentifyByCategoryPool(id).length === 0) return;
+    setIdentifySelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((x) => x !== id);
+      }
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const bumpIdentifyItemsPerCat = (delta: number) => {
+    setIdentifyItemsPerCat((c) => Math.min(4, Math.max(1, c + delta)));
   };
 
   const handleStartSesiune = async () => {
@@ -141,6 +196,48 @@ export default function ReceptiveLanguageRoute() {
             category: selectedCategory,
             itemCount: String(itemCount),
             distractorCount: String(distractorCount),
+            childId: selectedChildId,
+            voiceEnabled: String(voiceEnabled),
+          },
+        });
+      } catch {
+        // do not block navigation
+      }
+      return;
+    }
+
+    if (selectedId === RECEPTIVE_IDENTIFY_BY_CATEGORY_ID) {
+      if (!identifyConfigOk) return;
+      try {
+        const sessionRef = await addDoc(collection(db, "sessions"), {
+          userId: currentUser.uid,
+          childId: selectedChildId,
+          startedAt: serverTimestamp(),
+          completedAt: null,
+          totalTrials: 0,
+          correctTrials: 0,
+          masteredItems: 0,
+          objectives: [
+            {
+              objectiveId: RECEPTIVE_IDENTIFY_BY_CATEGORY_ID,
+              trials: 0,
+              correct: 0,
+              mastered: false,
+            },
+          ],
+          selectedCategories: identifySelectedIds,
+          itemsPerCategory: identifyItemsPerCat,
+          objectiveType: "receptive_identify_by_category",
+        });
+        const childSnap = await getDoc(doc(db, "children", selectedChildId));
+        const voiceEnabled = childSnap.exists() ? childSnap.data().voiceEnabled !== false : true;
+        router.push({
+          pathname: "/trial",
+          params: {
+            sessionId: sessionRef.id,
+            objective: "receptive_identify_by_category",
+            selectedCategories: JSON.stringify(identifySelectedIds),
+            itemsPerCategory: String(identifyItemsPerCat),
             childId: selectedChildId,
             voiceEnabled: String(voiceEnabled),
           },
@@ -255,6 +352,152 @@ export default function ReceptiveLanguageRoute() {
             </View>
           </View>
         </View>
+
+        {isSetupOpen && selectedId === RECEPTIVE_IDENTIFY_BY_CATEGORY_ID && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            <TouchableWithoutFeedback
+              onPress={() => setIsSetupOpen(false)}
+              accessible={false}
+            >
+              <View style={styles.configBackdrop}>
+                <TouchableWithoutFeedback onPress={() => {}} accessible={false}>
+                  <View
+                    style={[
+                      styles.setupDrawer,
+                      {
+                        width: "42%",
+                        minWidth: rs(360),
+                        maxWidth: rs(520),
+                        paddingTop: rs(16),
+                        paddingHorizontal: rs(16),
+                      },
+                    ]}
+                  >
+                    <View style={[styles.drawerHeader, { marginBottom: rs(12), paddingBottom: rs(12) }]}>
+                      <View style={{ flex: 1, paddingRight: rs(8) }}>
+                        <Text style={[styles.drawerTitle, { fontSize: rs(18) }]}>Identifică după categorie</Text>
+                        <Text style={[styles.drawerSubtitle, { fontSize: rs(13), marginTop: rs(4) }]}>
+                          Alege 2–3 categorii și câte imagini din fiecare
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setIsSetupOpen(false)}
+                        hitSlop={{ top: rs(12), bottom: rs(12), left: rs(12), right: rs(12) }}
+                        style={{
+                          minWidth: rs(touchMin),
+                          minHeight: rs(touchMin),
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        accessibilityLabel="Închide configurarea"
+                      >
+                        <Ionicons name="close" size={rs(24)} color="#1E293B" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView
+                      style={styles.configScroll}
+                      contentContainerStyle={{ paddingBottom: rs(Spacing.xl) }}
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                        Categorii (2–3)
+                      </Text>
+                      <View style={[styles.identifyChipWrap, { marginBottom: rs(Spacing.lg), gap: rs(8) }]}>
+                        {IDENTIFY_BY_CATEGORY_OPTIONS.map(({ id, label }) => {
+                          const poolLen = getIdentifyByCategoryPool(id).length;
+                          const disabled = poolLen === 0;
+                          const selected = identifySelectedIds.includes(id);
+                          const atMax = identifySelectedIds.length >= 3 && !selected;
+                          return (
+                            <TouchableOpacity
+                              key={id}
+                              activeOpacity={disabled ? 1 : 0.85}
+                              disabled={disabled || atMax}
+                              onPress={() => toggleIdentifyCategory(id)}
+                              style={[
+                                styles.identifyChip,
+                                {
+                                  paddingVertical: rs(10),
+                                  paddingHorizontal: rs(14),
+                                  borderRadius: rs(20),
+                                  opacity: disabled ? 0.45 : 1,
+                                },
+                                selected && styles.identifyChipSelected,
+                                (atMax || disabled) && !selected && styles.identifyChipMuted,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.identifyChipText,
+                                  { fontSize: rs(14) },
+                                  selected && styles.identifyChipTextSelected,
+                                ]}
+                                numberOfLines={2}
+                              >
+                                {label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                      <Text style={[styles.categoryHelperText, { fontSize: rs(13), marginBottom: rs(Spacing.lg) }]}>
+                        Apasă pentru a selecta sau deselecta. Categoriile fără imagini sunt indisponibile.
+                      </Text>
+
+                      <Text style={[styles.sectionLabel, { fontSize: rs(14), marginBottom: rs(Spacing.sm) }]}>
+                        Itemi per categorie — 1–4
+                      </Text>
+                      <View style={[styles.rowStepper, { marginBottom: rs(Spacing.md), gap: rs(Spacing.sm) }]}>
+                        <TouchableOpacity
+                          style={[
+                            styles.stepperBtn,
+                            { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                            identifyItemsPerCat <= 1 && styles.stepperBtnDisabled,
+                          ]}
+                          onPress={() => bumpIdentifyItemsPerCat(-1)}
+                          disabled={identifyItemsPerCat <= 1}
+                          accessibilityLabel="Scade itemii per categorie"
+                        >
+                          <Ionicons
+                            name="remove"
+                            size={rs(22)}
+                            color={identifyItemsPerCat <= 1 ? "#94A3B8" : "#1E293B"}
+                          />
+                        </TouchableOpacity>
+                        <View
+                          style={[
+                            styles.valuePill,
+                            { minHeight: rs(touchMin), paddingHorizontal: rs(Spacing.lg), borderRadius: rs(12) },
+                          ]}
+                        >
+                          <Text style={[styles.valuePillText, { fontSize: rs(18) }]}>{identifyItemsPerCat}</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[
+                            styles.stepperBtn,
+                            { minWidth: rs(touchMin), minHeight: rs(touchMin), borderRadius: rs(12) },
+                            identifyItemsPerCat >= 4 && styles.stepperBtnDisabled,
+                          ]}
+                          onPress={() => bumpIdentifyItemsPerCat(1)}
+                          disabled={identifyItemsPerCat >= 4}
+                          accessibilityLabel="Crește itemii per categorie"
+                        >
+                          <Ionicons
+                            name="add"
+                            size={rs(22)}
+                            color={identifyItemsPerCat >= 4 ? "#94A3B8" : "#1E293B"}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </ScrollView>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        )}
 
         {isSetupOpen && selectedId === SHOW_COMMON_OBJECTS_ID && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -775,5 +1018,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  identifyChipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  identifyChip: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+  },
+  identifyChipSelected: {
+    backgroundColor: "rgba(44,100,104,0.14)",
+    borderColor: "#2C6468",
+  },
+  identifyChipMuted: {
+    opacity: 0.55,
+  },
+  identifyChipText: {
+    fontWeight: "600",
+    color: "#1E293B",
+    maxWidth: 200,
+  },
+  identifyChipTextSelected: {
+    color: "#1E3D40",
   },
 });
