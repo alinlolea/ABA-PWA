@@ -59,6 +59,7 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
       { id: "flori", label: "Flori" },
       { id: "pasari", label: "Păsări" },
       { id: "pesti", label: "Pești" },
+      { id: "scaune", label: "Scaune" },
     ],
   },
   {

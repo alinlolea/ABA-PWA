@@ -472,6 +472,7 @@ const VALID_SORT_NON_IDENTICAL_CATEGORY_IDS = new Set<string>([
   "flori",
   "pasari",
   "pesti",
+  "scaune",
 ]);
 
 const VALID_SORT_BY_CATEGORY_IDS = new Set<string>([

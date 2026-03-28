@@ -4,7 +4,8 @@ export type SortNonIdenticalCategoryId =
   | "copaci"
   | "flori"
   | "pasari"
-  | "pesti";
+  | "pesti"
+  | "scaune";
 
 export type SortPoolItem = { id: string; categoryId: SortNonIdenticalCategoryId; image: number };
 
@@ -73,12 +74,27 @@ const POOL_PESTI: SortPoolItem[] = [
   { id: "peste9", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste9.png") },
 ];
 
+const POOL_SCAUNE: SortPoolItem[] = [
+  { id: "scaun1", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun1.png") },
+  { id: "scaun10", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun10.png") },
+  { id: "scaun11", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun11.png") },
+  { id: "scaun2", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun2.png") },
+  { id: "scaun3", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun3.png") },
+  { id: "scaun4", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun4.png") },
+  { id: "scaun5", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun5.png") },
+  { id: "scaun6", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun6.png") },
+  { id: "scaun7", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun7.png") },
+  { id: "scaun8", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun8.png") },
+  { id: "scaun9", categoryId: "scaune", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/scaune/scaun9.png") },
+];
+
 export const SORT_POOL_BY_CATEGORY: Record<SortNonIdenticalCategoryId, SortPoolItem[]> = {
   "caini": POOL_CAINI,
   "copaci": POOL_COPACI,
   "flori": POOL_FLORI,
   "pasari": POOL_PASARI,
   "pesti": POOL_PESTI,
+  "scaune": POOL_SCAUNE,
 };
 
 export function getSortPool(categoryId: SortNonIdenticalCategoryId): SortPoolItem[] {
@@ -91,4 +107,5 @@ export const SORT_CATEGORY_LABELS: Record<SortNonIdenticalCategoryId, string> = 
   flori: "Flori",
   pasari: "Păsări",
   pesti: "Pești",
+  scaune: "Scaune",
 };
