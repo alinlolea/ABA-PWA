@@ -2,12 +2,13 @@ const fs = require("fs");
 const path = require("path");
 
 const base = "assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini";
-const folders = ["animale-domestice", "animale-salbatice", "fructe", "legume"];
+const folders = ["animale-domestice", "animale-salbatice", "fructe", "legume", "haine"];
 const idMap = {
   "animale-domestice": "animale_domestice",
   "animale-salbatice": "animale_salbatice",
   fructe: "fructe",
   legume: "legume",
+  haine: "haine",
 };
 
 const categoryLabels = {
@@ -15,11 +16,7 @@ const categoryLabels = {
   animale_salbatice: "Animale sălbatice",
   fructe: "Fructe",
   legume: "Legume",
-};
-
-/** PNG basenames to skip per folder (generic câine lives under câini in sort non-identical). */
-const skipPngInFolder = {
-  "animale-domestice": new Set(["caine.png"]),
+  haine: "Haine",
 };
 
 let out = "";
@@ -33,11 +30,7 @@ out += "export type SortPeCategoriePoolItem = { id: string; categoryId: SortPeCa
 for (const f of folders) {
   const cid = idMap[f];
   const dir = path.join(__dirname, "..", base, f);
-  const skip = skipPngInFolder[f] ?? new Set();
-  const files = fs
-    .readdirSync(dir)
-    .filter((x) => x.endsWith(".png") && !skip.has(x))
-    .sort();
+  const files = fs.readdirSync(dir).filter((x) => x.endsWith(".png")).sort();
   out += `const POOL_${cid.toUpperCase()}: SortPeCategoriePoolItem[] = [\n`;
   for (const file of files) {
     const baseName = file.replace(/\.png$/, "");

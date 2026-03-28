@@ -58,6 +58,7 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
       { id: "copaci", label: "Copaci" },
       { id: "flori", label: "Flori" },
       { id: "pasari", label: "Păsări" },
+      { id: "pesti", label: "Pești" },
     ],
   },
   {
@@ -71,6 +72,7 @@ export const OBJECTIVES: ObjectiveDefinition[] = [
       { id: "animale_salbatice", label: "Animale sălbatice" },
       { id: "fructe", label: "Fructe" },
       { id: "legume", label: "Legume" },
+      { id: "haine", label: "Haine" },
     ],
   },
   { id: 9, title: "Sortare după caracteristică", enabled: true, categories: [] },

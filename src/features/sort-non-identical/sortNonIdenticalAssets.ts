@@ -3,7 +3,8 @@ export type SortNonIdenticalCategoryId =
   | "caini"
   | "copaci"
   | "flori"
-  | "pasari";
+  | "pasari"
+  | "pesti";
 
 export type SortPoolItem = { id: string; categoryId: SortNonIdenticalCategoryId; image: number };
 
@@ -60,11 +61,24 @@ const POOL_PASARI: SortPoolItem[] = [
   { id: "pasare9", categoryId: "pasari", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pasari/pasare9.png") },
 ];
 
+const POOL_PESTI: SortPoolItem[] = [
+  { id: "peste1", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste1.png") },
+  { id: "peste2", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste2.png") },
+  { id: "peste3", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste3.png") },
+  { id: "peste4", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste4.png") },
+  { id: "peste5", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste5.png") },
+  { id: "peste6", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste6.png") },
+  { id: "peste7", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste7.png") },
+  { id: "peste8", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste8.png") },
+  { id: "peste9", categoryId: "pesti", image: require("../../../assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/pesti/peste9.png") },
+];
+
 export const SORT_POOL_BY_CATEGORY: Record<SortNonIdenticalCategoryId, SortPoolItem[]> = {
   "caini": POOL_CAINI,
   "copaci": POOL_COPACI,
   "flori": POOL_FLORI,
   "pasari": POOL_PASARI,
+  "pesti": POOL_PESTI,
 };
 
 export function getSortPool(categoryId: SortNonIdenticalCategoryId): SortPoolItem[] {
@@ -76,4 +90,5 @@ export const SORT_CATEGORY_LABELS: Record<SortNonIdenticalCategoryId, string> = 
   copaci: "Copaci",
   flori: "Flori",
   pasari: "Păsări",
+  pesti: "Pești",
 };

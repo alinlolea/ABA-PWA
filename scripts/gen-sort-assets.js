@@ -2,12 +2,13 @@ const fs = require("fs");
 const path = require("path");
 
 const base = "assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini";
-const folders = ["caini", "copaci", "flori", "pasari"];
+const folders = ["caini", "copaci", "flori", "pasari", "pesti"];
 const idMap = {
   caini: "caini",
   copaci: "copaci",
   flori: "flori",
   pasari: "pasari",
+  pesti: "pesti",
 };
 
 const categoryLabels = {
@@ -15,6 +16,7 @@ const categoryLabels = {
   copaci: "Copaci",
   flori: "Flori",
   pasari: "Păsări",
+  pesti: "Pești",
 };
 
 let out = "";

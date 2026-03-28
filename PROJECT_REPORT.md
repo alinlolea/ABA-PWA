@@ -8,7 +8,10 @@ This document describes the **ABA Visual Performance** codebase as observed in t
 - **Limbaj receptiv — „Arată obiecte comune”:** `src/features/receptive-language/receptiveItemAssets.ts` include categoria **`obiecte`** (`RECEPTIVE_CATEGORY_FOLDER.obiecte` → folder `obiecte`); imagini + audio `arata … .mp3` sub `assets/programe/limbaj-receptiv/arata-obiecte-comune/obiecte/` (și set paralel de potriviri pentru B1 în `potriviri/imagini/obiecte` + `obiecte/audio/` unde e cazul).
 - **Altele (commit-uri recente):** redenumiri/reorganizare foldere animale; remedieri audio pentru unele legume (ex. morcov, cartof).
 
-**Lucru în curs (nesupus încă la git în snapshot-ul verificat):** există un director **`assets/programe/discriminare-vizuala/sortare-itemi-non-identici/imagini/`** cu multe PNG-uri (ex. `caini/`, `copaci/`, `flori/`, `pasari/`, duplicate tematice); obiectivul **„Sortare itemi non-identici”** (`OBJECTIVES` id 2) rămâne **fără trial** în `trial.tsx` până la implementare — asset-urile par pregătite pentru viitor.
+- **Feedback audio global:** `src/utils/audio.ts` — `playSuccessAudio()` / `playErrorAudio()` pentru variante aleatorii (bravo / grozav / foarte bine; gresit / mai încearcă); apeluri în trial-uri B1, receptiv, etichetare, pattern, turn, potrivire logică, sortări.
+- **Sortare — două obiective, același UI trial:** **`SortNonIdenticalTrial`** (`src/components/trials/SortNonIdenticalTrial.tsx`) cu `variant`: `"non_identical"` vs `"sort_by_category"`. **Sortare itemi non-identici** (`OBJECTIVES` id 2, `trialType: sort-non-identical-items`): categorii `caini`, `copaci`, `flori`, `pasari`; imagini `assets/.../sortare-itemi-non-identici/imagini/`. **Sortare pe categorie** (id 10, `sort-by-category`): `animale_domestice`, `animale_salbatice`, `fructe`, `legume`; imagini `assets/.../sortare-pe-categorie/imagini/` (inclus **`caine.png`** în `animale-domestice`, în pool via `scripts/gen-sort-pe-categorie-assets.js` → `src/features/sort-pe-categorie/sortPeCategorieAssets.ts`). Generare asset: `node scripts/gen-sort-assets.js` / `node scripts/gen-sort-pe-categorie-assets.js`.
+- **Rutare și dashboard:** `src/app/trial.tsx` — ramuri `sort-non-identical-items` și `sort-by-category` (param. `sortCategories` JSON). `src/app/(dashboard)/visual-skills.tsx` — configuratoare separate (`sortNiCategoryIds` / `sortPcCategoryIds`). `src/utils/objectiveTrialAvailability.ts` — tipuri speciale + id-uri 2 și 10. În grilă, ordinea cardurilor: **„Sortare pe categorie”** înainte de **„Sortare după caracteristică”** și **„Sortare după funcție”** (doar ordine în `OBJECTIVES`).
+- **Comportament sortare:** Plasare greșită — itemul revine la **poziția inițială** (fără repoziționare aleatoare); poziție nouă aleatoare doar pentru **următorul** item după plasare **corectă**. La final de probă nu se mai redă un al doilea clip de succes (evitare dublu prompt după ultimul item corect).
 
 ### Recent updates (2026-03-23)
 
@@ -113,6 +116,7 @@ Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/
 - **`trialType=pattern-reproduction`** → **`PatternReproductionTrial`**.
 - **`trialType=pattern-continuation`** → **`PatternContinuationTrial`**.
 - **`trialType=logical-image-association`** → **`LogicalMatchingTrial`** (`pairCount` 1–5).
+- **`trialType=sort-non-identical-items`** / **`trialType=sort-by-category`** → **`SortNonIdenticalTrial`** (`sortCategories` JSON, 2–3 categorii; `variant` potrivit).
 - **Default** → **B1 2D matching** UI in `trial.tsx` itself: builds **`B1Config`** via `buildB1Config`, **`generateTrials`**, drag-and-drop matching, **`playAudio("potriveste")`** on trial advance, on completion **`updateDoc`** on `sessions/{sessionId}` with scores and accuracy.
 
 ### Color labeling
@@ -164,7 +168,10 @@ Central dispatcher by **route params** (la extinderi: actualizați **`src/utils/
 | `src/features/b1-2d-matching/stimuliByCategory.ts` | **`CategoryKey`**: `colors`, `shapes`, `fruits`, `vegetables`, `animals_domestic`, `animals_wild`, `objects`; raster-urile sunt sub `potriviri/imagini/` (subfoldere per categorie, ex. `animale-domestice`, `obiecte`) |
 | `src/utils/trialUiShell.ts` | **`trialUiRootShellStyle`** — suprafețe trial: `touchAction: "none"`, pe web blocare selecție / callout implicit |
 | `src/utils/rasterImageSource.ts` | Detectare / normalizare sursă `Image` pentru PNG-uri Metro pe web (`uri` / `default`) |
-| `src/utils/audio.ts` | **`playAudio(name)`** maps string keys to bundled MP3 assets |
+| `src/utils/audio.ts` | **`playAudio`**, **`playSuccessAudio`**, **`playErrorAudio`** — chei către MP3-uri |
+| `src/components/trials/SortNonIdenticalTrial.tsx` | Sortare itemi non-identici / sortare pe categorie (DnD în zone, `variant`, pool-uri din `sort-non-identical` / `sort-pe-categorie`) |
+| `src/features/sort-non-identical/sortNonIdenticalAssets.ts` | `getSortPool`, categorii non-identic |
+| `src/features/sort-pe-categorie/sortPeCategorieAssets.ts` | `getSortPeCategoriePool`, categorii sortare pe categorie |
 | `src/contexts/SelectedChildContext.tsx` | Selected child id for dashboard and sessions (exact provider location: context folder) |
 
 ### State management
@@ -230,7 +237,7 @@ No third-party REST APIs were identified in the sampled paths except Firebase SD
 
 ## 10. Current Limitations / Missing Pieces
 
-1. **`OBJECTIVES` entries without `trialType` and with `categories: []`** (e.g. sort / sequence ids 2, 8–14): **În UI sunt dezactivate** (nu se pot selecta / porni); implementarea trial lipsește încă.
+1. **`OBJECTIVES` entries without `trialType` and with `categories: []`** (ex. id 8–9, 11–14 unde e cazul): **În UI sunt dezactivate** dacă nu sunt în `objectiveTrialAvailability` / fără ramură în `trial.tsx`. Obiectivele de **sortare** id **2** și **10** au trial implementat (`sort-non-identical-items`, `sort-by-category`).
 2. **`RECEPTIVE_LANGUAGE_OBJECTIVES` / `OBJECTIVES` in `objectives.ts`** for id 100+ are **not wired** to `receptive-language.tsx`, which uses its **own** `RECEPTIVE_OBJECTIVES` array.
 3. **Receptive / reading `category` ids** (`"common"`, `"letters"`) are **not** in **`CategoryKey` / `VALID_CATEGORIES`** in `trial.tsx` → **`buildB1Config` falls back to `"colors"`**, so **started sessions may not use the intended stimulus sets** for those flows (risc rămas pentru fluxurile B1 care trec prin `trial.tsx`).
 4. **Receptive / reading:** Obiectivele fără ecran dedicat **nu mai pornesc** trial din dashboard; pentru **citire**, doar **`receptive_letters`** este marcat implementat în helper — restul așteaptă implementare.

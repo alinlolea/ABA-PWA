@@ -471,6 +471,7 @@ const VALID_SORT_NON_IDENTICAL_CATEGORY_IDS = new Set<string>([
   "copaci",
   "flori",
   "pasari",
+  "pesti",
 ]);
 
 const VALID_SORT_BY_CATEGORY_IDS = new Set<string>([
@@ -478,6 +479,7 @@ const VALID_SORT_BY_CATEGORY_IDS = new Set<string>([
   "animale_salbatice",
   "fructe",
   "legume",
+  "haine",
 ]);
 
 function buildB1Config(params: TrialParams): B1Config {

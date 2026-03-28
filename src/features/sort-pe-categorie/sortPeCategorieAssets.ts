@@ -3,11 +3,13 @@ export type SortPeCategorieCategoryId =
   | "animale_domestice"
   | "animale_salbatice"
   | "fructe"
-  | "legume";
+  | "legume"
+  | "haine";
 
 export type SortPeCategoriePoolItem = { id: string; categoryId: SortPeCategorieCategoryId; image: number };
 
 const POOL_ANIMALE_DOMESTICE: SortPeCategoriePoolItem[] = [
+  { id: "caine", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/animale-domestice/caine.png") },
   { id: "cal", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/animale-domestice/cal.png") },
   { id: "capra", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/animale-domestice/capra.png") },
   { id: "curcan", categoryId: "animale_domestice", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/animale-domestice/curcan.png") },
@@ -68,11 +70,24 @@ const POOL_LEGUME: SortPeCategoriePoolItem[] = [
   { id: "varza", categoryId: "legume", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/legume/varza.png") },
 ];
 
+const POOL_HAINE: SortPeCategoriePoolItem[] = [
+  { id: "haine1", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine1.png") },
+  { id: "haine2", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine2.png") },
+  { id: "haine3", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine3.png") },
+  { id: "haine4", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine4.png") },
+  { id: "haine5", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine5.png") },
+  { id: "haine6", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine6.png") },
+  { id: "haine7", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine7.png") },
+  { id: "haine8", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine8.png") },
+  { id: "haine9", categoryId: "haine", image: require("../../../assets/programe/discriminare-vizuala/sortare-pe-categorie/imagini/haine/haine9.png") },
+];
+
 export const SORT_PE_CATEGORIE_POOL_BY_CATEGORY: Record<SortPeCategorieCategoryId, SortPeCategoriePoolItem[]> = {
   "animale_domestice": POOL_ANIMALE_DOMESTICE,
   "animale_salbatice": POOL_ANIMALE_SALBATICE,
   "fructe": POOL_FRUCTE,
   "legume": POOL_LEGUME,
+  "haine": POOL_HAINE,
 };
 
 export function getSortPeCategoriePool(categoryId: SortPeCategorieCategoryId): SortPeCategoriePoolItem[] {
@@ -84,4 +99,5 @@ export const SORT_PE_CATEGORIE_LABELS: Record<SortPeCategorieCategoryId, string>
   animale_salbatice: "Animale sălbatice",
   fructe: "Fructe",
   legume: "Legume",
+  haine: "Haine",
 };
