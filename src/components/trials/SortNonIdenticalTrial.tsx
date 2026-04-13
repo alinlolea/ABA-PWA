@@ -148,6 +148,11 @@ function tryDrop(
   sessionCats: string[]
 ): { ok: true; nextSlot: (string | null)[] } | { ok: false } {
   const next = [...slotCategory];
+  const alreadyAssignedIndex = next.findIndex((c) => c === item.categoryId);
+  if (alreadyAssignedIndex !== -1 && alreadyAssignedIndex !== slotIndex) {
+    // Category has been claimed by another bin; lock further drops to that bin only.
+    return { ok: false };
+  }
 
   if (next[slotIndex] === null) {
     if (!isNullDropTargetValid(slotIndex, next, sessionCats)) return { ok: false };
